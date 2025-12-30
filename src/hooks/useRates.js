@@ -7,15 +7,12 @@ const DEFAULT_RATES = {
   lastUpdate: null
 };
 
-// --- CONFIGURACIÓN ---
 const EXCHANGERATE_KEY = 'F1a3af26247a97a33ee5ad90'; 
 const DEFAULT_EUR_USD_RATIO = 1.18; 
-const UPDATE_INTERVAL = 3600000; // 1 Hora
+const UPDATE_INTERVAL = 3600000; 
 
-// API PRIVADA (TIER 1 - PRIORIDAD)
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxT9sKz_XWRWuQx_XP-BJ33T0hoAgJsLwhZA00v6nPt4Ij4jRjq-90mDGLVCsS6FXwW9Q/exec?token=Lvbp1994';
 
-// Estrategias de conexión
 const CONNECTION_STRATEGIES = [
     { name: 'Directo', buildUrl: (target) => target },
     { name: 'Proxy A (AllOrigins)', buildUrl: (target) => `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}` },
@@ -55,6 +52,10 @@ export function useRates() {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
           setNotificationsEnabled(true);
+          new Notification("🔔 Notificaciones Activadas", {
+              body: "Te avisaremos cuando cambie la tasa del BCV (Dólar y Euro).",
+              icon: '/logodark.png'
+          });
           addLog("Permiso de notificaciones concedido", "success");
       }
   };
@@ -64,6 +65,14 @@ export function useRates() {
       if (typeof val === 'number') return val;
       if (typeof val === 'string') return parseFloat(val.replace(',', '.'));
       return 0;
+  };
+
+  const sendRateNotification = (title, body) => {
+      if (Notification.permission === 'granted') {
+          try {
+             new Notification(title, { body, icon: '/logodark.png', vibrate: [200, 100, 200] });
+          } catch(e) { console.error("Error notificando", e); }
+      }
   };
 
   const updateData = useCallback(async (isAutoUpdate = false) => {
@@ -85,7 +94,7 @@ export function useRates() {
     let privateData = null;
     try {
         const rawPrivate = await fetchGeneric(GOOGLE_SCRIPT_URL);
-        if (rawPrivate && (rawPrivate.bcv || rawPrivate.usd)) {
+        if (rawPrivate) {
             privateData = rawPrivate;
             addLog("✅ Datos Privados Recibidos", "success");
         }
@@ -102,27 +111,30 @@ export function useRates() {
     const calculateP2PAverage = (dataField) => {
         if (typeof dataField === 'number') return dataField;
         if (Array.isArray(dataField) && dataField.length > 0) {
-            const top5 = dataField.slice(0, 5);
+            const top3 = dataField.slice(0, 3);
             const getPrice = (item) => (typeof item === 'object' && item.price ? parseSafeFloat(item.price) : (typeof item === 'number' ? item : 0));
-            return top5.reduce((acc, curr) => acc + getPrice(curr), 0) / top5.length;
+            return top3.reduce((acc, curr) => acc + getPrice(curr), 0) / top3.length;
         }
         return 0; 
     };
 
-    // ✅ LÓGICA MEJORADA: Si el precio es igual al anterior, MANTIENE el porcentaje viejo (Sticky Change)
-    const getMeta = (newP, oldP, oldChange = 0) => {
+    // ✅ LÓGICA VITAL: Si hay cambio desde API, úsalo. Si no, calcúlalo.
+    const getMeta = (newP, oldP, oldChange = 0, apiChange = null) => {
       const p = parseSafeFloat(newP); 
       const o = parseSafeFloat(oldP);
       
-      // Si el precio no ha cambiado, devolvemos el cambio histórico que ya teníamos
+      // 1. PRIORIDAD: Si la API me dice el % de cambio, CONFÍO en la API (incluso si borré caché)
+      if (apiChange !== null && apiChange !== undefined && apiChange !== 0) {
+          return { price: p, change: parseSafeFloat(apiChange) };
+      }
+
+      // 2. Fallback: Si no hay dato de API, intento calcularlo localmente
       if (p === o) return { price: p, change: oldChange };
-      
-      // Si el precio cambió, calculamos el nuevo porcentaje real
       return { price: p, change: (p > 0 && o > 0) ? ((p - o) / o) * 100 : 0 };
     };
 
     const fetchUSDT = async () => {
-        const targetUrl = `https://criptoya.com/api/binancep2p/USDT/VES/5`; 
+        const targetUrl = `https://criptoya.com/api/binancep2p/USDT/VES/1`; 
         for (const strategy of CONNECTION_STRATEGIES) {
             try {
                 const controller = new AbortController();
@@ -132,7 +144,7 @@ export function useRates() {
                 if (!res.ok) continue;
                 
                 const result = await res.json();
-                const avgAsk = calculateP2PAverage(result.ask);
+                const avgAsk = calculateP2PAverage(result.ask); 
                 const avgBid = calculateP2PAverage(result.bid);
 
                 if (avgAsk > 0 || avgBid > 0) {
@@ -158,8 +170,8 @@ export function useRates() {
 
       let newRates = { ...(rates || DEFAULT_RATES) };
 
+      // Procesar USDT
       if (usdtResult) {
-          // Pasamos el change actual para conservarlo si es igual
           const meta = getMeta(usdtResult.price, newRates.usdt.price, newRates.usdt.change);
           newRates.usdt = { ...newRates.usdt, price: usdtResult.price, change: meta.change, source: usdtResult.source, type: 'p2p' };
       }
@@ -167,21 +179,32 @@ export function useRates() {
       let newBcvPrice = 0;
       let newEuroPrice = 0;
 
+      // ✅ Procesar DATOS PRIVADOS (Google Script)
       if (privateData) {
-          newBcvPrice = parseSafeFloat(privateData.bcv || privateData.usd);
-          newEuroPrice = parseSafeFloat(privateData.euro || privateData.eur);
+          // Detectamos si viene estructura simple o avanzada
+          const rawBcv = privateData.bcv || privateData.usd;
+          const rawEuro = privateData.euro || privateData.eur;
+
+          // Extracción inteligente
+          newBcvPrice = parseSafeFloat(typeof rawBcv === 'object' ? rawBcv.price : rawBcv);
+          // Si el Script envía "change", lo tomamos aquí
+          let apiBcvChange = typeof rawBcv === 'object' ? rawBcv.change : null;
           
+          newEuroPrice = parseSafeFloat(typeof rawEuro === 'object' ? rawEuro.price : rawEuro);
+          // Si el Script envía "change", lo tomamos aquí
+          let apiEuroChange = typeof rawEuro === 'object' ? rawEuro.change : null;
+
           if (newBcvPrice > 0) {
-              // Pasamos el change viejo
-              const meta = getMeta(newBcvPrice, newRates.bcv.price, newRates.bcv.change);
+              const meta = getMeta(newBcvPrice, newRates.bcv.price, newRates.bcv.change, apiBcvChange);
               newRates.bcv = { ...newRates.bcv, ...meta, source: 'BCV Oficial' };
           }
           if (newEuroPrice > 0) {
-              const meta = getMeta(newEuroPrice, newRates.euro.price, newRates.euro.change);
+              const meta = getMeta(newEuroPrice, newRates.euro.price, newRates.euro.change, apiEuroChange);
               newRates.euro = { ...newRates.euro, ...meta, source: 'Euro BCV' };
           }
 
       } else if (bcvFallbackData) {
+          // Fallback en caso de emergencia
           const oficial = bcvFallbackData.find(d => d.fuente === 'oficial' || d.nombre === 'Oficial');
           if (oficial?.promedio > 0) {
               newBcvPrice = parseSafeFloat(oficial.promedio);
@@ -196,6 +219,22 @@ export function useRates() {
           }
       }
 
+      // Notificaciones
+      if (notificationsEnabled && rates) {
+          const oldBcv = rates.bcv.price;
+          const currentBcv = newRates.bcv.price;
+          if (currentBcv > 0 && oldBcv > 0 && currentBcv !== oldBcv) {
+              const emoji = currentBcv > oldBcv ? "📈" : "📉";
+              sendRateNotification(`${emoji} Cambio Tasa BCV`, `La tasa oficial cambió a ${currentBcv.toFixed(2)} Bs.`);
+          }
+          const oldEuro = rates.euro.price;
+          const currentEuro = newRates.euro.price;
+          if (currentEuro > 0 && oldEuro > 0 && currentEuro !== oldEuro) {
+              const emoji = currentEuro > oldEuro ? "📈" : "📉";
+              sendRateNotification(`${emoji} Cambio Tasa EURO`, `La tasa oficial del Euro cambió a ${currentEuro.toFixed(2)} Bs.`);
+          }
+      }
+
       newRates.lastUpdate = new Date();
       setRates(newRates);
       addLog("Actualización completada", 'success');
@@ -207,15 +246,11 @@ export function useRates() {
     } finally {
       setLoading(false);
     }
-  }, [addLog, rates]);
+  }, [addLog, rates, notificationsEnabled]);
 
   useEffect(() => {
     if (!rates) updateData();
-
-    const intervalId = setInterval(() => {
-        updateData(true); 
-    }, UPDATE_INTERVAL);
-
+    const intervalId = setInterval(() => { updateData(true); }, UPDATE_INTERVAL);
     return () => clearInterval(intervalId);
   }, [updateData, rates]);
 
