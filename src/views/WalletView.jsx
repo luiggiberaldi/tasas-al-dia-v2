@@ -234,10 +234,11 @@ export default function WalletView({ rates }) {
         )}
       </div>
 
-      {/* --- FORMULARIO (CREAR / EDITAR) CON ETIQUETAS --- */}
+      {/* --- FORMULARIO (CREAR / EDITAR) CORREGIDO --- */}
       {showForm && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
+            {/* ✅ AJUSTE: max-h-[85vh] y pb-10 para evitar que el teclado o la barra tapen el botón */}
+            <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl animate-in zoom-in-95 duration-200 overflow-y-auto max-h-[85vh]">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-black text-slate-800 dark:text-white">
                         {editingId ? 'Editar Cuenta' : 'Nueva Cuenta'}
@@ -245,7 +246,7 @@ export default function WalletView({ rates }) {
                     <button onClick={() => setShowForm(false)} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-500"><X size={18}/></button>
                 </div>
 
-                <form onSubmit={handleSaveAccount} className="space-y-5">
+                <form onSubmit={handleSaveAccount} className="space-y-5 pb-4">
                     
                     {/* SELECTOR DE TIPO */}
                     <div>
@@ -275,7 +276,7 @@ export default function WalletView({ rates }) {
                         <input required placeholder="Ej: Personal, Bodega" value={newAccount.alias} onChange={e => setNewAccount({...newAccount, alias: e.target.value})} className="input-std" />
                     </div>
 
-                    {/* ✅ SELECTOR DE BANCOS (NUEVO) */}
+                    {/* ✅ SELECTOR DE BANCOS */}
                     {(newAccount.type === 'pago_movil' || newAccount.type === 'transferencia') && (
                         <div>
                             <label className={labelClass}>Banco</label>
@@ -293,7 +294,6 @@ export default function WalletView({ rates }) {
                                         </option>
                                     ))}
                                 </select>
-                                {/* Icono de flecha para el select */}
                                 <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
                                     <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
                                 </div>
@@ -334,7 +334,7 @@ export default function WalletView({ rates }) {
                         <input required placeholder="Nombre Apellido" value={newAccount.holder} onChange={e => setNewAccount({...newAccount, holder: e.target.value})} className="input-std" />
                     </div>
 
-                    <button type="submit" className="w-full py-4 bg-brand hover:bg-brand-dark text-slate-900 font-bold rounded-xl shadow-lg shadow-brand/20 mt-4">
+                    <button type="submit" className="w-full py-4 bg-brand hover:bg-brand-dark text-slate-900 font-bold rounded-xl shadow-lg shadow-brand/20 mt-4 mb-2">
                         {editingId ? 'Actualizar Cuenta' : 'Guardar Cuenta'}
                     </button>
                 </form>
@@ -342,9 +342,10 @@ export default function WalletView({ rates }) {
         </div>
       )}
 
-      {/* --- MODAL COBRO --- */}
+      {/* --- MODAL COBRO CORREGIDO --- */}
       {showShareModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+            {/* ✅ AJUSTE: mb-20 en móvil para levantar el modal sobre la barra de navegación antigua si fuera necesario, aunque el z-50 ya lo arregla. */}
             <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-t-[2rem] sm:rounded-[2rem] p-6 shadow-2xl animate-in slide-in-from-bottom-10 duration-200">
                  
                  <div className="flex justify-between items-start mb-6">
@@ -371,7 +372,7 @@ export default function WalletView({ rates }) {
                 </div>
 
                 {shareMode === 'text' ? (
-                    <div className="space-y-4 animate-in fade-in">
+                    <div className="space-y-4 animate-in fade-in pb-2">
                         <div className="relative">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">Bs</span>
                             <input type="number" autoFocus placeholder="Monto (Opcional)" value={amountBs} onChange={e => setAmountBs(e.target.value)} className="w-full pl-12 p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-lg font-bold outline-none focus:ring-2 focus:ring-brand" />
@@ -398,7 +399,7 @@ export default function WalletView({ rates }) {
                         </button>
                     </div>
                 ) : (
-                    <div className="flex flex-col items-center justify-center space-y-4 py-4 animate-in fade-in slide-in-from-right-4">
+                    <div className="flex flex-col items-center justify-center space-y-4 py-4 animate-in fade-in slide-in-from-right-4 pb-6">
                         <div className="bg-white p-4 rounded-2xl shadow-inner border border-slate-200">
                             <img 
                                 src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(getQRData(showShareModal))}&color=0f172a&bgcolor=ffffff`} 

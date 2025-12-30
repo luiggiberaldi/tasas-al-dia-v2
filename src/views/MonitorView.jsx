@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RefreshCw, Sun, Moon, TrendingUp, TrendingDown, WifiOff, Clock, Bell, BellRing, Maximize, Minimize } from 'lucide-react';
+import { RefreshCw, TrendingUp, TrendingDown, WifiOff, Clock, Bell, BellRing, Maximize, Minimize } from 'lucide-react';
 
 export default function MonitorView({ rates, loading, isOffline, onRefresh, toggleTheme, theme, copyLogs, enableNotifications, notificationsEnabled }) {
   
@@ -21,10 +21,9 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
   };
 
   // Cálculo de Brecha Cambiaria (Spread)
-  // Fórmula: ((Paralelo - BCV) / BCV) * 100
   const spread = rates.bcv.price > 0 ? ((rates.usdt.price - rates.bcv.price) / rates.bcv.price) * 100 : 0;
   
-  // Cálculo de la Diferencia en Bs (Resta simple)
+  // Cálculo de la Diferencia en Bs
   const diffBs = rates.usdt.price - rates.bcv.price;
 
   const renderChange = (change) => {
@@ -50,7 +49,13 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
             </button>
 
             <div className="flex flex-col items-center justify-center space-y-4 mb-16 scale-110">
-                <p className="text-2xl font-bold text-slate-400 uppercase tracking-[0.2em] animate-pulse">Tasa Monitor</p>
+                {/* Logo en modo kiosco */}
+                <img 
+                    src="/logodark.png" 
+                    alt="TasasAlDía" 
+                    className="h-24 sm:h-32 w-auto object-contain animate-in fade-in zoom-in duration-700"
+                />
+
                 <h1 className="text-[6.5rem] sm:text-[8rem] font-black font-mono leading-none tracking-tighter text-brand drop-shadow-2xl">
                     {formatVES(rates.usdt.price)}
                 </h1>
@@ -92,7 +97,7 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500 pb-24">
       
       {/* --- HEADER --- */}
       <header className="flex items-center justify-between pt-6 pb-2 px-3">
@@ -100,12 +105,15 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
             onClick={handleSecretDebug} 
             className="flex flex-col items-start gap-1 active:scale-95 transition-transform outline-none"
         >
+            {/* ✅ LOGO REDUCIDO: h-10 (40px) móvil / h-12 (48px) desktop */}
             <img 
                 src={theme === 'dark' ? '/logodark.png' : '/logoprincipal.png'} 
                 alt="TasasAlDía" 
-                className="h-[54px] w-auto object-contain animate-in fade-in slide-in-from-left-2 duration-500 drop-shadow-sm" 
+                className="h-10 sm:h-12 w-auto object-contain animate-in fade-in slide-in-from-left-2 duration-500 drop-shadow-sm" 
             />
-            <div className="bg-slate-100 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm ml-1">
+            
+            {/* Badge ajustado para el nuevo tamaño */}
+            <div className="bg-slate-100 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm ml-1 mt-0.5">
                 <p className="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.15em] leading-none">
                     V3.0 FÉNIX
                 </p>
@@ -133,9 +141,6 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
                 {notificationsEnabled ? <BellRing size={18} strokeWidth={2.5} /> : <Bell size={18} strokeWidth={2} />}
             </button>
 
-            <button onClick={toggleTheme} className="p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-400 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-brand-dark dark:hover:text-brand transition-all active:scale-95 shadow-sm">
-                {theme === 'dark' ? <Sun size={18} strokeWidth={2} /> : <Moon size={18} strokeWidth={2} />}
-            </button>
             <button onClick={onRefresh} disabled={loading} className={`p-2.5 rounded-2xl text-slate-900 shadow-lg shadow-brand/10 border border-transparent transition-all active:scale-95 ${loading ? 'bg-slate-100 dark:bg-slate-800 text-slate-300 cursor-not-allowed' : 'bg-brand hover:bg-brand-light border-brand-light/50'}`}>
                 <RefreshCw size={18} className={loading ? 'animate-spin' : ''} strokeWidth={2.5} />
             </button>
@@ -180,7 +185,6 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
                      <span className="text-xl font-bold text-slate-400 ml-2">Bs</span>
                  </div>
 
-                 {/* ✅ ETIQUETA CORREGIDA PARA EVITAR CONFUSIÓN */}
                  <div className="flex items-center gap-3 pt-4 border-t border-slate-50 dark:border-slate-800">
                     <div className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${spread > 10 ? 'bg-rose-50 text-rose-600 dark:bg-rose-900/20' : 'bg-slate-100 text-slate-500 dark:bg-slate-800'}`}>
                         Brecha: {spread.toFixed(2)}%
@@ -198,6 +202,7 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
           </div>
       </div>
       
+      {/* Footer Clock */}
       <div className="flex justify-center pb-4 opacity-60 hover:opacity-100 transition-opacity">
          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50">
             <Clock size={12} className="text-slate-400" />

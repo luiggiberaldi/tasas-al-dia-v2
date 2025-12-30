@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Calculator, Info, Download, CreditCard } from 'lucide-react'; // ✅ Icono CreditCard
+import { Home, Calculator, Info, Download, CreditCard } from 'lucide-react'; 
 
 import MonitorView from './views/MonitorView';
 import CalculatorView from './views/CalculatorView';
@@ -46,8 +46,13 @@ export default function App() {
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
   return (
-    <div className="font-sans antialiased">
-      <main className="max-w-md mx-auto min-h-screen p-6 relative pb-32">
+    <div className="font-sans antialiased bg-slate-50 dark:bg-black min-h-screen transition-colors duration-300">
+      
+      {/* ✅ CORRECCIÓN DE PADDING:
+         Aseguramos suficiente espacio al final (pb-36) para que el contenido 
+         no choque con la barra de navegación en pantallas altas.
+      */}
+      <main className="max-w-md mx-auto min-h-screen p-6 relative pb-36">
         {activeTab === 'monitor' && (
           <MonitorView 
             rates={rates} loading={loading} isOffline={isOffline} 
@@ -62,7 +67,6 @@ export default function App() {
           <CalculatorView rates={rates} toggleTheme={toggleTheme} theme={theme} />
         )}
 
-        {/* ✅ AHORA PASAMOS RATES A LA VISTA DE CUENTAS */}
         {activeTab === 'wallet' && (
           <WalletView rates={rates} />
         )}
@@ -72,12 +76,15 @@ export default function App() {
         )}
       </main>
 
-      <div className="fixed bottom-6 left-0 right-0 px-6 max-w-md mx-auto z-50">
+      {/* ✅ CORRECCIÓN DE Z-INDEX: 
+         Bajamos a z-30 para que los Modales (que suelen ser z-50 o z-100) 
+         siempre queden por encima de la navegación.
+      */}
+      <div className="fixed bottom-6 left-0 right-0 px-6 max-w-md mx-auto z-30">
         <div className="bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-xl rounded-3xl p-1.5 flex justify-between items-center shadow-2xl shadow-slate-900/30 border border-white/10 ring-1 ring-black/5">
           <TabButton icon={<Home size={20} strokeWidth={activeTab === 'monitor' ? 3 : 2} />} label="Inicio" isActive={activeTab === 'monitor'} onClick={() => setActiveTab('monitor')} />
           <TabButton icon={<Calculator size={20} strokeWidth={activeTab === 'calc' ? 3 : 2} />} label="Calc" isActive={activeTab === 'calc'} onClick={() => setActiveTab('calc')} />
           
-          {/* ✅ CAMBIO DE NOMBRE: Cuentas */}
           <TabButton icon={<CreditCard size={20} strokeWidth={activeTab === 'wallet' ? 3 : 2} />} label="Cuentas" isActive={activeTab === 'wallet'} onClick={() => setActiveTab('wallet')} />
 
           {installPrompt && activeTab === 'monitor' && (

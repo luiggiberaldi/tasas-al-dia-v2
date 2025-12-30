@@ -5,7 +5,9 @@ export const Modal = ({ isOpen, onClose, title, children }) => {
   if (!isOpen) return null;
 
   return (
+    // ✅ z-[100] asegura que esté por encima de la barra de navegación (z-30)
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+      
       {/* Backdrop con desenfoque */}
       <div 
         className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
@@ -26,8 +28,9 @@ export const Modal = ({ isOpen, onClose, title, children }) => {
           </button>
         </div>
 
-        {/* Body */}
-        <div className="p-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+        {/* Body con Scroll Mejorado */}
+        {/* ✅ CAMBIO: max-h-[85vh] para más espacio y pb-10 para margen inferior seguro */}
+        <div className="p-6 max-h-[85vh] overflow-y-auto custom-scrollbar pb-10">
           {children}
         </div>
       </div>

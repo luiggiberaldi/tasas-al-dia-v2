@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, FileText, AlertTriangle, Server, ChevronRight, Terminal, Copy, ArrowLeft, CreditCard, Calculator, BellRing, TrendingUp, Info, QrCode, Mic, Maximize } from 'lucide-react';
+import { Shield, FileText, AlertTriangle, Server, ChevronRight, Terminal, Copy, ArrowLeft, CreditCard, Calculator, BellRing, TrendingUp, Info, Sun, Moon } from 'lucide-react';
 
 export default function InfoView({ logs, toggleTheme, theme }) {
   const [showLogs, setShowLogs] = useState(false);
@@ -55,7 +55,7 @@ export default function InfoView({ logs, toggleTheme, theme }) {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 pt-6 pb-24">
       
-      {/* HEADER (Estilo Fénix v3.0) */}
+      {/* HEADER CON BOTÓN DE TEMA */}
       <div className="flex items-center gap-3 px-2">
          <div className="p-3 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
             <Info size={24} className="text-brand-dark dark:text-brand stroke-[2.5]" />
@@ -68,6 +68,14 @@ export default function InfoView({ logs, toggleTheme, theme }) {
                 TasasAlDía <span className="text-brand-dark dark:text-brand">v3.0 Fénix</span>
             </p>
          </div>
+
+         {/* ✅ BOTÓN DE TEMA AGREGADO AQUÍ (Alineado a la derecha) */}
+         <button 
+            onClick={toggleTheme} 
+            className="ml-auto p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-400 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-brand-dark dark:hover:text-brand transition-all active:scale-95 shadow-sm"
+         >
+            {theme === 'dark' ? <Sun size={20} strokeWidth={2} /> : <Moon size={20} strokeWidth={2} />}
+         </button>
       </div>
 
       {/* AVISO IMPORTANTE (Diseño Tarjeta) */}
@@ -87,36 +95,36 @@ export default function InfoView({ logs, toggleTheme, theme }) {
         </div>
       </div>
 
-      {/* --- ECOSISTEMA ACTUALIZADO V3.0 --- */}
+      {/* --- ECOSISTEMA (Grid) --- */}
       <div className="space-y-3">
         <div className="flex items-center gap-2 px-2">
-            <h3 className="font-black text-lg text-slate-800 dark:text-white">Novedades v3.0</h3>
-            <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full text-slate-400 uppercase">Feature Set</span>
+            <h3 className="font-black text-lg text-slate-800 dark:text-white">Ecosistema</h3>
+            <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full text-slate-400 uppercase">Todo en uno</span>
         </div>
         
         <div className="grid grid-cols-2 gap-3">
             <FeatureCard 
-                icon={<Maximize size={18} strokeWidth={2.5} />} 
-                title="Monitor & Kiosco" 
-                desc="Visualiza la brecha cambiaria y usa el nuevo modo Pantalla Completa."
+                icon={<TrendingUp size={18} strokeWidth={2.5} />} 
+                title="Monitor Híbrido" 
+                desc="Tasas BCV y USDT (P2P) actualizadas en tiempo real."
                 bgClass="bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
             />
             <FeatureCard 
-                icon={<QrCode size={18} strokeWidth={2.5} />} 
-                title="Pagos con QR" 
-                desc="Genera códigos QR de tus cuentas para cobrar al instante."
+                icon={<CreditCard size={18} strokeWidth={2.5} />} 
+                title="Mis Cuentas" 
+                desc="Guarda tus datos de Pago Móvil/Zelle y compártelos."
                 bgClass="bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
             />
             <FeatureCard 
-                icon={<Mic size={18} strokeWidth={2.5} />} 
-                title="Dictado por Voz" 
-                desc="Usa el micrófono para ingresar montos en la calculadora."
+                icon={<Calculator size={18} strokeWidth={2.5} />} 
+                title="Calculadora Smart" 
+                desc="Conversiones instantáneas entre todas las monedas."
                 bgClass="bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400"
             />
             <FeatureCard 
                 icon={<BellRing size={18} strokeWidth={2.5} />} 
                 title="Alertas Push" 
-                desc="Recibe notificaciones automáticas cuando cambia la tasa."
+                desc="Notificaciones automáticas cuando cambia la tasa."
                 bgClass="bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400"
             />
         </div>
