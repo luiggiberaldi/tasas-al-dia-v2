@@ -12,8 +12,8 @@ const EXCHANGERATE_KEY = 'F1a3af26247a97a33ee5ad90';
 const DEFAULT_EUR_USD_RATIO = 1.18; 
 const UPDATE_INTERVAL = 3600000; // 1 Hora en milisegundos
 
-// API PRIVADA (TIER 1 - PRIORIDAD)
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbytFG9Q1YwbwGtT03DxiiCj-p3Ja38FKTCo2etsur0RR7YefUE-llHrV2ulDJv1TrmxXw/exec?token=Lvbp1994';
+// API PRIVADA (TIER 1 - PRIORIDAD) - ✅ URL ACTUALIZADA
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxT9sKz_XWRWuQx_XP-BJ33T0hoAgJsLwhZA00v6nPt4Ij4jRjq-90mDGLVCsS6FXwW9Q/exec?token=Lvbp1994';
 
 // Estrategias de conexión (Proxies)
 const CONNECTION_STRATEGIES = [
@@ -192,9 +192,6 @@ export function useRates() {
           }
       }
 
-      // NOTA: Se eliminó el bloque de 'new Notification' para evitar duplicados.
-      // OneSignal manejará los Push Notifications desde el Backend.
-
       newRates.lastUpdate = new Date();
       setRates(newRates);
       addLog("Actualización completada", 'success');
@@ -209,7 +206,6 @@ export function useRates() {
   }, [addLog, rates]);
 
   // --- AUTO-UPDATE EFFECT ---
-  // Mantenemos esto para que la UI se refresque sola si el usuario tiene la app abierta
   useEffect(() => {
     if (!rates) updateData();
 
