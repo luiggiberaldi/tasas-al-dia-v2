@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, Calculator, Settings, Download, Wallet } from 'lucide-react'; 
+import { Home, Calculator, Info, Download, CreditCard } from 'lucide-react'; // ✅ Icono CreditCard
 
 import MonitorView from './views/MonitorView';
 import CalculatorView from './views/CalculatorView';
@@ -12,7 +12,6 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('monitor'); 
   const [installPrompt, setInstallPrompt] = useState(null);
   
-  // ✅ ACTUALIZADO: Ahora extraemos 'notificationsEnabled' y 'enableNotifications'
   const { rates, loading, isOffline, logs, updateData, notificationsEnabled, enableNotifications } = useRates();
 
   useEffect(() => {
@@ -54,7 +53,6 @@ export default function App() {
             rates={rates} loading={loading} isOffline={isOffline} 
             onRefresh={updateData} lastLog={logs[logs.length-1]} 
             toggleTheme={toggleTheme} theme={theme} 
-            // ✅ NUEVO: Pasamos las props de notificaciones al Monitor
             notificationsEnabled={notificationsEnabled}
             enableNotifications={enableNotifications}
           />
@@ -64,8 +62,9 @@ export default function App() {
           <CalculatorView rates={rates} toggleTheme={toggleTheme} theme={theme} />
         )}
 
+        {/* ✅ AHORA PASAMOS RATES A LA VISTA DE CUENTAS */}
         {activeTab === 'wallet' && (
-          <WalletView />
+          <WalletView rates={rates} />
         )}
         
         {activeTab === 'info' && (
@@ -78,7 +77,8 @@ export default function App() {
           <TabButton icon={<Home size={20} strokeWidth={activeTab === 'monitor' ? 3 : 2} />} label="Inicio" isActive={activeTab === 'monitor'} onClick={() => setActiveTab('monitor')} />
           <TabButton icon={<Calculator size={20} strokeWidth={activeTab === 'calc' ? 3 : 2} />} label="Calc" isActive={activeTab === 'calc'} onClick={() => setActiveTab('calc')} />
           
-          <TabButton icon={<Wallet size={20} strokeWidth={activeTab === 'wallet' ? 3 : 2} />} label="Wallet" isActive={activeTab === 'wallet'} onClick={() => setActiveTab('wallet')} />
+          {/* ✅ CAMBIO DE NOMBRE: Cuentas */}
+          <TabButton icon={<CreditCard size={20} strokeWidth={activeTab === 'wallet' ? 3 : 2} />} label="Cuentas" isActive={activeTab === 'wallet'} onClick={() => setActiveTab('wallet')} />
 
           {installPrompt && activeTab === 'monitor' && (
              <button onClick={handleInstall} className="flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all duration-300 bg-emerald-500 text-white shadow-md animate-pulse">
@@ -86,7 +86,7 @@ export default function App() {
              </button>
           )}
 
-          <TabButton icon={<Settings size={20} strokeWidth={activeTab === 'info' ? 3 : 2} />} label="Info" isActive={activeTab === 'info'} onClick={() => setActiveTab('info')} />
+          <TabButton icon={<Info size={20} strokeWidth={activeTab === 'info' ? 3 : 2} />} label="Info" isActive={activeTab === 'info'} onClick={() => setActiveTab('info')} />
         </div>
       </div>
     </div>

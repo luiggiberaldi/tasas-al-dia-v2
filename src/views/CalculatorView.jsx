@@ -1,34 +1,41 @@
-import React, { useState, useRef } from 'react';
-import { ArrowRightLeft, Check, Copy, Camera, ToggleLeft, ToggleRight, Smartphone, Building2, Bitcoin, Wallet, ArrowLeft } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { ArrowRightLeft, Check, Copy, Camera, ToggleLeft, ToggleRight, Smartphone, Building2, Bitcoin, Wallet, ArrowLeft, DollarSign } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
-// Imports Arquitectura Fénix
-import { useWallet } from '../hooks/useWallet';
-import { useCalculator } from '../hooks/useCalculator'; // <--- Nuevo Hook
-import { generatePaymentMessage, formatBs, formatUsd } from '../utils/calculatorUtils'; // <--- Nuevas Utils
+// Imports Arquitectura
+import { useCalculator } from '../hooks/useCalculator'; 
+import { formatBs, formatUsd } from '../utils/calculatorUtils'; 
 import { Modal } from '../components/Modal';
 import CalculatorInput from '../components/CalculatorInput';
 
 export default function CalculatorView({ rates, theme }) {
-  // 1. Ingesta de Hooks (Lógica separada)
+  // 1. Hook de Calculadora
   const calc = useCalculator(rates);
-  const { accounts } = useWallet();
   
-  // 2. Estado de UI Local (Solo lo visual)
+  // 2. Estado de Cuentas
+  const [accounts, setAccounts] = useState([]);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('my_accounts_v2')) || [];
+      setAccounts(saved);
+    } catch (e) { console.error("Error cargando cuentas", e); }
+  }, []);
+  
+  // 3. Estado de UI
   const [copied, setCopied] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [includeRef, setIncludeRef] = useState(true);
   const captureRef = useRef(null);
 
-  // 3. Handlers de UI
+  // --- Handlers ---
   const handleCopy = () => {
     if (!calc.amountBot && !calc.amountTop) return;
     const date = new Date().toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit' });
     const cFrom = calc.currencies.find(c => c.id === calc.from);
     const cTo = calc.currencies.find(c => c.id === calc.to);
     
-    // Usamos los formatters importados
     const fmtTop = cFrom.id === 'VES' ? formatBs(calc.safeParse(calc.amountTop)) : formatUsd(calc.safeParse(calc.amountTop));
     const fmtBot = cTo.id === 'VES' ? formatBs(calc.safeParse(calc.amountBot)) : formatUsd(calc.safeParse(calc.amountBot));
     
@@ -40,18 +47,68 @@ export default function CalculatorView({ rates, theme }) {
     setCopied(true); setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleShareWhatsApp = () => {
+  // Lógica principal de compartir (Recibe el tipo de tasa Zelle desde el hijo)
+  const handleShareWhatsApp = (zelleRateType = 'bcv') => {
     if (!selectedAccount) return;
-    const msg = generatePaymentMessage({
-        amountTop: calc.amountTop,
-        amountBot: calc.amountBot,
-        from: calc.from,
-        to: calc.to,
-        selectedAccount,
-        includeRef,
-        rates,
-        currencies: calc.currencies
-    });
+
+    // 1. Armamos el encabezado del cálculo
+    const cFrom = calc.currencies.find(c => c.id === calc.from);
+    const cTo = calc.currencies.find(c => c.id === calc.to);
+    const fmtTop = cFrom.id === 'VES' ? formatBs(calc.safeParse(calc.amountTop)) : formatUsd(calc.safeParse(calc.amountTop));
+    const fmtBot = cTo.id === 'VES' ? formatBs(calc.safeParse(calc.amountBot)) : formatUsd(calc.safeParse(calc.amountBot));
+    
+    let msg = `🧮 *Cálculo del Día*\n${cFrom.icon} ${fmtTop} ${cFrom.label} ➡️ ${cTo.icon} ${fmtBot} ${cTo.label}\n\n`;
+
+    // 2. Agregamos los datos de la cuenta
+    const acc = selectedAccount;
+    if (acc.type === 'pago_movil') {
+        msg += `📌 *Datos Pago Móvil*\n🏦 ${acc.bank}\n📱 ${acc.phone}\n🆔 ${acc.id}\n👤 ${acc.holder || acc.alias}`;
+    } else if (acc.type === 'transferencia') {
+        msg += `🏦 *Datos Transferencia*\n🏛️ ${acc.bank}\n🔢 ${acc.accountNumber}\n🆔 ${acc.id}\n👤 ${acc.holder}`;
+    } else if (acc.type === 'zelle') {
+        msg += `🇺🇸 *Datos Zelle*\n✉️ ${acc.email}\n👤 ${acc.holder}`;
+    } else if (acc.type === 'binance') {
+        msg += `🟡 *Binance Pay*\n🆔 ${acc.email}\n👤 ${acc.holder || acc.alias}`;
+    }
+
+    // 3. Referencia opcional (Lógica estricta solicitada)
+    if (includeRef) {
+        const valTop = calc.safeParse(calc.amountTop);
+        const valBot = calc.safeParse(calc.amountBot);
+        
+        // Determinar montos base
+        let amountBs = 0;
+        let amountUsd = 0;
+
+        // Si el usuario calculó en Bs (Top o Bot es VES)
+        if (calc.from === 'VES') { amountBs = valTop; amountUsd = valBot; }
+        else if (calc.to === 'VES') { amountBs = valBot; amountUsd = valTop; }
+        else { 
+            // Caso raro: USD -> EUR. Asumimos el valor en USD como base.
+            amountUsd = (calc.from === 'USD' || calc.from === 'USDT') ? valTop : valBot;
+            // Estimado Bs
+            amountBs = amountUsd * rates.bcv.price; 
+        }
+
+        // --- REGLAS DE REFERENCIA ---
+        if (acc.type === 'pago_movil' || acc.type === 'transferencia') {
+            // Regla: Referencia en Dólares (Siempre BCV)
+            const refUsd = amountBs / rates.bcv.price;
+            msg += `\n\n✅ *Monto: ${formatBs(amountBs)} Bs*\n(Ref: $${formatUsd(refUsd)} @ BCV)`;
+        
+        } else if (acc.type === 'binance') {
+            // Regla: Referencia en Bolívares (Siempre USDT)
+            const refBs = amountUsd * rates.usdt.price;
+            msg += `\n\n✅ *Monto: ${formatUsd(amountUsd)} USDT*\n(Ref: ${formatBs(refBs)} Bs @ Tasa USDT)`;
+        
+        } else if (acc.type === 'zelle') {
+            // Regla: Referencia en Bolívares (Elegible)
+            const usedRate = zelleRateType === 'bcv' ? rates.bcv.price : rates.usdt.price;
+            const refBs = amountUsd * usedRate;
+            msg += `\n\n✅ *Monto: $${formatUsd(amountUsd)}*\n(Ref: ${formatBs(refBs)} Bs @ Tasa ${zelleRateType.toUpperCase()})`;
+        }
+    }
+
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
     setIsModalOpen(false); setSelectedAccount(null);
   };
@@ -143,7 +200,7 @@ export default function CalculatorView({ rates, theme }) {
           </div>
       </div>
 
-      {/* --- MODAL ORQUESTADO --- */}
+      {/* --- MODAL DE COBRO --- */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={selectedAccount ? "Confirmar Envío" : "Selecciona Método"}>
          {!selectedAccount ? (
              <AccountSelector accounts={accounts} onSelect={(acc) => { setSelectedAccount(acc); setIncludeRef(true); }} />
@@ -154,12 +211,8 @@ export default function CalculatorView({ rates, theme }) {
                 onToggleRef={() => setIncludeRef(!includeRef)}
                 onBack={() => setSelectedAccount(null)}
                 onConfirm={handleShareWhatsApp}
-                // Datos calculados para la vista previa del toggle
-                previewData={{
-                    calc,
-                    rates,
-                    isBsAccount: selectedAccount.currency === 'VES'
-                }}
+                rates={rates} // Pasamos rates para calcular en vivo
+                calc={calc}   // Pasamos datos de la calculadora
              />
          )}
       </Modal>
@@ -167,29 +220,40 @@ export default function CalculatorView({ rates, theme }) {
   );
 }
 
-// --- SUB-COMPONENTES DE UI (Extraídos para limpieza) ---
+// --- SUB-COMPONENTES ---
 
 function AccountSelector({ accounts, onSelect }) {
-    const getIcon = (t) => t === 'pago_movil' ? <Smartphone size={18} className="text-emerald-500"/> : t === 'binance' ? <Bitcoin size={18} className="text-amber-500"/> : <Building2 size={18} className="text-blue-500"/>;
+    const getIcon = (t) => {
+        if(t === 'pago_movil') return <Smartphone size={18} className="text-emerald-500"/>;
+        if(t === 'binance') return <Bitcoin size={18} className="text-amber-500"/>;
+        if(t === 'zelle') return <DollarSign size={18} className="text-purple-500"/>;
+        return <Building2 size={18} className="text-blue-500"/>;
+    };
+    const getBg = (t) => {
+        if(t === 'pago_movil') return 'bg-emerald-100';
+        if(t === 'binance') return 'bg-amber-100';
+        if(t === 'zelle') return 'bg-purple-100';
+        return 'bg-blue-100';
+    };
     
     if (accounts.length === 0) return (
         <div className="text-center py-6 text-slate-400">
             <Wallet size={48} className="mx-auto mb-2 opacity-50"/>
             <p>No tienes cuentas guardadas.</p>
-            <p className="text-xs mt-1">Ve a la pestaña "Wallet" para agregar una.</p>
+            <p className="text-xs mt-1">Ve a la pestaña "Cuentas" para agregar una.</p>
         </div>
     );
 
     return (
         <div className="grid gap-3">
             {accounts.map(acc => (
-                <button key={acc.id} onClick={() => onSelect(acc)} className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-brand dark:hover:border-brand hover:bg-brand/5 transition-all text-left group">
-                    <div className={`p-3 rounded-2xl shrink-0 ${acc.type === 'pago_movil' ? 'bg-emerald-100 text-emerald-600' : acc.type === 'binance' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
+                <button key={acc.id_gen} onClick={() => onSelect(acc)} className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-brand dark:hover:border-brand hover:bg-brand/5 transition-all text-left group">
+                    <div className={`p-3 rounded-2xl shrink-0 ${getBg(acc.type)}`}>
                         {getIcon(acc.type)}
                     </div>
                     <div>
                         <h4 className="font-bold text-slate-800 dark:text-white text-sm group-hover:text-brand-dark dark:group-hover:text-brand transition-colors">{acc.alias}</h4>
-                        <p className="text-xs text-slate-500 font-mono mt-0.5">{acc.type === 'pago_movil' ? acc.data.bankName : acc.type === 'binance' ? 'Binance Pay' : 'Transferencia'}</p>
+                        <p className="text-xs text-slate-500 font-mono mt-0.5 capitalize">{acc.type.replace('_', ' ')}</p>
                     </div>
                 </button>
             ))}
@@ -197,36 +261,80 @@ function AccountSelector({ accounts, onSelect }) {
     );
 }
 
-function PaymentSummary({ selectedAccount, includeRef, onToggleRef, onBack, onConfirm, previewData }) {
-    const getIcon = (t) => t === 'pago_movil' ? <Smartphone size={18} className="text-emerald-500"/> : t === 'binance' ? <Bitcoin size={18} className="text-amber-500"/> : <Building2 size={18} className="text-blue-500"/>;
+function PaymentSummary({ selectedAccount, includeRef, onToggleRef, onBack, onConfirm, rates, calc }) {
+    const [zelleRate, setZelleRate] = useState('bcv'); // Estado local para el selector de Zelle
+    const acc = selectedAccount;
     
-    // Cálculo en vivo para el label del toggle
-    const { calc, rates, isBsAccount } = previewData;
+    // 1. Obtener valores de la calculadora
     const valTop = calc.safeParse(calc.amountTop);
     const valBot = calc.safeParse(calc.amountBot);
-    const rateTo = calc.currencies.find(c => c.id === calc.to)?.rate;
-    const rateFrom = calc.currencies.find(c => c.id === calc.from)?.rate;
-    const automaticRefRate = isBsAccount ? rates.bcv.price : rates.usdt.price;
-
-    let totalBsRaw = 0;
-    if (calc.to === 'VES') totalBsRaw = valBot;
-    else if (calc.from === 'VES') totalBsRaw = valTop;
-    else totalBsRaw = (valTop * rateFrom);
-
-    const totalUsdRaw = totalBsRaw / automaticRefRate;
     
+    // 2. Determinar monto base en Bs y USD según lo que haya escrito el usuario
+    let amountBs = 0;
+    let amountUsd = 0;
+
+    if (calc.from === 'VES') { amountBs = valTop; amountUsd = valBot; } // Bs arriba
+    else if (calc.to === 'VES') { amountBs = valBot; amountUsd = valTop; } // Bs abajo
+    else { 
+        // Caso USD -> EUR o similar. Asumimos USD como base y convertimos a Bs referencial.
+        amountUsd = (calc.from === 'USD' || calc.from === 'USDT') ? valTop : valBot;
+        amountBs = amountUsd * rates.bcv.price; 
+    }
+
+    // 3. Lógica de Etiqueta del Toggle (Label)
     let labelText = '';
-    if (isBsAccount) {
-        labelText = `Incluir referencia en Dólares ($${formatUsd(totalUsdRaw)})`;
-    } else {
-        const refBs = totalUsdRaw * automaticRefRate;
+    
+    if (acc.type === 'pago_movil' || acc.type === 'transferencia') {
+        // Regla: Referencia SIEMPRE en Dólares (BCV)
+        const refUsd = amountBs / rates.bcv.price;
+        labelText = `Incluir referencia en Dólares ($${formatUsd(refUsd)})`;
+    
+    } else if (acc.type === 'binance') {
+        // Regla: Referencia SIEMPRE en Bolívares (USDT)
+        const refBs = amountUsd * rates.usdt.price;
+        labelText = `Incluir referencia en Bolívares (${formatBs(refBs)} Bs)`;
+    
+    } else if (acc.type === 'zelle') {
+        // Regla: Referencia en Bolívares (Calculada según selección)
+        const usedRate = zelleRate === 'bcv' ? rates.bcv.price : rates.usdt.price;
+        const refBs = amountUsd * usedRate;
         labelText = `Incluir referencia en Bolívares (${formatBs(refBs)} Bs)`;
     }
 
+    // Iconos
+    const getIcon = (t) => {
+        if(t === 'pago_movil') return <Smartphone size={18} className="text-emerald-500"/>;
+        if(t === 'binance') return <Bitcoin size={18} className="text-amber-500"/>;
+        if(t === 'zelle') return <DollarSign size={18} className="text-purple-500"/>;
+        return <Building2 size={18} className="text-blue-500"/>;
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            
+            {/* ZELLE: Selector de Tasa (Solo aparece si es Zelle) */}
+            {acc.type === 'zelle' && (
+                <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-2">
+                    <button 
+                        onClick={() => setZelleRate('bcv')}
+                        className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${zelleRate === 'bcv' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400'}`}
+                    >
+                        Tasa BCV
+                    </button>
+                    <button 
+                        onClick={() => setZelleRate('usdt')}
+                        className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${zelleRate === 'usdt' ? 'bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white' : 'text-slate-400'}`}
+                    >
+                        Tasa USDT
+                    </button>
+                </div>
+            )}
+
+            {/* Toggle con Texto Dinámico */}
             <div className="bg-slate-100 dark:bg-slate-800 rounded-3xl p-4 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-300 ml-1">{labelText}</span>
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-300 ml-1 leading-tight max-w-[70%]">
+                    {includeRef ? labelText : "Solo enviar datos de cuenta"}
+                </span>
                 <button onClick={onToggleRef} className={`transition-colors duration-200 ${includeRef ? 'text-emerald-500' : 'text-slate-300'}`}>
                     {includeRef ? <ToggleRight size={36} strokeWidth={2} /> : <ToggleLeft size={36} strokeWidth={2} />}
                 </button>
@@ -234,11 +342,13 @@ function PaymentSummary({ selectedAccount, includeRef, onToggleRef, onBack, onCo
 
             <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 opacity-75">
                 <div className="flex items-center gap-3 mb-2">
-                    {getIcon(selectedAccount.type)}
-                    <span className="font-bold text-sm text-slate-700 dark:text-slate-300">{selectedAccount.alias}</span>
+                    {getIcon(acc.type)}
+                    <span className="font-bold text-sm text-slate-700 dark:text-slate-300">{acc.alias}</span>
                 </div>
                 <div className="text-[10px] text-slate-400 font-mono break-all">
-                    {selectedAccount.type === 'binance' ? selectedAccount.data.email : `${selectedAccount.data.bankName} • ${selectedAccount.type === 'pago_movil' ? selectedAccount.data.phone : selectedAccount.data.accountNumber}`}
+                    {acc.type === 'pago_movil' ? `${acc.bank} • ${acc.phone}` : 
+                     acc.type === 'transferencia' ? `${acc.bank} • ${acc.accountNumber.slice(-4)}` :
+                     acc.email}
                 </div>
             </div>
 
@@ -246,7 +356,10 @@ function PaymentSummary({ selectedAccount, includeRef, onToggleRef, onBack, onCo
                 <button onClick={onBack} className="flex-none p-4 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
                     <ArrowLeft size={20} />
                 </button>
-                <button onClick={onConfirm} className="flex-1 bg-brand hover:bg-brand-dark text-slate-900 rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg shadow-brand/20 transition-all active:scale-95 py-4 flex items-center justify-center gap-2">
+                <button 
+                    onClick={() => onConfirm(zelleRate)} // Enviamos la tasa Zelle elegida
+                    className="flex-1 bg-brand hover:bg-brand-dark text-slate-900 rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg shadow-brand/20 transition-all active:scale-95 py-4 flex items-center justify-center gap-2"
+                >
                     <WhatsAppIcon size={20} /> ENVIAR AL CLIENTE
                 </button>
             </div>
