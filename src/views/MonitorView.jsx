@@ -3,11 +3,12 @@ import { RefreshCw, TrendingUp, TrendingDown, WifiOff, Clock, Bell, BellRing, Ma
 // ✅ IMPORTANTE: Asegúrate de que html2canvas esté instalado: npm i html2canvas
 import html2canvas from 'html2canvas';
 
-export default function MonitorView({ rates, loading, isOffline, onRefresh, toggleTheme, theme, copyLogs, enableNotifications, notificationsEnabled }) {
+export default function MonitorView({ rates, loading, isOffline, onRefresh, toggleTheme, theme, copyLogs, enableNotifications, notificationsEnabled, addLog }) {
   
   const [secretCount, setSecretCount] = useState(0);
   const [kioskMode, setKioskMode] = useState(false);
-  // ✅ NUEVOS ESTADOS PARA LA CAPTURA MÓVIL
+  
+  // ✅ ESTADOS PARA LA CAPTURA
   const [isCapturing, setIsCapturing] = useState(false);
   const hiddenKioskRef = useRef(null);
 
@@ -42,47 +43,61 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
     );
   };
 
-  // ✅ NUEVA FUNCIÓN: Maneja el clic en el botón de Pantalla Completa/Cámara
+  // ✅ FUNCIÓN DE CAPTURA OPTIMIZADA (CORRECCIÓN MÓVIL)
   const handleKioskButtonClick = async () => {
-      // Detectamos si es pantalla pequeña (móvil) usando el breakpoint estándar de Tailwind 'sm' (640px)
       const isMobile = window.innerWidth < 640;
 
       if (isMobile) {
-          // --- LÓGICA MÓVIL: CAPTURA DE PANTALLA ---
           if (!hiddenKioskRef.current || isCapturing || loading) return;
           setIsCapturing(true);
+          // Si tienes la función addLog disponible en props, úsala, si no, usa console.log
+          const log = addLog || console.log; 
+          log("Iniciando captura móvil...", "info");
 
           try {
-              // Pequeña pausa para asegurar que los datos estén renderizados
-              await new Promise(resolve => setTimeout(resolve, 100));
+              // 1. ESPERA: Damos 800ms al navegador del móvil para dibujar el elemento oculto
+              await new Promise(resolve => setTimeout(resolve, 800));
 
+              // 2. RENDERIZADO LIGERO: Scale 1.1 y JPEG ahorran mucha memoria RAM
               const canvas = await html2canvas(hiddenKioskRef.current, {
-                  backgroundColor: '#020617', // slate-950 (Fondo oscuro forzado)
-                  scale: 2, // Mejor calidad para retinas
+                  backgroundColor: '#020617', // Fondo oscuro
+                  scale: 1.1,                 // 🔥 CLAVE: No usar 2 o 3 en móviles
+                  width: 1080,                // Forzar ancho HD
+                  height: 1920,               // Forzar alto HD
                   logging: false,
-                  useCORS: true, // Necesario para las imágenes (logos)
+                  useCORS: true,              // Necesario para imágenes externas/logos
                   allowTaint: true,
+                  scrollX: 0,
+                  scrollY: -window.scrollY,   // Evita desplazamientos blancos
               });
 
-              // Crear enlace de descarga
-              const image = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+              log("Generando imagen...", "info");
+              
+              // 3. EXPORTACIÓN JPEG (Más ligero que PNG)
+              const image = canvas.toDataURL("image/jpeg", 0.9);
+              
               const link = document.createElement('a');
-              const date = new Date().toLocaleDateString('es-VE').replace(/\//g, '-');
-              link.download = `TasasAlDía_${date}.png`;
+              const dateStr = new Date().toLocaleDateString('es-VE').replace(/\//g, '-');
+              const timeStr = new Date().toLocaleTimeString('es-VE', { hour12: false }).replace(/:/g, '');
+              
+              link.download = `TasasAlDía_${dateStr}_${timeStr}.jpg`;
               link.href = image;
               document.body.appendChild(link);
               link.click();
               document.body.removeChild(link);
+              
+              log("Captura descargada", "success");
 
           } catch (e) {
-              console.error("Error generando captura:", e);
-              alert("No se pudo generar la imagen. Intenta de nuevo.");
+              console.error("Error captura:", e);
+              alert("Tu dispositivo tiene poca memoria para generar la imagen. Cierra otras apps e intenta de nuevo.");
+              if(addLog) addLog("Fallo de memoria en captura", "error");
           } finally {
               setIsCapturing(false);
           }
 
       } else {
-          // --- LÓGICA PC: ABRIR MODO KIOSCO NORMAL ---
+          // EN PC: Abrimos el modo pantalla completa normal
           setKioskMode(true);
       }
   };
@@ -160,7 +175,7 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
         </button>
 
         <div className="flex items-center gap-1.5 sm:gap-2">
-            {/* ✅ BOTÓN DUAL: CAMARA (Móvil) / MAXIMIZAR (PC) */}
+            {/* BOTÓN CÁMARA/PANTALLA COMPLETA */}
             <button 
                 onClick={handleKioskButtonClick} 
                 disabled={isCapturing || loading}
@@ -171,9 +186,7 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
                     <Loader2 size={18} className="animate-spin text-brand" />
                 ) : (
                     <>
-                    {/* Ícono de Cámara solo visible en móvil (`hidden sm:block` lo oculta en PC) */}
                     <Camera size={18} strokeWidth={2} className="sm:hidden" />
-                    {/* Ícono de Maximizar solo visible en PC (`hidden sm:block`) */}
                     <Maximize size={18} strokeWidth={2} className="hidden sm:block" />
                     </>
                 )}
@@ -262,7 +275,7 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
          </div>
       </div>
 
-      {/* ✅ ELEMENTO OCULTO PARA LA CAPTURA EN MÓVIL (DISEÑO INSTAGRAM STORY) ✅ */}
+      {/* ✅ ELEMENTO OCULTO PARA LA CAPTURA EN MÓVIL (DISEÑO INSTAGRAM STORY OPTIMIZADO) ✅ */}
       <div 
           ref={hiddenKioskRef}
           className="fixed top-0 left-[-9999px] w-[1080px] h-[1920px] bg-[#020617] text-white flex flex-col justify-between items-center p-24 z-[-1]"
