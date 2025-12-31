@@ -1,17 +1,18 @@
 import React, { useState, useRef } from 'react';
 import { RefreshCw, TrendingUp, TrendingDown, WifiOff, Clock, Bell, BellRing, Maximize, Minimize, Camera, Loader2 } from 'lucide-react';
-// ✅ IMPORTANTE: Asegúrate de que html2canvas esté instalado: npm i html2canvas
+// ✅ Asegúrate de tener instalado: npm i html2canvas
 import html2canvas from 'html2canvas';
 
 export default function MonitorView({ rates, loading, isOffline, onRefresh, toggleTheme, theme, copyLogs, enableNotifications, notificationsEnabled, addLog }) {
   
   const [secretCount, setSecretCount] = useState(0);
   const [kioskMode, setKioskMode] = useState(false);
-  
-  // ✅ ESTADOS PARA LA CAPTURA
   const [isCapturing, setIsCapturing] = useState(false);
-  const hiddenKioskRef = useRef(null);
+  
+  // Referencia al contenedor del Kiosco (para la foto)
+  const kioskRef = useRef(null);
 
+  // Truco para ver logs (7 clics en el logo)
   const handleSecretDebug = () => {
     const newCount = secretCount + 1;
     setSecretCount(newCount);
@@ -26,10 +27,8 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
     return new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
   };
 
-  // Cálculo de Brecha Cambiaria (Spread)
+  // Cálculos matemáticos
   const spread = rates.bcv.price > 0 ? ((rates.usdt.price - rates.bcv.price) / rates.bcv.price) * 100 : 0;
-  
-  // Cálculo de la Diferencia en Bs
   const diffBs = rates.usdt.price - rates.bcv.price;
 
   const renderChange = (change) => {
@@ -43,97 +42,120 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
     );
   };
 
-  // ✅ FUNCIÓN DE CAPTURA OPTIMIZADA (CORRECCIÓN MÓVIL)
-  const handleKioskButtonClick = async () => {
-      const isMobile = window.innerWidth < 640;
+  // 📸 FUNCIÓN DE CAPTURA (Estable y Rápida)
+  const handleCaptureKiosk = async () => {
+      if (!kioskRef.current || isCapturing) return;
+      setIsCapturing(true);
+      const log = addLog || console.log;
 
-      if (isMobile) {
-          if (!hiddenKioskRef.current || isCapturing || loading) return;
-          setIsCapturing(true);
-          // Si tienes la función addLog disponible en props, úsala, si no, usa console.log
-          const log = addLog || console.log; 
-          log("Iniciando captura móvil...", "info");
+      try {
+          // 1. Capturamos el elemento visual (KioskRef)
+          // 'ignoreElements' oculta los botones para que la foto salga limpia
+          const canvas = await html2canvas(kioskRef.current, {
+              useCORS: true,
+              scale: window.devicePixelRatio, // Usa la calidad nativa del teléfono
+              backgroundColor: '#020617',     // Fondo oscuro forzado
+              ignoreElements: (element) => element.id === 'hide-on-capture',
+          });
 
-          try {
-              // 1. ESPERA: Damos 800ms al navegador del móvil para dibujar el elemento oculto
-              await new Promise(resolve => setTimeout(resolve, 800));
+          // 2. Generamos la imagen JPEG (Más ligera y compatible)
+          const image = canvas.toDataURL("image/jpeg", 0.9);
+          
+          // 3. Descarga automática
+          const link = document.createElement('a');
+          const dateStr = new Date().toLocaleDateString('es-VE').replace(/\//g, '-');
+          const timeStr = new Date().toLocaleTimeString('es-VE', { hour12: false }).replace(/:/g, '');
+          
+          link.download = `TasasAlDía_${dateStr}_${timeStr}.jpg`;
+          link.href = image;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          log("Captura guardada con éxito", "success");
 
-              // 2. RENDERIZADO LIGERO: Scale 1.1 y JPEG ahorran mucha memoria RAM
-              const canvas = await html2canvas(hiddenKioskRef.current, {
-                  backgroundColor: '#020617', // Fondo oscuro
-                  scale: 1.1,                 // 🔥 CLAVE: No usar 2 o 3 en móviles
-                  width: 1080,                // Forzar ancho HD
-                  height: 1920,               // Forzar alto HD
-                  logging: false,
-                  useCORS: true,              // Necesario para imágenes externas/logos
-                  allowTaint: true,
-                  scrollX: 0,
-                  scrollY: -window.scrollY,   // Evita desplazamientos blancos
-              });
-
-              log("Generando imagen...", "info");
-              
-              // 3. EXPORTACIÓN JPEG (Más ligero que PNG)
-              const image = canvas.toDataURL("image/jpeg", 0.9);
-              
-              const link = document.createElement('a');
-              const dateStr = new Date().toLocaleDateString('es-VE').replace(/\//g, '-');
-              const timeStr = new Date().toLocaleTimeString('es-VE', { hour12: false }).replace(/:/g, '');
-              
-              link.download = `TasasAlDía_${dateStr}_${timeStr}.jpg`;
-              link.href = image;
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-              
-              log("Captura descargada", "success");
-
-          } catch (e) {
-              console.error("Error captura:", e);
-              alert("Tu dispositivo tiene poca memoria para generar la imagen. Cierra otras apps e intenta de nuevo.");
-              if(addLog) addLog("Fallo de memoria en captura", "error");
-          } finally {
-              setIsCapturing(false);
-          }
-
-      } else {
-          // EN PC: Abrimos el modo pantalla completa normal
-          setKioskMode(true);
+      } catch (e) {
+          console.error("Error captura:", e);
+          alert("Hubo un error al guardar la imagen.");
+      } finally {
+          setIsCapturing(false);
       }
   };
 
-  // --- VISTA KIOSCO (WIDGET PANTALLA COMPLETA - SOLO PC) ---
+  // --- MODO KIOSCO (Pantalla Completa) ---
   if (kioskMode) {
       return (
-        <div className="fixed inset-0 z-[100] bg-slate-950 text-white flex flex-col justify-center items-center p-6 animate-in zoom-in duration-300">
+        <div 
+            ref={kioskRef}
+            className="fixed inset-0 z-[100] bg-slate-950 text-white flex flex-col justify-between items-center p-6 animate-in zoom-in duration-300"
+            style={{ fontFamily: 'sans-serif' }}
+        >
+            {/* Botón Salir (ID especial para ocultarlo en la foto) */}
             <button 
+                id="hide-on-capture"
                 onClick={() => setKioskMode(false)} 
-                className="absolute top-6 right-6 p-4 bg-white/10 rounded-full text-white/50 hover:text-white transition-colors"
+                className="absolute top-6 right-6 p-3 bg-white/10 rounded-full text-white/50 hover:text-white transition-colors z-20"
             >
                 <Minimize size={24}/>
             </button>
 
-            <div className="flex flex-col items-center justify-center space-y-4 mb-16 scale-110">
-                <img src="/logodark.png" alt="TasasAlDía" className="h-24 sm:h-32 w-auto object-contain animate-in fade-in zoom-in duration-700"/>
-                <h1 className="text-[6.5rem] sm:text-[8rem] font-black font-mono leading-none tracking-tighter text-brand drop-shadow-2xl">{formatVES(rates.usdt.price)}</h1>
-                <p className="text-xl text-slate-500 font-mono font-medium">1 USDT = {formatVES(rates.usdt.price)} Bs</p>
+            {/* Encabezado Kiosco */}
+            <div className="flex flex-col items-center mt-12 gap-4">
+                <img src="/logodark.png" alt="TasasAlDía" className="h-20 w-auto object-contain drop-shadow-lg"/>
+                <div className="bg-slate-800/60 px-4 py-1.5 rounded-full border border-slate-700/50 backdrop-blur-md">
+                     <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">MONITOR EN TIEMPO REAL</p>
+                </div>
             </div>
 
-            <div className="flex gap-12 opacity-60">
-                <div className="text-center">
-                    <p className="text-sm font-bold uppercase text-slate-500 tracking-wider mb-1">BCV OFICIAL</p>
-                    <p className="text-3xl font-mono font-bold">{formatVES(rates.bcv.price)}</p>
+            {/* PRECIO GIGANTE (Responsive con vw) */}
+            <div className="flex flex-col items-center justify-center -mt-8">
+                <h1 className="text-[18vw] sm:text-[10rem] font-black font-mono leading-none tracking-tighter text-brand drop-shadow-[0_0_40px_rgba(255,204,0,0.2)]">
+                    {formatVES(rates.usdt.price).split(',')[0]}
+                    <span className="text-[10vw] sm:text-[5rem] text-slate-500">,{formatVES(rates.usdt.price).split(',')[1]}</span>
+                </h1>
+                <p className="text-xl sm:text-3xl text-slate-500 font-mono font-medium tracking-widest mt-2">1 USDT = BS</p>
+            </div>
+
+            {/* Tarjetas Informativas */}
+            <div className="w-full max-w-md bg-slate-900/50 backdrop-blur-sm rounded-[2rem] border border-slate-800/50 p-6 sm:p-8 flex justify-between items-center mb-8">
+                <div className="text-center w-1/2 border-r border-slate-800 pr-4">
+                    <p className="text-xs sm:text-sm font-bold uppercase text-slate-500 tracking-wider mb-2">BCV OFICIAL</p>
+                    <p className="text-2xl sm:text-4xl font-mono font-bold text-white">{formatVES(rates.bcv.price)}</p>
                 </div>
-                <div className="text-center">
-                    <p className="text-sm font-bold uppercase text-slate-500 tracking-wider mb-1">EURO BCV</p>
-                    <p className="text-3xl font-mono font-bold">{formatVES(rates.euro.price)}</p>
+                <div className="text-center w-1/2 pl-4">
+                    <p className="text-xs sm:text-sm font-bold uppercase text-slate-500 tracking-wider mb-2">EURO BCV</p>
+                    <p className="text-2xl sm:text-4xl font-mono font-bold text-white">{formatVES(rates.euro.price)}</p>
                 </div>
+            </div>
+
+            {/* Pie de página + Botón Captura */}
+            <div className="flex flex-col items-center gap-6 mb-8 w-full relative z-10">
+                <div className="text-center opacity-60">
+                    <p className="text-lg font-medium text-brand">
+                        {rates.lastUpdate ? new Date(rates.lastUpdate).toLocaleDateString('es-VE', { day: 'numeric', month: 'long' }) : '---'}
+                    </p>
+                    <p className="text-sm font-mono">
+                        {rates.lastUpdate ? new Date(rates.lastUpdate).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit', hour12: true }) : '--:--'}
+                    </p>
+                </div>
+
+                {/* BOTÓN FLOTANTE PARA CAPTURAR (Se oculta al tomar la foto) */}
+                {!isCapturing && (
+                    <button 
+                        id="hide-on-capture"
+                        onClick={handleCaptureKiosk}
+                        className="flex items-center gap-2 bg-brand text-slate-900 px-6 py-3 rounded-full font-bold shadow-lg shadow-brand/20 active:scale-95 transition-transform"
+                    >
+                        {isCapturing ? <Loader2 size={20} className="animate-spin"/> : <Camera size={20}/>}
+                        <span>Guardar Imagen</span>
+                    </button>
+                )}
             </div>
         </div>
       );
   }
 
-  // --- SKELETON LOADING ---
+  // --- SKELETON LOADING (Carga inicial) ---
   if (loading && (!rates || !rates.usdt || rates.usdt.price === 0)) {
     return (
         <div className="space-y-8 pt-6 px-1 animate-pulse">
@@ -153,87 +175,51 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
     );
   }
 
+  // --- VISTA NORMAL (GRID PRINCIPAL) ---
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500 pb-24 relative">
       
-      {/* --- HEADER --- */}
+      {/* HEADER */}
       <header className="flex items-center justify-between pt-5 pb-2 px-3 sm:px-4">
-        <button 
-            onClick={handleSecretDebug} 
-            className="flex flex-col items-start gap-1 active:scale-95 transition-transform outline-none"
-        >
-            <img 
-                src={theme === 'dark' ? '/logodark.png' : '/logoprincipal.png'} 
-                alt="TasasAlDía" 
-                className="h-10 sm:h-12 w-auto object-contain animate-in fade-in slide-in-from-left-2 duration-500 drop-shadow-sm" 
-            />
+        <button onClick={handleSecretDebug} className="flex flex-col items-start gap-1 active:scale-95 transition-transform outline-none">
+            <img src={theme === 'dark' ? '/logodark.png' : '/logoprincipal.png'} alt="TasasAlDía" className="h-10 sm:h-12 w-auto object-contain animate-in fade-in slide-in-from-left-2 duration-500 drop-shadow-sm" />
             <div className="bg-slate-100 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm ml-1 mt-0.5">
-                <p className="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.15em] leading-none">
-                    V3.0 FÉNIX
-                </p>
+                <p className="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.15em] leading-none">V3.0 FÉNIX</p>
             </div>
         </button>
 
         <div className="flex items-center gap-1.5 sm:gap-2">
-            {/* BOTÓN CÁMARA/PANTALLA COMPLETA */}
+            {/* BOTÓN MODO KIOSCO (Visible en Móvil y PC) */}
             <button 
-                onClick={handleKioskButtonClick} 
-                disabled={isCapturing || loading}
-                className={`p-2 sm:p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-400 hover:text-brand-dark dark:hover:text-brand transition-all shadow-sm active:scale-95 ${isCapturing ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title="Captura o Pantalla Completa"
+                onClick={() => setKioskMode(true)} 
+                className="p-2 sm:p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-400 hover:text-brand-dark dark:hover:text-brand transition-all shadow-sm active:scale-95"
+                title="Pantalla Completa / Captura"
             >
-                {isCapturing ? (
-                    <Loader2 size={18} className="animate-spin text-brand" />
-                ) : (
-                    <>
-                    <Camera size={18} strokeWidth={2} className="sm:hidden" />
-                    <Maximize size={18} strokeWidth={2} className="hidden sm:block" />
-                    </>
-                )}
+                <Maximize size={18} strokeWidth={2} />
             </button>
             
-            <button 
-                onClick={enableNotifications} 
-                disabled={notificationsEnabled}
-                className={`p-2 sm:p-2.5 rounded-2xl border transition-all active:scale-95 shadow-sm 
-                    ${notificationsEnabled 
-                        ? 'bg-emerald-50 border-emerald-100 text-emerald-600 dark:bg-emerald-900/20 dark:border-emerald-900/30 dark:text-emerald-400 cursor-default' 
-                        : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-400 dark:text-slate-400 hover:text-brand-dark'
-                    }`}
-            >
-                {notificationsEnabled ? <BellRing size={18} strokeWidth={2.5} /> : <Bell size={18} strokeWidth={2} />}
+            <button onClick={enableNotifications} disabled={notificationsEnabled} className={`p-2 sm:p-2.5 rounded-2xl border transition-all active:scale-95 shadow-sm ${notificationsEnabled ? 'bg-emerald-50 border-emerald-100 text-emerald-600 dark:bg-emerald-900/20 dark:border-emerald-900/30 dark:text-emerald-400' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-400 dark:text-slate-400'}`}>
+                {notificationsEnabled ? <BellRing size={18} /> : <Bell size={18} />}
             </button>
-
-            <button onClick={onRefresh} disabled={loading} className={`p-2 sm:p-2.5 rounded-2xl text-slate-900 shadow-lg shadow-brand/10 border border-transparent transition-all active:scale-95 ${loading ? 'bg-slate-100 dark:bg-slate-800 text-slate-300 cursor-not-allowed' : 'bg-brand hover:bg-brand-light border-brand-light/50'}`}>
+            <button onClick={onRefresh} disabled={loading} className={`p-2 sm:p-2.5 rounded-2xl text-slate-900 shadow-lg shadow-brand/10 border border-transparent transition-all active:scale-95 ${loading ? 'bg-slate-100 dark:bg-slate-800 text-slate-300 cursor-not-allowed' : 'bg-brand hover:bg-brand-light'}`}>
                 <RefreshCw size={18} className={loading ? 'animate-spin' : ''} strokeWidth={2.5} />
             </button>
         </div>
       </header>
 
-      {/* Status Bar */}
-      {(loading || isOffline) && (
-        <div className={`mx-1 rounded-xl p-2.5 flex items-center justify-center gap-2 text-xs font-bold border animate-in zoom-in duration-300 ${isOffline ? 'bg-red-50 border-red-100 text-red-600 dark:bg-red-900/20 dark:border-red-900/30 dark:text-red-400' : 'bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700'}`}>
-           {isOffline ? <WifiOff size={14}/> : <RefreshCw size={14} className="animate-spin"/>}
-           <span>{isOffline ? 'Modo Sin Conexión' : 'Sincronizando tasas...'}</span>
-        </div>
-      )}
-
-      {/* Grid Principal */}
+      {/* Grid de Tarjetas */}
       <div className="grid gap-6">
+          {/* Tarjeta Principal USDT */}
           <div className="relative group">
              <div className="absolute -inset-0.5 bg-gradient-to-r from-brand/30 to-purple-500/30 rounded-[2.2rem] blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
              <div className="relative bg-white dark:bg-slate-900 rounded-[2rem] p-7 shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800 overflow-hidden">
+                 <div className="absolute top-0 right-0 p-8 opacity-[0.03] dark:opacity-[0.02] transform rotate-12 pointer-events-none"><TrendingUp size={140} /></div>
                  
-                 <div className="absolute top-0 right-0 p-8 opacity-[0.03] dark:opacity-[0.02] transform rotate-12 pointer-events-none">
-                    <TrendingUp size={140} />
-                 </div>
-
                  <div className="flex justify-between items-start mb-6">
                     <div className="flex flex-col gap-1">
                         <span className="text-sm font-medium text-slate-400 dark:text-slate-500">Promedio P2P</span>
                         <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight flex items-center gap-2">
-                            Tasa USDT
-                            {rates.usdt.type === 'p2p' && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>}
+                            Tasa USDT {rates.usdt.type === 'p2p' && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>}
                         </h2>
                     </div>
                     {renderChange(rates.usdt.change)}
@@ -252,13 +238,12 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
                     <div className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${spread > 10 ? 'bg-rose-50 text-rose-600 dark:bg-rose-900/20' : 'bg-slate-100 text-slate-500 dark:bg-slate-800'}`}>
                         Brecha: {spread.toFixed(2)}%
                     </div>
-                    <span className="text-xs font-medium text-slate-400 dark:text-slate-500 truncate">
-                         Diferencia: {formatVES(diffBs)} Bs
-                    </span>
+                    <span className="text-xs font-medium text-slate-400 dark:text-slate-500 truncate">Diferencia: {formatVES(diffBs)} Bs</span>
                  </div>
              </div>
           </div>
 
+          {/* Tarjetas Secundarias (BCV / Euro) */}
           <div className="grid grid-cols-2 gap-4">
               <RateCardMini title="Dolar BCV Oficial" price={rates.bcv.price} change={rates.bcv.change} icon="🏛️" formatVES={formatVES} renderChange={renderChange} />
               <RateCardMini title="Euro BCV Oficial" price={rates.euro.price} change={rates.euro.change} icon="🇪🇺" formatVES={formatVES} renderChange={renderChange} />
@@ -274,58 +259,11 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
             </span>
          </div>
       </div>
-
-      {/* ✅ ELEMENTO OCULTO PARA LA CAPTURA EN MÓVIL (DISEÑO INSTAGRAM STORY OPTIMIZADO) ✅ */}
-      <div 
-          ref={hiddenKioskRef}
-          className="fixed top-0 left-[-9999px] w-[1080px] h-[1920px] bg-[#020617] text-white flex flex-col justify-between items-center p-24 z-[-1]"
-          style={{ fontFamily: 'sans-serif' }} 
-      >
-          {/* 1. ENCABEZADO: LOGO */}
-          <div className="flex flex-col items-center gap-6 mt-10">
-               <img src="/logodark.png" alt="TasasAlDía" className="h-40 w-auto object-contain drop-shadow-2xl"/>
-               <div className="bg-slate-800/50 px-6 py-2 rounded-full border border-slate-700/50">
-                  <p className="text-2xl font-bold text-slate-400 uppercase tracking-[0.3em]">REPORTE OFICIAL</p>
-               </div>
-          </div>
-
-          {/* 2. CENTRO: PRECIO GIGANTE */}
-          <div className="flex flex-col items-center justify-center -mt-20">
-              <h1 className="text-[14rem] font-black font-mono leading-none tracking-tighter text-brand drop-shadow-[0_20px_50px_rgba(255,204,0,0.15)]">
-                  {formatVES(rates.usdt.price).split(',')[0]}
-                  <span className="text-[8rem] text-slate-500">,{formatVES(rates.usdt.price).split(',')[1]}</span>
-              </h1>
-              <p className="text-5xl text-slate-500 font-mono font-medium tracking-widest mt-4">1 USDT = BS</p>
-          </div>
-
-          {/* 3. INFO SECUNDARIA (BCV / EURO) */}
-          <div className="w-full bg-slate-900/50 rounded-[3rem] border border-slate-800 p-12 flex justify-around items-center">
-              <div className="text-center">
-                  <p className="text-3xl font-bold uppercase text-slate-500 tracking-[0.2em] mb-4">BCV OFICIAL</p>
-                  <p className="text-7xl font-mono font-bold text-white">{formatVES(rates.bcv.price)}</p>
-              </div>
-              <div className="w-[2px] h-32 bg-slate-800"></div>
-              <div className="text-center">
-                  <p className="text-3xl font-bold uppercase text-slate-500 tracking-[0.2em] mb-4">EURO BCV</p>
-                  <p className="text-7xl font-mono font-bold text-white">{formatVES(rates.euro.price)}</p>
-              </div>
-          </div>
-
-           {/* 4. PIE DE PÁGINA (FECHA Y MARCA) */}
-           <div className="text-center opacity-60 mb-20">
-              <p className="text-4xl font-medium mb-4 text-brand">
-                  {rates.lastUpdate ? new Date(rates.lastUpdate).toLocaleDateString('es-VE', { weekday: 'long', day: 'numeric', month: 'long' }) : '---'}
-              </p>
-              <p className="text-2xl font-mono">
-                  Hora: {rates.lastUpdate ? new Date(rates.lastUpdate).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit', hour12: true }) : '--:--'}
-              </p>
-           </div>
-      </div>
-
     </div>
   );
 }
 
+// Componente pequeño para tarjetas secundarias
 function RateCardMini({ title, price, change, icon, formatVES, renderChange }) {
     return (
         <div className="bg-white dark:bg-slate-900 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 duration-300">
