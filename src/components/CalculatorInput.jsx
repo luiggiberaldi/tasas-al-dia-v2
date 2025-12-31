@@ -15,6 +15,16 @@ export default function CalculatorInput({
   // Buscar el objeto de la moneda actual para mostrar su icono correcto
   const currentCurrencyData = currencies.find(c => c.id === currency) || { icon: '💰', label: currency };
 
+  // 🧠 LÓGICA DE AUTO-ESCALADO DE TEXTO
+  // Reduce el tamaño de la fuente según la longitud del número
+  const getFontSize = (value) => {
+    const len = value ? value.toString().length : 0;
+    if (len > 12) return 'text-xl';       // Muy pequeño para cifras enormes (Billones)
+    if (len > 9) return 'text-2xl';       // Mediano para millones largos
+    if (len > 7) return 'text-3xl';       // Grande normal
+    return 'text-4xl';                    // Gigante (Default)
+  };
+
   return (
     <div className="flex flex-col gap-2 relative z-10">
       {/* Etiqueta superior (Tengo / Recibo) */}
@@ -58,18 +68,23 @@ export default function CalculatorInput({
                     type="text"
                     inputMode="decimal" // Teclado numérico en móviles
                     value={amount}
-                    onChange={(e) => onAmountChange && onAmountChange(e.target.value)}
+                    onChange={(e) => {
+                         // Validar que sea número válido (solo números, puntos y comas)
+                         const val = e.target.value.replace(/[^0-9.,]/g, '');
+                         if (onAmountChange) onAmountChange(val);
+                    }}
                     placeholder="0"
                     readOnly={readOnly}
                     className={`
                         w-full bg-transparent border-none outline-none 
-                        text-right font-mono font-bold text-3xl sm:text-4xl
+                        text-right font-mono font-bold transition-all duration-200
                         placeholder-slate-300 dark:placeholder-slate-600
+                        ${getFontSize(amount)} 
                         ${readOnly ? 'text-slate-500 dark:text-slate-400' : 'text-slate-800 dark:text-white'}
                     `}
                 />
                 
-                {/* Botón de Borrar (X) */}
+                {/* Botón de Borrar (X) - Se oculta si está vacío o es solo lectura */}
                 {!readOnly && amount && amount !== '' && (
                     <button 
                         onClick={onClear}
@@ -79,6 +94,7 @@ export default function CalculatorInput({
                     </button>
                 )}
             </div>
+            
             {/* Espacio para hijos (ej: equivalencia en gris pequeño) */}
             {children}
         </div>
