@@ -69,7 +69,7 @@ export default function InfoView({ logs, toggleTheme, theme }) {
             </p>
          </div>
 
-         {/* ✅ BOTÓN DE TEMA AGREGADO AQUÍ (Alineado a la derecha) */}
+         {/* BOTÓN DE TEMA */}
          <button 
             onClick={toggleTheme} 
             className="ml-auto p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-400 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-brand-dark dark:hover:text-brand transition-all active:scale-95 shadow-sm"
@@ -78,7 +78,7 @@ export default function InfoView({ logs, toggleTheme, theme }) {
          </button>
       </div>
 
-      {/* AVISO IMPORTANTE (Diseño Tarjeta) */}
+      {/* AVISO IMPORTANTE */}
       <div className="relative overflow-hidden bg-amber-50 dark:bg-slate-800/50 border border-amber-100 dark:border-amber-900/30 p-5 rounded-[1.5rem]">
         <div className="absolute top-0 right-0 -mt-2 -mr-2 w-16 h-16 bg-amber-200/20 dark:bg-amber-500/10 rounded-full blur-xl"></div>
         <div className="relative z-10 flex gap-4">
@@ -179,7 +179,8 @@ export default function InfoView({ logs, toggleTheme, theme }) {
                 </div>
             </div>
             <div className="h-32 overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-slate-700 pr-2">
-                {logs.length === 0 ? <span className="text-slate-600 italic">> Esperando actividad...</span> : logs.map((log, i) => (
+                {/* ✅ CORRECCIÓN: Usamos &gt; en lugar de > */}
+                {logs.length === 0 ? <span className="text-slate-600 italic">&gt; Esperando actividad...</span> : logs.map((log, i) => (
                     <div key={i} className="flex gap-2 text-slate-300">
                         <span className="text-slate-600 shrink-0 select-none">[{log.time}]</span>
                         <span className={log.type === 'error' ? 'text-rose-400' : log.type === 'success' ? 'text-emerald-400' : 'text-slate-300'}>
