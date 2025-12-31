@@ -3,21 +3,33 @@ import { X } from 'lucide-react';
 
 export default function CalculatorInput({ label, amount, currency, currencies, onAmountChange, onCurrencyChange, onClear, children }) {
   
-  // Fuente dinámica: reduce el tamaño si el número es muy largo
+  // LÓGICA DE FUENTE AGRESIVA (Escalado rápido para móviles)
   const getFontSize = (val) => {
     const len = val ? val.toString().length : 0;
-    if (len > 10) return 'text-2xl'; 
-    if (len > 7) return 'text-3xl';
+    
+    // Si tiene más de 10 caracteres (ej: 10.000.000,00), letra muy pequeña
+    if (len > 10) return 'text-lg'; 
+    
+    // Si tiene 9 o 10 caracteres, letra pequeña
+    if (len > 8) return 'text-xl';
+    
+    // Si tiene 7 u 8 caracteres (AQUÍ ESTABA EL PROBLEMA), bajamos a 2xl
+    if (len > 6) return 'text-2xl';
+    
+    // Si tiene 6 caracteres, bajamos un punto a 3xl
+    if (len === 6) return 'text-3xl';
+    
+    // De 1 a 5 caracteres, letra grande
     return 'text-4xl';
   };
 
-  // ✅ VISUAL: Muestra "USD" si la moneda es Dólar, BCV o parecidos
+  // Visualmente mostramos USD
   const displayCurrency = ['BCV', 'USD', '$ BCV', 'Dolar'].includes(currency) ? 'USD' : currency;
 
   return (
     <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-3xl border border-slate-200 dark:border-slate-700 relative transition-all focus-within:border-brand focus-within:ring-1 focus-within:ring-brand/20">
       
-      {/* Etiqueta (TENGO / RECIBO) */}
+      {/* Etiqueta Superior */}
       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">
         {label}
       </span>
@@ -32,7 +44,6 @@ export default function CalculatorInput({ label, amount, currency, currencies, o
                 </span>
                 <span className="text-[8px] text-slate-400">▼</span>
             </div>
-            {/* Select invisible para funcionalidad nativa */}
             <select 
                 value={currency} 
                 onChange={(e) => onCurrencyChange(e.target.value)} 
@@ -42,7 +53,7 @@ export default function CalculatorInput({ label, amount, currency, currencies, o
             </select>
         </div>
 
-        {/* Input Numérico */}
+        {/* Input Numérico con Tracking Tighter (Letras más pegadas) */}
         <div className="flex-1 min-w-0 relative"> 
             <input
                 type="text"
@@ -50,7 +61,7 @@ export default function CalculatorInput({ label, amount, currency, currencies, o
                 value={amount || ''}
                 onChange={(e) => onAmountChange(e.target.value.replace(/[^0-9.]/g, ''))}
                 placeholder="0"
-                className={`w-full bg-transparent text-right font-black text-slate-800 dark:text-white outline-none placeholder-slate-200 dark:placeholder-slate-700 ${getFontSize(amount)}`}
+                className={`w-full bg-transparent text-right font-black text-slate-800 dark:text-white outline-none placeholder-slate-200 dark:placeholder-slate-700 tracking-tighter transition-all ${getFontSize(amount)}`}
             />
         </div>
 
