@@ -1,13 +1,14 @@
 import React, { useState, useRef } from 'react';
 import { Send, Mic, Camera, RefreshCcw, Copy, Share2, UserCircle } from 'lucide-react';
-import { useChatCalculator } from '../../hooks/useChatCalculator';
+// import { useChatCalculator } from '../../hooks/useChatCalculator'; // Ya no se usa aquí
 import { formatBs, formatUsd } from '../../utils/calculatorUtils';
 import { Modal } from '../../components/Modal';
 import { AccountSelector } from './AccountSelector';
 import { PaymentSummaryChat } from './PaymentSummaryChat';
 
-export const ChatMode = ({ rates, accounts, voiceControl }) => {
-    const { messages, isProcessing, messagesEndRef, handleTextSend, handleImageUpload } = useChatCalculator(rates, voiceControl.speak);
+export const ChatMode = ({ rates, accounts, voiceControl, chatState }) => {
+    // Desestructuramos del prop, no del hook
+    const { messages, isProcessing, messagesEndRef, handleTextSend, handleImageUpload } = chatState;
     const [input, setInput] = useState('');
     const fileInputRef = useRef(null);
 

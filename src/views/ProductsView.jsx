@@ -192,7 +192,7 @@ export const ProductsView = ({ rates }) => {
 
                                     {/* Info */}
                                     <div className="flex-1 min-w-0">
-                                        <h3 className="font-bold text-slate-800 dark:text-white mb-1 truncate pr-28">{p.name}</h3>
+                                        <h3 className="font-bold text-slate-800 dark:text-white mb-1 leading-tight line-clamp-2 pr-28 h-10">{p.name}</h3>
 
                                         <div className="flex items-baseline gap-1 mb-2">
                                             <span className="text-xl font-black text-brand-dark">{formatUsd(p.priceUsdt)}</span>

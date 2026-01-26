@@ -1,10 +1,8 @@
-import React, { useState, useRef } from 'react';
-import { Mic, MicOff, Check, Copy, MessageSquare, Camera, ArrowRightLeft } from 'lucide-react';
-import html2canvas from 'html2canvas';
+import React, { useState } from 'react';
+import { Check, Copy, MessageSquare, ArrowRightLeft } from 'lucide-react';
 
 // Hooks
 import { useCalculator } from '../../hooks/useCalculator';
-import { interpretVoiceCommandAI } from '../../utils/groqClient';
 
 // Components
 import { Modal } from '../../components/Modal';
@@ -17,42 +15,16 @@ export const ManualMode = ({ rates, accounts, theme }) => {
     const [copied, setCopied] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedAccount, setSelectedAccount] = useState(null);
-    const [isListening, setIsListening] = useState(false);
-    const captureRef = useRef(null);
 
     const modifiedCurrencies = calc.currencies.map(c => ({
         ...c,
         label: (c.label === '$ BCV' || c.id === 'USD' || c.id === 'BCV') ? 'Dolar' : c.label
     }));
 
-    const handleVoiceFill = () => {
-        if (!window.webkitSpeechRecognition) return alert("Usa Chrome.");
-        const recognition = new window.webkitSpeechRecognition();
-        recognition.lang = 'es-VE'; recognition.start();
-        setIsListening(true);
-        recognition.onresult = async (e) => {
-            setIsListening(false);
-            const res = await interpretVoiceCommandAI(e.results[0][0].transcript);
-            if (res?.amount) {
-                if (res.currency) calc.setFrom(res.currency);
-                if (res.targetCurrency) calc.setTo(res.targetCurrency);
-                calc.handleAmountChange(res.amount.toString(), 'top');
-            }
-        };
-        recognition.onend = () => setIsListening(false);
-    };
-
     const handleCopy = () => {
         if (!calc.amountBot) return;
         const text = `💰 Cambio: ${calc.amountTop} ${calc.from} -> ${calc.amountBot} ${calc.to}`;
         navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000);
-    };
-
-    const handleShareImage = async () => {
-        if (captureRef.current) {
-            const canvas = await html2canvas(captureRef.current, { backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc', scale: 2 });
-            const link = document.createElement('a'); link.href = canvas.toDataURL("image/png"); link.download = `Calculo.png`; link.click();
-        }
     };
 
     return (
@@ -61,7 +33,7 @@ export const ManualMode = ({ rates, accounts, theme }) => {
 
             {/* ÁREA SCROLLABLE (Inputs y Título) */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-hide">
-                <div ref={captureRef} className="space-y-8 pb-4">
+                <div className="space-y-8 pb-4">
 
                     {/* Header */}
                     <div className="flex justify-between items-center">
@@ -69,13 +41,6 @@ export const ManualMode = ({ rates, accounts, theme }) => {
                             <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">Conversión Rápida</h2>
                             <p className="text-sm text-slate-400 font-medium">Calculadora de precisión</p>
                         </div>
-                        <button
-                            onClick={handleVoiceFill}
-                            className={`p-3 rounded-2xl transition-all duration-300 shadow-sm border border-slate-100 dark:border-slate-800 ${isListening ? 'bg-rose-500 text-white animate-pulse shadow-rose-200' : 'bg-white dark:bg-slate-900 text-slate-400 hover:text-brand-dark'
-                                }`}
-                        >
-                            {isListening ? <MicOff size={20} /> : <Mic size={20} />}
-                        </button>
                     </div>
 
                     {/* Inputs Stack */}
@@ -123,12 +88,12 @@ export const ManualMode = ({ rates, accounts, theme }) => {
             {/* ÁREA FIJA INFERIOR (Botones de Acción) */}
             {/* flex-shrink-0 asegura que NUNCA se aplasten */}
             <div className="p-4 sm:p-5 pt-2 flex-shrink-0 z-20 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent dark:from-slate-950 dark:via-slate-950">
-                <div className="grid grid-cols-4 gap-3">
+                <div className="flex gap-3">
 
                     {/* Botón Copiar */}
                     <button
                         onClick={handleCopy}
-                        className="col-span-1 h-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-500 dark:text-slate-400 hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95 flex flex-col items-center justify-center gap-1 shadow-sm"
+                        className="flex-shrink-0 w-24 h-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-500 dark:text-slate-400 hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95 flex flex-col items-center justify-center gap-1 shadow-sm"
                     >
                         {copied ? <Check size={20} className="text-emerald-500" /> : <Copy size={20} />}
                         <span className="text-[9px] font-bold uppercase tracking-widest">Copiar</span>
@@ -138,19 +103,10 @@ export const ManualMode = ({ rates, accounts, theme }) => {
                     <button
                         onClick={() => { setSelectedAccount(null); setIsModalOpen(true); }}
                         disabled={!calc.amountTop}
-                        className="col-span-2 h-20 bg-brand text-slate-900 rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg shadow-brand/20 hover:shadow-brand/40 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 flex items-center justify-center gap-2"
+                        className="flex-1 h-20 bg-brand text-slate-900 rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg shadow-brand/20 hover:shadow-brand/40 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 flex items-center justify-center gap-2"
                     >
                         <MessageSquare size={22} strokeWidth={2.5} />
                         <span>Cobrar</span>
-                    </button>
-
-                    {/* Botón Captura */}
-                    <button
-                        onClick={handleShareImage}
-                        className="col-span-1 h-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-500 dark:text-slate-400 hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95 flex flex-col items-center justify-center gap-1 shadow-sm"
-                    >
-                        <Camera size={20} />
-                        <span className="text-[9px] font-bold uppercase tracking-widest">Captura</span>
                     </button>
                 </div>
             </div>
