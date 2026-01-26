@@ -1,7 +1,10 @@
 import React from 'react';
-import { Bot, Calculator as CalculatorIcon, Volume2, VolumeX, Trash2 } from 'lucide-react';
+import { Bot, Calculator as CalculatorIcon, Volume2, VolumeX, Trash2, Crown } from 'lucide-react'; // [UPDATED]
+import { useSecurity } from '../../hooks/useSecurity'; // [NEW]
 
 export const CalculatorHeader = ({ viewMode, setViewMode, voiceEnabled, setVoiceEnabled, onClearChat }) => {
+    const { isPremium } = useSecurity(); // [NEW]
+
     return (
         <div className="px-6 py-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-100 dark:border-slate-800 z-20 sticky top-0 flex flex-col gap-3">
             <div className="flex justify-between items-center">
@@ -10,19 +13,26 @@ export const CalculatorHeader = ({ viewMode, setViewMode, voiceEnabled, setVoice
                         {viewMode === 'chat' ? <Bot size={24} strokeWidth={2.5} /> : <CalculatorIcon size={24} strokeWidth={2.5} />}
                     </div>
                     <div>
-                        <h3 className="font-black text-slate-800 dark:text-white text-lg leading-none tracking-tight">
+                        <h3 className="font-black text-slate-800 dark:text-white text-lg leading-none tracking-tight flex items-center gap-1">
                             {viewMode === 'chat' ? 'Mister Cambio' : 'Calculadora'}
+                            {viewMode === 'chat' && isPremium && (
+                                <span className="inline-flex items-center gap-0.5 bg-gradient-to-r from-amber-300 to-orange-400 text-white text-[10px] px-1.5 py-0.5 rounded-md shadow-sm ml-1">
+                                    <Crown size={10} strokeWidth={3} /> VIP
+                                </span>
+                            )}
                         </h3>
                         <div className="flex items-center gap-1.5 mt-1">
                             <span className="relative flex h-2 w-2">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                             </span>
-                            <span className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Online • IA 3.5</span>
+                            <span className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">
+                                {isPremium ? 'IA 4.0 TURBO' : 'Online • IA 3.5'}
+                            </span>
                         </div>
                     </div>
                 </div>
-                
+
                 {/* Controles extra para modo Chat */}
                 {viewMode === 'chat' && (
                     <div className="flex gap-2">

@@ -4,10 +4,11 @@ import { useChatCalculator } from '../hooks/useChatCalculator'; // Importar Hook
 import { CalculatorHeader } from '../components/calculator/CalculatorHeader';
 import { ManualMode } from '../components/calculator/ManualMode';
 import { ChatMode } from '../components/calculator/ChatMode';
+import PremiumGuard from '../components/security/PremiumGuard';
 
 const SAFE_RATES = { usdt: { price: 0 }, bcv: { price: 0 }, euro: { price: 0 } };
 
-export default function CalculatorView({ rates, theme }) {
+export default function CalculatorView({ rates, theme, triggerHaptic }) {
   const currentRates = rates || SAFE_RATES;
   const [viewMode, setViewMode] = useState('chat');
   const [accounts, setAccounts] = useState([]);
@@ -35,15 +36,27 @@ export default function CalculatorView({ rates, theme }) {
 
       <div className="flex-1 overflow-hidden relative bg-slate-50/50 dark:bg-slate-900/50">
         {viewMode === 'manual' ? (
-          <ManualMode rates={currentRates} accounts={accounts} theme={theme} />
+          <ManualMode rates={currentRates} accounts={accounts} theme={theme} triggerHaptic={triggerHaptic} />
         ) : (
-          // ✅ Pasamos el estado del chat como prop
-          <ChatMode
-            rates={currentRates}
-            accounts={accounts}
-            voiceControl={voiceControl}
-            chatState={chatState}
-          />
+          // Si alcanzó el límite Free, mostramos el Paywall.
+          // Si no, mostramos el chat normalmente (Freemium).
+          chatState.limitReached ? (
+            <PremiumGuard featureName="Chat Ilimitado & Análisis VIP" isAI={true}>
+              <ChatMode
+                rates={currentRates}
+                accounts={accounts}
+                voiceControl={voiceControl}
+                chatState={chatState}
+              />
+            </PremiumGuard>
+          ) : (
+            <ChatMode
+              rates={currentRates}
+              accounts={accounts}
+              voiceControl={voiceControl}
+              chatState={chatState}
+            />
+          )
         )}
       </div>
     </div>

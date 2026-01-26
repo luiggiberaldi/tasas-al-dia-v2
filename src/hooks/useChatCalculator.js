@@ -1,15 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
-import { interpretVoiceCommandAI, analyzeImageAI } from '../utils/groqClient';
+import { getSmartResponse, analyzeImageAI } from '../utils/aiClient'; // [UPDATED]
 import { formatBs, formatUsd } from '../utils/calculatorUtils';
+import { useSecurity } from './useSecurity'; // [NEW]
 
 export const useChatCalculator = (rates, speak) => {
+    const { isPremium } = useSecurity();
     const [messages, setMessages] = useState([
         { id: 1, role: 'bot', type: 'text', content: '👋 ¡Hola! Soy Mister Cambio. ¿Qué calculamos hoy?' }
     ]);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [limitReached, setLimitReached] = useState(false); // [NEW]
     const messagesEndRef = useRef(null);
 
-    // Auto-scroll: Only scroll if there are new messages (ignore initial welcome message)
+    // Auto-scroll logic
     useEffect(() => {
         if (messages.length > 1) {
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -17,86 +20,76 @@ export const useChatCalculator = (rates, speak) => {
     }, [messages]);
 
     const addMessage = (role, type, content, data = null) => {
-        setMessages(prev => [...prev, { id: Date.now(), role, type, content, data }]);
+        setMessages(prev => [
+            ...prev,
+            {
+                id: Date.now() + Math.random().toString(36).substr(2, 9), // ID único robusto
+                role,
+                type,
+                content,
+                data
+            }
+        ]);
     };
 
     const processAIResult = (aiResult) => {
+        // [NEW] Manejo de Errores (Límites o API Busy)
+        if (aiResult?.error) {
+            addMessage('bot', 'text', aiResult.message);
+            if (aiResult.error === 'LIMIT_REACHED') {
+                setLimitReached(true); // Bloqueamos UI
+            }
+            setIsProcessing(false);
+            return;
+        }
+
+        // Si fue exitoso, reseteamos el bloqueo (por si compró premium y volvió)
+        // Si fue exitoso, reseteamos el bloqueo (por si compró premium y volvió)
+        setLimitReached(false);
+
+        // CASO 1: Respuesta Conversacional (Premium Greeting/Question)
+        if (aiResult?.textResponse) {
+            addMessage('bot', 'text', aiResult.textResponse);
+            if (navigator.vibrate) navigator.vibrate(5); // Soft Haptic
+        }
+
+        // CASO 2: Cálculo Matemático
         if (aiResult?.amount) {
             const amount = parseFloat(aiResult.amount);
             const currency = aiResult.currency || 'USD';
             let target = aiResult.targetCurrency;
 
-            // 🧠 CEREBRO LÓGICO: Inferencia de destino si es nulo
+            // ... (Misma lógica de inferencia de target) ...
             if (!target) {
-                if (currency === 'VES') target = 'USD'; // Bs -> Dólar
-                else target = 'VES'; // Todo lo demás (USD, USDT, EUR) -> Bs por defecto
+                if (currency === 'VES') target = 'USD';
+                else target = 'VES';
             }
 
             let result = 0, rateUsed = 0, rateName = '';
 
-            // 🔢 MATRIZ DE CONVERSIÓN
-            // CASO 1: USDT -> ?
+            // ... (Matriz de conversión) ...
+            // CASO 1: USDT
             if (currency === 'USDT') {
-                if (target === 'USD') {
-                    // ... (Arbitraje USDT -> BCV) ...
-                    rateUsed = rates.usdt.price / rates.bcv.price;
-                    result = amount * rateUsed;
-                    rateName = 'Brecha (USDT → BCV)';
-                } else if (target === 'EUR') {
-                    // ADDED: USDT -> EUR (Cross Rate via Bs)
-                    // Fórmula: (Monto * PrecioUSDT_Bs) / PrecioEUR_Bs
-                    rateUsed = rates.usdt.price / rates.euro.price;
-                    result = amount * rateUsed;
-                    rateName = 'Cross (USDT → EUR)';
-                } else {
-                    // USDT -> Bs (Standard)
-                    rateUsed = rates.usdt.price;
-                    result = amount * rateUsed;
-                    rateName = 'Tasa USDT';
-                    target = 'VES';
-                }
+                if (target === 'USD') { rateUsed = rates.usdt.price / rates.bcv.price; result = amount * rateUsed; rateName = 'Brecha (USDT → BCV)'; }
+                else if (target === 'EUR') { rateUsed = rates.usdt.price / rates.euro.price; result = amount * rateUsed; rateName = 'Cross (USDT → EUR)'; }
+                else { rateUsed = rates.usdt.price; result = amount * rateUsed; rateName = 'Tasa USDT'; target = 'VES'; }
             }
-            // CASO 2: USD (Dólar/Zelle/Efectivo) -> ?
+            // CASO 2: USD
             else if (currency === 'USD') {
-                if (target === 'USDT') {
-                    // ... (Arbitraje BCV -> USDT) ...
-                    rateUsed = rates.bcv.price / rates.usdt.price;
-                    result = amount * rateUsed;
-                    rateName = 'Brecha (BCV → USDT)';
-                } else if (target === 'EUR') {
-                    // ADDED: USD -> EUR (Cross Rate via Bs)
-                    rateUsed = rates.bcv.price / rates.euro.price;
-                    result = amount * rateUsed;
-                    rateName = 'Cross (USD → EUR)';
-                } else {
-                    // USD -> Bs (Standard BCV)
-                    rateUsed = rates.bcv.price;
-                    result = amount * rateUsed;
-                    rateName = 'Tasa BCV';
-                    target = 'VES';
-                }
+                if (target === 'USDT') { rateUsed = rates.bcv.price / rates.usdt.price; result = amount * rateUsed; rateName = 'Brecha (BCV → USDT)'; }
+                else if (target === 'EUR') { rateUsed = rates.bcv.price / rates.euro.price; result = amount * rateUsed; rateName = 'Cross (USD → EUR)'; }
+                else { rateUsed = rates.bcv.price; result = amount * rateUsed; rateName = 'Tasa BCV'; target = 'VES'; }
             }
-            // CASO 3: EUR -> ?
+            // CASO 3: EUR
             else if (currency === 'EUR') {
-                if (target === 'USD' || target === 'USDT') {
-                    // EUR -> USD (Cross Rate via Bs)
-                    rateUsed = rates.euro.price / rates.bcv.price;
-                    result = amount * rateUsed;
-                    rateName = 'EUR → USD (Implícito)';
-                    target = 'USD';
-                } else {
-                    // EUR -> Bs
-                    rateUsed = rates.euro.price;
-                    result = amount * rateUsed;
-                    rateName = 'Tasa Euro BCV';
-                    target = 'VES';
-                }
+                if (target === 'USD' || target === 'USDT') { rateUsed = rates.euro.price / rates.bcv.price; result = amount * rateUsed; rateName = 'EUR → USD (Implícito)'; target = 'USD'; }
+                else { rateUsed = rates.euro.price; result = amount * rateUsed; rateName = 'Tasa Euro BCV'; target = 'VES'; }
             }
-            // CASO 4: VES -> ?
+            // CASO 4: VES
             else if (currency === 'VES') {
                 if (target === 'USDT') { rateUsed = 1 / rates.usdt.price; rateName = 'Compra USDT'; }
                 else if (target === 'EUR') { rateUsed = 1 / rates.euro.price; rateName = 'Compra EUR'; }
-                else { rateUsed = 1 / rates.bcv.price; rateName = 'Compra BCV'; target = 'USD'; } // Default a Dólar
+                else { rateUsed = 1 / rates.bcv.price; rateName = 'Compra BCV'; target = 'USD'; }
                 result = amount * rateUsed;
             }
 
@@ -108,12 +101,15 @@ export const useChatCalculator = (rates, speak) => {
 
             addMessage('bot', 'calculation', null, data);
 
-            // Feedback de voz inteligente
-            // Para TTS: Eliminamos los puntos de miles (ej: "1.778" -> "1778") para que no lea "uno punto..."
-            const montoSpeech = target === 'VES'
-                ? formatBs(result).replace(/\./g, '')
-                : formatUsd(result).replace(/,/g, ''); // Quitamos comas de miles en USD
+            // [NEW] Mensaje VIP de Análisis (Si existe)
+            if (aiResult.vipMessage && isPremium) {
+                setTimeout(() => {
+                    addMessage('bot', 'text', `🧐 ${aiResult.vipMessage}`);
+                }, 800);
+            }
 
+            // Feedback de voz logic...
+            const montoSpeech = target === 'VES' ? formatBs(result).replace(/\./g, '') : formatUsd(result).replace(/,/g, '');
             let contextSpeach = '';
             if (target === 'VES') contextSpeach = 'bolívares';
             else if (target === 'USD') contextSpeach = 'dólares del banco central';
@@ -122,7 +118,8 @@ export const useChatCalculator = (rates, speak) => {
             else contextSpeach = target;
 
             speak(`Son ${montoSpeech} ${contextSpeach}.`);
-        } else {
+        } else if (!aiResult?.textResponse) {
+            // Solo si NO hubo ni texto ni cálculo mostramos error
             addMessage('bot', 'text', 'No entendí el monto. Intenta "100 USDT a BCV".');
         }
         setIsProcessing(false);
@@ -133,16 +130,20 @@ export const useChatCalculator = (rates, speak) => {
         addMessage('user', 'text', text);
         setIsProcessing(true);
         try {
-            // Historial breve para contexto
+            // Historial breve
             const history = messages.slice(-4).map(m => ({
                 role: m.role === 'user' ? 'user' : 'assistant',
                 content: m.type === 'calculation' ? `Calc: ${m.data.originalAmount} ${m.data.originalSource}` : m.content
             }));
             history.push({ role: 'user', content: text });
 
-            const aiResult = await interpretVoiceCommandAI(history);
+            // [UPDATED] Usamos getSmartResponse con isPremium Flag
+            const aiResult = await getSmartResponse(history, isPremium);
             processAIResult(aiResult);
-        } catch { setIsProcessing(false); }
+        } catch (e) {
+            console.error(e);
+            setIsProcessing(false);
+        }
     };
 
     const handleImageUpload = async (file) => {
@@ -163,6 +164,7 @@ export const useChatCalculator = (rates, speak) => {
     return {
         messages,
         isProcessing,
+        limitReached, // [NEW]
         messagesEndRef,
         handleTextSend,
         handleImageUpload,

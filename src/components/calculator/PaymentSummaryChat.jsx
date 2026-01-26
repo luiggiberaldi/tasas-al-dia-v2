@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Sparkles, MessageSquare, UserCircle } from 'lucide-react';
-import { generateSmartMessage } from '../../utils/groqClient';
+import { generateSmartMessage } from '../../utils/aiClient';
 import { formatBs, formatUsd } from '../../utils/calculatorUtils';
 
 export const PaymentSummaryChat = ({ selectedAccount, chatData, rates, onBack, onConfirm }) => {
@@ -9,7 +9,7 @@ export const PaymentSummaryChat = ({ selectedAccount, chatData, rates, onBack, o
     const [isGenerating, setIsGenerating] = useState(false);
     const [showOptions, setShowOptions] = useState({ ves: true, usd: true, usdt: false, eur: false });
     const acc = selectedAccount;
-    
+
     // Normalizar base a Bs
     let baseBs = 0;
     if (chatData.originalSource === 'VES') baseBs = chatData.originalAmount;
@@ -19,8 +19,8 @@ export const PaymentSummaryChat = ({ selectedAccount, chatData, rates, onBack, o
     else baseBs = chatData.originalAmount * rates.bcv.price;
 
     const valVES = baseBs;
-    const valUSD = baseBs / rates.bcv.price;   
-    const valUSDT = baseBs / rates.usdt.price; 
+    const valUSD = baseBs / rates.bcv.price;
+    const valUSDT = baseBs / rates.usdt.price;
     const valEUR = baseBs / rates.euro.price;
 
     const generateMessageContent = () => {

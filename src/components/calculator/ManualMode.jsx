@@ -10,7 +10,7 @@ import CalculatorInput from '../../components/CalculatorInput';
 import { AccountSelector } from './AccountSelector';
 import { PaymentSummaryChat } from './PaymentSummaryChat';
 
-export const ManualMode = ({ rates, accounts, theme }) => {
+export const ManualMode = ({ rates, accounts, theme, triggerHaptic }) => {
     const calc = useCalculator(rates);
     const [copied, setCopied] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -22,6 +22,7 @@ export const ManualMode = ({ rates, accounts, theme }) => {
     }));
 
     const handleCopy = () => {
+        triggerHaptic && triggerHaptic();
         if (!calc.amountBot) return;
         const text = `💰 Cambio: ${calc.amountTop} ${calc.from} -> ${calc.amountBot} ${calc.to}`;
         navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000);
@@ -62,7 +63,7 @@ export const ManualMode = ({ rates, accounts, theme }) => {
                         {/* Botón Swap (Posicionamiento Absoluto Seguro) */}
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
                             <button
-                                onClick={calc.handleSwap}
+                                onClick={() => { triggerHaptic && triggerHaptic(); calc.handleSwap(); }}
                                 className="bg-brand text-slate-900 p-3 rounded-full shadow-xl hover:scale-110 hover:rotate-180 transition-all duration-300 border-[6px] border-slate-50 dark:border-slate-950"
                             >
                                 <ArrowRightLeft size={22} strokeWidth={2.5} />
@@ -101,7 +102,7 @@ export const ManualMode = ({ rates, accounts, theme }) => {
 
                     {/* Botón COBRAR (Principal) */}
                     <button
-                        onClick={() => { setSelectedAccount(null); setIsModalOpen(true); }}
+                        onClick={() => { triggerHaptic && triggerHaptic(); setSelectedAccount(null); setIsModalOpen(true); }}
                         disabled={!calc.amountTop}
                         className="flex-1 h-20 bg-brand text-slate-900 rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg shadow-brand/20 hover:shadow-brand/40 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 flex items-center justify-center gap-2"
                     >

@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { RefreshCw, TrendingUp, TrendingDown, WifiOff, Clock, Bell, BellRing, Maximize, Minimize, Camera, Loader2 } from 'lucide-react';
+import { RefreshCw, TrendingUp, TrendingDown, WifiOff, Clock, Bell, BellRing, Maximize, Minimize, Camera, Loader2, AlertTriangle } from 'lucide-react';
 // ✅ Asegúrate de tener instalado: npm i html2canvas
 import html2canvas from 'html2canvas';
 
-export default function MonitorView({ rates, loading, isOffline, onRefresh, toggleTheme, theme, copyLogs, enableNotifications, notificationsEnabled, addLog }) {
+export default function MonitorView({ rates, loading, isOffline, onRefresh, toggleTheme, theme, copyLogs, enableNotifications, notificationsEnabled, addLog, triggerHaptic }) {
 
     const [secretCount, setSecretCount] = useState(0);
     const [kioskMode, setKioskMode] = useState(false);
@@ -12,8 +12,16 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
     // Referencia al contenedor del Kiosco (para la foto)
     const kioskRef = useRef(null);
 
+    // Detección de Datos Viejos (> 4 Horas)
+    const isOldData = (() => {
+        if (!rates || !rates.lastUpdate) return false;
+        const diff = new Date() - new Date(rates.lastUpdate);
+        return diff > 4 * 60 * 60 * 1000; // 4 Hours
+    })();
+
     // Truco para ver logs (7 clics en el logo)
     const handleSecretDebug = () => {
+        triggerHaptic && triggerHaptic();
         const newCount = secretCount + 1;
         setSecretCount(newCount);
         if (newCount === 7) {
@@ -44,6 +52,7 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
 
     // 📸 FUNCIÓN DE CAPTURA (Estable y Rápida)
     const handleCaptureKiosk = async () => {
+        triggerHaptic && triggerHaptic();
         if (!kioskRef.current || isCapturing) return;
         setIsCapturing(true);
         const log = addLog || console.log;
@@ -93,7 +102,7 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
                 {/* Botón Salir (ID especial para ocultarlo en la foto) */}
                 <button
                     id="hide-on-capture"
-                    onClick={() => setKioskMode(false)}
+                    onClick={() => { triggerHaptic && triggerHaptic(); setKioskMode(false); }}
                     className="absolute top-6 right-6 p-3 bg-white/10 rounded-full text-white/50 hover:text-white transition-colors z-20"
                 >
                     <Minimize size={24} />
@@ -191,21 +200,31 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
                 <div className="flex items-center gap-1.5 sm:gap-2">
                     {/* BOTÓN MODO KIOSCO (Visible en Móvil y PC) */}
                     <button
-                        onClick={() => setKioskMode(true)}
+                        onClick={() => { triggerHaptic && triggerHaptic(); setKioskMode(true); }}
                         className="p-2 sm:p-2.5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-400 hover:text-brand-dark dark:hover:text-brand transition-all shadow-sm active:scale-95"
                         title="Pantalla Completa / Captura"
                     >
                         <Maximize size={18} strokeWidth={2} />
                     </button>
 
-                    <button onClick={enableNotifications} disabled={notificationsEnabled} className={`p-2 sm:p-2.5 rounded-2xl border transition-all active:scale-95 shadow-sm ${notificationsEnabled ? 'bg-emerald-50 border-emerald-100 text-emerald-600 dark:bg-emerald-900/20 dark:border-emerald-900/30 dark:text-emerald-400' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-400 dark:text-slate-400'}`}>
+                    <button onClick={() => { triggerHaptic && triggerHaptic(); enableNotifications(); }} disabled={notificationsEnabled} className={`p-2 sm:p-2.5 rounded-2xl border transition-all active:scale-95 shadow-sm ${notificationsEnabled ? 'bg-emerald-50 border-emerald-100 text-emerald-600 dark:bg-emerald-900/20 dark:border-emerald-900/30 dark:text-emerald-400' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 text-slate-400 dark:text-slate-400'}`}>
                         {notificationsEnabled ? <BellRing size={18} /> : <Bell size={18} />}
                     </button>
-                    <button onClick={onRefresh} disabled={loading} className={`p-2 sm:p-2.5 rounded-2xl text-slate-900 shadow-lg shadow-brand/10 border border-transparent transition-all active:scale-95 ${loading ? 'bg-slate-100 dark:bg-slate-800 text-slate-300 cursor-not-allowed' : 'bg-brand hover:bg-brand-light'}`}>
+                    <button onClick={() => { triggerHaptic && triggerHaptic(); onRefresh(); }} disabled={loading} className={`p-2 sm:p-2.5 rounded-2xl text-slate-900 shadow-lg shadow-brand/10 border border-transparent transition-all active:scale-95 ${loading ? 'bg-slate-100 dark:bg-slate-800 text-slate-300 cursor-not-allowed' : 'bg-brand hover:bg-brand-light'}`}>
                         <RefreshCw size={18} className={loading ? 'animate-spin' : ''} strokeWidth={2.5} />
                     </button>
                 </div>
             </header>
+
+            {/* Warning de Datos Viejos */}
+            {isOldData && (
+                <div className="mx-3 sm:mx-4 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 rounded-xl flex items-center justify-center gap-2 animate-in slide-in-from-top-2">
+                    <AlertTriangle size={14} className="text-amber-600 dark:text-amber-500" />
+                    <p className="text-xs font-bold text-amber-700 dark:text-amber-500">
+                        Precios referenciales (No actualizados hoy)
+                    </p>
+                </div>
+            )}
 
             {/* Grid de Tarjetas */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -246,8 +265,8 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
 
                 {/* Tarjetas Secundarias (BCV / Euro) */}
                 <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
-                    <RateCardMini title="Dolar BCV Oficial" price={rates.bcv.price} change={rates.bcv.change} icon="🏛️" formatVES={formatVES} renderChange={renderChange} />
-                    <RateCardMini title="Euro BCV Oficial" price={rates.euro.price} change={rates.euro.change} icon="🇪🇺" formatVES={formatVES} renderChange={renderChange} />
+                    <RateCardMini title="Dolar BCV Oficial" price={rates.bcv.price} change={rates.bcv.change} icon="🏛️" formatVES={formatVES} renderChange={renderChange} symbol="Bs / $" />
+                    <RateCardMini title="Euro BCV Oficial" price={rates.euro.price} change={rates.euro.change} icon="🇪🇺" formatVES={formatVES} renderChange={renderChange} symbol="Bs / €" />
                 </div>
             </div>
 
@@ -265,7 +284,7 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
 }
 
 // Componente pequeño para tarjetas secundarias
-function RateCardMini({ title, price, change, icon, formatVES, renderChange }) {
+function RateCardMini({ title, price, change, icon, formatVES, renderChange, symbol }) {
     return (
         <div className="bg-white dark:bg-slate-900 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 duration-300">
             <div className="flex justify-between items-start mb-4">
@@ -274,7 +293,7 @@ function RateCardMini({ title, price, change, icon, formatVES, renderChange }) {
             </div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">{title}</span>
             <div className="text-xl font-black text-slate-800 dark:text-white tracking-tight font-mono">{formatVES(price)}</div>
-            <div className="text-[10px] text-slate-400 font-medium">Bs / $</div>
+            <div className="text-[10px] text-slate-400 font-medium">{symbol || 'Bs / $'}</div>
         </div>
     );
 }

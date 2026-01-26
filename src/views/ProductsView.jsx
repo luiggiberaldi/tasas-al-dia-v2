@@ -5,7 +5,7 @@ import { ProductShareModal } from '../components/ProductShareModal';
 import { formatBs, formatUsd } from '../utils/calculatorUtils';
 import { useWallet } from '../hooks/useWallet';
 
-export const ProductsView = ({ rates }) => {
+export const ProductsView = ({ rates, triggerHaptic }) => {
     const [products, setProducts] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -37,7 +37,7 @@ export const ProductsView = ({ rates }) => {
         else localStorage.removeItem('my_products_v1');
     }, [products]);
 
-    // Función comprimir imagen
+    // Función comprimir imagen (OPTIMIZADA PDA v1.0: 400x400 WebP 70%)
     const handleImageUpload = (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -49,13 +49,31 @@ export const ProductsView = ({ rates }) => {
             img.src = event.target.result;
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 500;
-                const scaleSize = MAX_WIDTH / img.width;
-                canvas.width = MAX_WIDTH;
-                canvas.height = img.height * scaleSize;
+                const MAX_SIZE = 400; // Max 400px
+
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_SIZE) {
+                        height *= MAX_SIZE / width;
+                        width = MAX_SIZE;
+                    }
+                } else {
+                    if (height > MAX_SIZE) {
+                        width *= MAX_SIZE / height;
+                        height = MAX_SIZE;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+
                 const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                setImage(canvas.toDataURL('image/jpeg', 0.7));
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Conversión a WebP y compresión 70%
+                setImage(canvas.toDataURL('image/webp', 0.7));
             };
         };
     };
@@ -77,6 +95,7 @@ export const ProductsView = ({ rates }) => {
     }, [searchTerm]);
 
     const handleSave = () => {
+        triggerHaptic && triggerHaptic();
         if (!name || !priceUsdt) return alert("Nombre y precio requeridos");
 
         // Auto-Capitalize
@@ -103,6 +122,7 @@ export const ProductsView = ({ rates }) => {
     };
 
     const handleEdit = (product) => {
+        triggerHaptic && triggerHaptic();
         setEditingId(product.id);
         setName(product.name);
         setPriceUsdt(product.priceUsdt);
@@ -111,6 +131,7 @@ export const ProductsView = ({ rates }) => {
     };
 
     const handleDelete = (id) => {
+        triggerHaptic && triggerHaptic();
         if (confirm("¿Borrar producto?")) {
             const clean = products.filter(p => p.id !== id);
             setProducts(clean);
@@ -134,7 +155,7 @@ export const ProductsView = ({ rates }) => {
                         <p className="text-sm text-slate-400 font-medium ml-1">Mis Productos</p>
                     </div>
                     <button
-                        onClick={() => setIsModalOpen(true)}
+                        onClick={() => { triggerHaptic && triggerHaptic(); setIsModalOpen(true); }}
                         className="p-3 bg-brand text-slate-900 rounded-2xl shadow-lg shadow-brand/20 hover:scale-105 transition-transform"
                     >
                         <Plus size={24} strokeWidth={2.5} />
