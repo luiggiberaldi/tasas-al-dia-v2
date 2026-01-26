@@ -43,8 +43,8 @@ export const ChatMode = ({ rates, accounts, voiceControl, chatState }) => {
     };
 
     return (
-        <div className="flex flex-col h-full relative">
-            <div className="flex-1 overflow-y-auto p-4 pb-32 space-y-6 scrollbar-hide">
+        <div className="flex flex-col h-full">
+            <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 scrollbar-hide">
                 {messages.map((msg) => (
                     <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-500`}>
                         {msg.role === 'user' ? (
@@ -102,7 +102,7 @@ export const ChatMode = ({ rates, accounts, voiceControl, chatState }) => {
             </Modal>
 
             {/* Input Area */}
-            <div className="absolute bottom-6 left-4 right-4">
+            <div className="px-4 pb-4 pt-2">
                 <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-[2rem] shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800 ring-1 ring-slate-100 dark:ring-slate-800/50">
                     <button onClick={() => fileInputRef.current.click()} className="p-3 text-slate-400 hover:text-brand-dark hover:bg-slate-50 rounded-full transition-colors"><Camera size={20} /></button>
                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e.target.files[0])} />

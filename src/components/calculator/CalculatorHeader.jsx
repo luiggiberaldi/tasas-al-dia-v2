@@ -6,7 +6,7 @@ export const CalculatorHeader = ({ viewMode, setViewMode, voiceEnabled, setVoice
     const { isPremium } = useSecurity(); // [NEW]
 
     return (
-        <div className="px-6 py-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-100 dark:border-slate-800 z-20 sticky top-0 flex flex-col gap-3">
+        <div className="flex-shrink-0 px-6 py-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 flex flex-col gap-3 shadow-sm z-30 relative">
             <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
                     <div className={`p-2.5 rounded-2xl shadow-lg transition-colors duration-500 ${viewMode === 'chat' ? 'bg-brand text-slate-900' : 'bg-slate-200 text-slate-500'}`}>

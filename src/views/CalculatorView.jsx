@@ -24,7 +24,7 @@ export default function CalculatorView({ rates, theme, triggerHaptic }) {
   }, []);
 
   return (
-    <div className="flex flex-col h-[88vh] bg-slate-50 dark:bg-slate-950 rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 relative ring-4 ring-slate-100 dark:ring-slate-900/50 animate-in fade-in duration-500">
+    <div className="flex flex-col h-[calc(100vh-130px)] bg-slate-50 dark:bg-slate-950 rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 relative ring-4 ring-slate-100 dark:ring-slate-900/50 animate-in fade-in duration-500">
 
       <CalculatorHeader
         viewMode={viewMode}
