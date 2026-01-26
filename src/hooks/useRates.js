@@ -1,15 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 
 const DEFAULT_RATES = {
-  usdt: { price: 0, source: '---', type: 'none', change: 0 },
-  bcv: { price: 0, source: '---', change: 0 },
-  euro: { price: 0, source: '---', change: 0 },
-  lastUpdate: null
+    usdt: { price: 0, source: '---', type: 'none', change: 0 },
+    bcv: { price: 0, source: '---', change: 0 },
+    euro: { price: 0, source: '---', change: 0 },
+    lastUpdate: null
 };
 
-const EXCHANGERATE_KEY = 'F1a3af26247a97a33ee5ad90'; 
-const DEFAULT_EUR_USD_RATIO = 1.18; 
-const UPDATE_INTERVAL = 3600000; 
+const EXCHANGERATE_KEY = 'F1a3af26247a97a33ee5ad90';
+const DEFAULT_EUR_USD_RATIO = 1.18;
+const UPDATE_INTERVAL = 30000;
 
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxT9sKz_XWRWuQx_XP-BJ33T0hoAgJsLwhZA00v6nPt4Ij4jRjq-90mDGLVCsS6FXwW9Q/exec?token=Lvbp1994';
 
@@ -20,239 +20,240 @@ const CONNECTION_STRATEGIES = [
 ];
 
 export function useRates() {
-  const [rates, setRates] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('monitor_rates_v12')) || null; } 
-    catch { return null; }
-  });
-  
-  const [loading, setLoading] = useState(false);
-  const [isOffline, setIsOffline] = useState(false);
-  const [logs, setLogs] = useState([]);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+    const [rates, setRates] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('monitor_rates_v12')) || null; }
+        catch { return null; }
+    });
 
-  const currentRates = rates || DEFAULT_RATES;
+    const [loading, setLoading] = useState(false);
+    const [isOffline, setIsOffline] = useState(false);
+    const [logs, setLogs] = useState([]);
+    const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
-  useEffect(() => {
-    if (rates) localStorage.setItem('monitor_rates_v12', JSON.stringify(rates));
-    if ('Notification' in window && Notification.permission === 'granted') {
-        setNotificationsEnabled(true);
-    }
-  }, [rates]);
+    const currentRates = rates || DEFAULT_RATES;
 
-  const addLog = useCallback((msg, type = 'info') => {
-    const time = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' });
-    setLogs(prev => [...prev.slice(-49), { time, msg, type }]);
-  }, []);
-
-  const enableNotifications = async () => {
-      if (!('Notification' in window)) {
-          alert("Tu navegador no soporta notificaciones.");
-          return;
-      }
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-          setNotificationsEnabled(true);
-          new Notification("🔔 Notificaciones Activadas", {
-              body: "Te avisaremos cuando cambie la tasa del BCV (Dólar y Euro).",
-              icon: '/logodark.png'
-          });
-          addLog("Permiso de notificaciones concedido", "success");
-      }
-  };
-
-  const parseSafeFloat = (val) => {
-      if (!val) return 0;
-      if (typeof val === 'number') return val;
-      if (typeof val === 'string') return parseFloat(val.replace(',', '.'));
-      return 0;
-  };
-
-  const sendRateNotification = (title, body) => {
-      if (Notification.permission === 'granted') {
-          try {
-             new Notification(title, { body, icon: '/logodark.png', vibrate: [200, 100, 200] });
-          } catch(e) { console.error("Error notificando", e); }
-      }
-  };
-
-  const updateData = useCallback(async (isAutoUpdate = false) => {
-    setLoading(true); 
-    setIsOffline(false); 
-    addLog(isAutoUpdate ? "--- Auto-Update (Refresco UI) ---" : "--- Actualización Manual ---");
-
-    const fetchGeneric = async (url) => {
-        const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), 8000); 
-        try {
-            const res = await fetch(url, { signal: controller.signal });
-            clearTimeout(id);
-            if (!res.ok) return null;
-            return await res.json();
-        } catch (e) { clearTimeout(id); return null; }
-    };
-
-    let privateData = null;
-    try {
-        const rawPrivate = await fetchGeneric(GOOGLE_SCRIPT_URL);
-        if (rawPrivate) {
-            privateData = rawPrivate;
-            addLog("✅ Datos Privados Recibidos", "success");
+    useEffect(() => {
+        if (rates) localStorage.setItem('monitor_rates_v12', JSON.stringify(rates));
+        if ('Notification' in window && Notification.permission === 'granted') {
+            setNotificationsEnabled(true);
         }
-    } catch (e) { addLog("Error API Privada", "error"); }
+    }, [rates]);
 
-    const getEuroFactorFallback = async () => {
-        try {
-            const data = await fetchGeneric(`https://v6.exchangerate-api.com/v6/${EXCHANGERATE_KEY}/latest/USD`);
-            if (data?.result === "success" && data.conversion_rates?.EUR) return 1 / data.conversion_rates.EUR;
-        } catch (e) {}
-        return DEFAULT_EUR_USD_RATIO;
-    };
+    const addLog = useCallback((msg, type = 'info') => {
+        const time = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        setLogs(prev => [...prev.slice(-49), { time, msg, type }]);
+    }, []);
 
-    const calculateP2PAverage = (dataField) => {
-        if (typeof dataField === 'number') return dataField;
-        if (Array.isArray(dataField) && dataField.length > 0) {
-            const top3 = dataField.slice(0, 3);
-            const getPrice = (item) => (typeof item === 'object' && item.price ? parseSafeFloat(item.price) : (typeof item === 'number' ? item : 0));
-            return top3.reduce((acc, curr) => acc + getPrice(curr), 0) / top3.length;
+    const enableNotifications = async () => {
+        if (!('Notification' in window)) {
+            alert("Tu navegador no soporta notificaciones.");
+            return;
         }
-        return 0; 
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            setNotificationsEnabled(true);
+            new Notification("🔔 Notificaciones Activadas", {
+                body: "Te avisaremos cuando cambie la tasa del BCV (Dólar y Euro).",
+                icon: '/logodark.png'
+            });
+            addLog("Permiso de notificaciones concedido", "success");
+        }
     };
 
-    // ✅ LÓGICA VITAL: Si hay cambio desde API, úsalo. Si no, calcúlalo.
-    const getMeta = (newP, oldP, oldChange = 0, apiChange = null) => {
-      const p = parseSafeFloat(newP); 
-      const o = parseSafeFloat(oldP);
-      
-      // 1. PRIORIDAD: Si la API me dice el % de cambio, CONFÍO en la API (incluso si borré caché)
-      if (apiChange !== null && apiChange !== undefined && apiChange !== 0) {
-          return { price: p, change: parseSafeFloat(apiChange) };
-      }
-
-      // 2. Fallback: Si no hay dato de API, intento calcularlo localmente
-      if (p === o) return { price: p, change: oldChange };
-      return { price: p, change: (p > 0 && o > 0) ? ((p - o) / o) * 100 : 0 };
+    const parseSafeFloat = (val) => {
+        if (!val) return 0;
+        if (typeof val === 'number') return val;
+        if (typeof val === 'string') return parseFloat(val.replace(',', '.'));
+        return 0;
     };
 
-    const fetchUSDT = async () => {
-        const targetUrl = `https://criptoya.com/api/binancep2p/USDT/VES/1`; 
-        for (const strategy of CONNECTION_STRATEGIES) {
+    const sendRateNotification = (title, body) => {
+        if (Notification.permission === 'granted') {
             try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 10000);
-                const res = await fetch(strategy.buildUrl(targetUrl), { signal: controller.signal });
-                clearTimeout(timeoutId);
-                if (!res.ok) continue;
-                
-                const result = await res.json();
-                const avgAsk = calculateP2PAverage(result.ask); 
-                const avgBid = calculateP2PAverage(result.bid);
-
-                if (avgAsk > 0 || avgBid > 0) {
-                    let finalPrice = (avgAsk > 0 && avgBid > 0) ? (avgAsk + avgBid) / 2 : (avgAsk || avgBid);
-                    return { price: finalPrice, source: `Binance P2P (${strategy.name})` };
-                }
-            } catch (err) { continue; }
+                new Notification(title, { body, icon: '/logodark.png', vibrate: [200, 100, 200] });
+            } catch (e) { console.error("Error notificando", e); }
         }
-        return null;
     };
 
-    try {
-      const promises = [fetchUSDT()];
-      if (!privateData) {
-          promises.push(fetchGeneric('https://ve.dolarapi.com/v1/dolares')); 
-          promises.push(getEuroFactorFallback()); 
-      }
+    const updateData = useCallback(async (isAutoUpdate = false) => {
+        setLoading(true);
+        setIsOffline(false);
+        addLog(isAutoUpdate ? "--- Auto-Update (Refresco UI) ---" : "--- Actualización Manual ---");
 
-      const results = await Promise.all(promises);
-      const usdtResult = results[0];
-      const bcvFallbackData = !privateData ? results[1] : null;
-      const euroFactor = !privateData ? results[2] : null;
+        const fetchGeneric = async (url) => {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), 8000);
+            try {
+                const res = await fetch(url, { signal: controller.signal });
+                clearTimeout(id);
+                if (!res.ok) return null;
+                return await res.json();
+            } catch (e) { clearTimeout(id); return null; }
+        };
 
-      let newRates = { ...(rates || DEFAULT_RATES) };
+        let privateData = null;
+        try {
+            const rawPrivate = await fetchGeneric(GOOGLE_SCRIPT_URL);
+            if (rawPrivate) {
+                privateData = rawPrivate;
+                addLog("✅ Datos Privados Recibidos", "success");
+            }
+        } catch (e) { addLog("Error API Privada", "error"); }
 
-      // Procesar USDT
-      if (usdtResult) {
-          const meta = getMeta(usdtResult.price, newRates.usdt.price, newRates.usdt.change);
-          newRates.usdt = { ...newRates.usdt, price: usdtResult.price, change: meta.change, source: usdtResult.source, type: 'p2p' };
-      }
+        const getEuroFactorFallback = async () => {
+            try {
+                const data = await fetchGeneric(`https://v6.exchangerate-api.com/v6/${EXCHANGERATE_KEY}/latest/USD`);
+                if (data?.result === "success" && data.conversion_rates?.EUR) return 1 / data.conversion_rates.EUR;
+            } catch (e) { }
+            return DEFAULT_EUR_USD_RATIO;
+        };
 
-      let newBcvPrice = 0;
-      let newEuroPrice = 0;
+        const calculateP2PAverage = (dataField) => {
+            if (typeof dataField === 'number') return dataField;
+            if (Array.isArray(dataField) && dataField.length > 0) {
+                const top3 = dataField.slice(0, 3);
+                const getPrice = (item) => (typeof item === 'object' && item.price ? parseSafeFloat(item.price) : (typeof item === 'number' ? item : 0));
+                return top3.reduce((acc, curr) => acc + getPrice(curr), 0) / top3.length;
+            }
+            return 0;
+        };
 
-      // ✅ Procesar DATOS PRIVADOS (Google Script)
-      if (privateData) {
-          // Detectamos si viene estructura simple o avanzada
-          const rawBcv = privateData.bcv || privateData.usd;
-          const rawEuro = privateData.euro || privateData.eur;
+        // ✅ LÓGICA VITAL: Si hay cambio desde API, úsalo. Si no, calcúlalo.
+        const getMeta = (newP, oldP, oldChange = 0, apiChange = null) => {
+            const p = parseSafeFloat(newP);
+            const o = parseSafeFloat(oldP);
 
-          // Extracción inteligente
-          newBcvPrice = parseSafeFloat(typeof rawBcv === 'object' ? rawBcv.price : rawBcv);
-          // Si el Script envía "change", lo tomamos aquí
-          let apiBcvChange = typeof rawBcv === 'object' ? rawBcv.change : null;
-          
-          newEuroPrice = parseSafeFloat(typeof rawEuro === 'object' ? rawEuro.price : rawEuro);
-          // Si el Script envía "change", lo tomamos aquí
-          let apiEuroChange = typeof rawEuro === 'object' ? rawEuro.change : null;
+            // 1. PRIORIDAD: Si la API me dice el % de cambio, CONFÍO en la API (incluso si borré caché)
+            if (apiChange !== null && apiChange !== undefined && apiChange !== 0) {
+                return { price: p, change: parseSafeFloat(apiChange) };
+            }
 
-          if (newBcvPrice > 0) {
-              const meta = getMeta(newBcvPrice, newRates.bcv.price, newRates.bcv.change, apiBcvChange);
-              newRates.bcv = { ...newRates.bcv, ...meta, source: 'BCV Oficial' };
-          }
-          if (newEuroPrice > 0) {
-              const meta = getMeta(newEuroPrice, newRates.euro.price, newRates.euro.change, apiEuroChange);
-              newRates.euro = { ...newRates.euro, ...meta, source: 'Euro BCV' };
-          }
+            // 2. Fallback: Si no hay dato de API, intento calcularlo localmente
+            if (p === o) return { price: p, change: oldChange };
+            return { price: p, change: (p > 0 && o > 0) ? ((p - o) / o) * 100 : 0 };
+        };
 
-      } else if (bcvFallbackData) {
-          // Fallback en caso de emergencia
-          const oficial = bcvFallbackData.find(d => d.fuente === 'oficial' || d.nombre === 'Oficial');
-          if (oficial?.promedio > 0) {
-              newBcvPrice = parseSafeFloat(oficial.promedio);
-              const meta = getMeta(newBcvPrice, newRates.bcv.price, newRates.bcv.change);
-              newRates.bcv = { ...newRates.bcv, ...meta, source: 'BCV Oficial (Respaldo)' };
-              
-              if (euroFactor) {
-                  newEuroPrice = newBcvPrice * euroFactor;
-                  const metaEur = getMeta(newEuroPrice, newRates.euro.price, newRates.euro.change);
-                  newRates.euro = { ...newRates.euro, ...metaEur, source: 'Euro BCV (Triangulado)' };
-              }
-          }
-      }
+        const fetchUSDT = async () => {
+            // 1. ESTRATEGIA WEB (Fallback: CriptoYa)
+            const targetUrl = `https://criptoya.com/api/binancep2p/USDT/VES/1`;
+            for (const strategy of CONNECTION_STRATEGIES) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 10000);
+                    const res = await fetch(strategy.buildUrl(targetUrl), { signal: controller.signal });
+                    clearTimeout(timeoutId);
+                    if (!res.ok) continue;
 
-      // Notificaciones
-      if (notificationsEnabled && rates) {
-          const oldBcv = rates.bcv.price;
-          const currentBcv = newRates.bcv.price;
-          if (currentBcv > 0 && oldBcv > 0 && currentBcv !== oldBcv) {
-              const emoji = currentBcv > oldBcv ? "📈" : "📉";
-              sendRateNotification(`${emoji} Cambio Tasa BCV`, `La tasa oficial cambió a ${currentBcv.toFixed(2)} Bs.`);
-          }
-          const oldEuro = rates.euro.price;
-          const currentEuro = newRates.euro.price;
-          if (currentEuro > 0 && oldEuro > 0 && currentEuro !== oldEuro) {
-              const emoji = currentEuro > oldEuro ? "📈" : "📉";
-              sendRateNotification(`${emoji} Cambio Tasa EURO`, `La tasa oficial del Euro cambió a ${currentEuro.toFixed(2)} Bs.`);
-          }
-      }
+                    const result = await res.json();
+                    const avgAsk = calculateP2PAverage(result.ask);
+                    const avgBid = calculateP2PAverage(result.bid);
 
-      newRates.lastUpdate = new Date();
-      setRates(newRates);
-      addLog("Actualización completada", 'success');
+                    if (avgAsk > 0 || avgBid > 0) {
+                        let finalPrice = (avgAsk > 0 && avgBid > 0) ? (avgAsk + avgBid) / 2 : (avgAsk || avgBid);
+                        return { price: finalPrice, source: `Binance P2P (${strategy.name})` };
+                    }
+                } catch (err) { continue; }
+            }
+            return null;
+        };
 
-    } catch (e) {
-      console.error(e);
-      addLog("Error actualización", 'error');
-      setIsOffline(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [addLog, rates, notificationsEnabled]);
+        try {
+            const promises = [fetchUSDT()];
+            if (!privateData) {
+                promises.push(fetchGeneric('https://ve.dolarapi.com/v1/dolares'));
+                promises.push(getEuroFactorFallback());
+            }
 
-  useEffect(() => {
-    if (!rates) updateData();
-    const intervalId = setInterval(() => { updateData(true); }, UPDATE_INTERVAL);
-    return () => clearInterval(intervalId);
-  }, [updateData, rates]);
+            const results = await Promise.all(promises);
+            const usdtResult = results[0];
+            const bcvFallbackData = !privateData ? results[1] : null;
+            const euroFactor = !privateData ? results[2] : null;
 
-  return { rates: currentRates, loading, isOffline, logs, updateData, enableNotifications, notificationsEnabled };
+            let newRates = { ...(rates || DEFAULT_RATES) };
+
+            // Procesar USDT
+            if (usdtResult) {
+                const meta = getMeta(usdtResult.price, newRates.usdt.price, newRates.usdt.change);
+                newRates.usdt = { ...newRates.usdt, price: usdtResult.price, change: meta.change, source: usdtResult.source, type: 'p2p' };
+            }
+
+            let newBcvPrice = 0;
+            let newEuroPrice = 0;
+
+            // ✅ Procesar DATOS PRIVADOS (Google Script)
+            if (privateData) {
+                // Detectamos si viene estructura simple o avanzada
+                const rawBcv = privateData.bcv || privateData.usd;
+                const rawEuro = privateData.euro || privateData.eur;
+
+                // Extracción inteligente
+                newBcvPrice = parseSafeFloat(typeof rawBcv === 'object' ? rawBcv.price : rawBcv);
+                // Si el Script envía "change", lo tomamos aquí
+                let apiBcvChange = typeof rawBcv === 'object' ? rawBcv.change : null;
+
+                newEuroPrice = parseSafeFloat(typeof rawEuro === 'object' ? rawEuro.price : rawEuro);
+                // Si el Script envía "change", lo tomamos aquí
+                let apiEuroChange = typeof rawEuro === 'object' ? rawEuro.change : null;
+
+                if (newBcvPrice > 0) {
+                    const meta = getMeta(newBcvPrice, newRates.bcv.price, newRates.bcv.change, apiBcvChange);
+                    newRates.bcv = { ...newRates.bcv, ...meta, source: 'BCV Oficial' };
+                }
+                if (newEuroPrice > 0) {
+                    const meta = getMeta(newEuroPrice, newRates.euro.price, newRates.euro.change, apiEuroChange);
+                    newRates.euro = { ...newRates.euro, ...meta, source: 'Euro BCV' };
+                }
+
+            } else if (bcvFallbackData) {
+                // Fallback en caso de emergencia
+                const oficial = bcvFallbackData.find(d => d.fuente === 'oficial' || d.nombre === 'Oficial');
+                if (oficial?.promedio > 0) {
+                    newBcvPrice = parseSafeFloat(oficial.promedio);
+                    const meta = getMeta(newBcvPrice, newRates.bcv.price, newRates.bcv.change);
+                    newRates.bcv = { ...newRates.bcv, ...meta, source: 'BCV Oficial (Respaldo)' };
+
+                    if (euroFactor) {
+                        newEuroPrice = newBcvPrice * euroFactor;
+                        const metaEur = getMeta(newEuroPrice, newRates.euro.price, newRates.euro.change);
+                        newRates.euro = { ...newRates.euro, ...metaEur, source: 'Euro BCV (Triangulado)' };
+                    }
+                }
+            }
+
+            // Notificaciones
+            if (notificationsEnabled && rates) {
+                const oldBcv = rates.bcv.price;
+                const currentBcv = newRates.bcv.price;
+                if (currentBcv > 0 && oldBcv > 0 && currentBcv !== oldBcv) {
+                    const emoji = currentBcv > oldBcv ? "📈" : "📉";
+                    sendRateNotification(`${emoji} Cambio Tasa BCV`, `La tasa oficial cambió a ${currentBcv.toFixed(2)} Bs.`);
+                }
+                const oldEuro = rates.euro.price;
+                const currentEuro = newRates.euro.price;
+                if (currentEuro > 0 && oldEuro > 0 && currentEuro !== oldEuro) {
+                    const emoji = currentEuro > oldEuro ? "📈" : "📉";
+                    sendRateNotification(`${emoji} Cambio Tasa EURO`, `La tasa oficial del Euro cambió a ${currentEuro.toFixed(2)} Bs.`);
+                }
+            }
+
+            newRates.lastUpdate = new Date();
+            setRates(newRates);
+            addLog("Actualización completada", 'success');
+
+        } catch (e) {
+            console.error(e);
+            addLog("Error actualización", 'error');
+            setIsOffline(true);
+        } finally {
+            setLoading(false);
+        }
+    }, [addLog, rates, notificationsEnabled]);
+
+    useEffect(() => {
+        if (!rates) updateData();
+        const intervalId = setInterval(() => { updateData(true); }, UPDATE_INTERVAL);
+        return () => clearInterval(intervalId);
+    }, [updateData, rates]);
+
+    return { rates: currentRates, loading, isOffline, logs, updateData, enableNotifications, notificationsEnabled };
 }

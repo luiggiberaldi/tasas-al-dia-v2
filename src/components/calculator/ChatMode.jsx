@@ -3,18 +3,30 @@ import { Send, Mic, Camera, RefreshCcw, Copy, Share2, UserCircle } from 'lucide-
 import { useChatCalculator } from '../../hooks/useChatCalculator';
 import { formatBs, formatUsd } from '../../utils/calculatorUtils';
 import { Modal } from '../../components/Modal';
-// Nota: Asumo que AccountSelector y PaymentSummaryChat están disponibles o los pasas como props/importas
-// Para simplificar, aquí usaré marcadores, asegúrate de importar tus componentes existentes.
+import { AccountSelector } from './AccountSelector';
+import { PaymentSummaryChat } from './PaymentSummaryChat';
 
 export const ChatMode = ({ rates, accounts, voiceControl }) => {
     const { messages, isProcessing, messagesEndRef, handleTextSend, handleImageUpload } = useChatCalculator(rates, voiceControl.speak);
     const [input, setInput] = useState('');
     const fileInputRef = useRef(null);
-    
-    // Estados para el Modal de compartir (reutilizando tu lógica)
+
+    // Estados para el Modal de compartir
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedMsgData, setSelectedMsgData] = useState(null);
-    // ... lógica de AccountSelector/PaymentSummaryChat iría aquí o importada
+    const [selectedAccount, setSelectedAccount] = useState(null);
+
+    const handleShareClick = (data) => {
+        setSelectedMsgData(data);
+        setSelectedAccount(null);
+        setIsModalOpen(true);
+    };
+
+    const handlePaymentConfirm = (msg) => {
+        navigator.clipboard.writeText(msg);
+        alert("¡Mensaje de cobro copiado!");
+        setIsModalOpen(false);
+    };
 
     const onSend = () => {
         handleTextSend(input);
@@ -46,10 +58,9 @@ export const ChatMode = ({ rates, accounts, voiceControl }) => {
                                     <div className="min-w-[240px]">
                                         <div className="bg-brand/10 p-3 flex justify-between items-center border-b border-brand/10">
                                             <span className="text-[10px] font-black text-brand-dark uppercase tracking-widest">{msg.data.rateName}</span>
-                                            <span className="text-[10px] font-mono font-bold text-slate-500">{formatBs(msg.data.rateUsed)}</span>
                                         </div>
                                         <div className="p-4 bg-white dark:bg-slate-900">
-                                            {msg.data.clientName && <div className="flex items-center gap-1 mb-2 text-xs font-bold text-indigo-500 bg-indigo-50 w-fit px-2 py-0.5 rounded-md"><UserCircle size={12}/> {msg.data.clientName}</div>}
+                                            {msg.data.clientName && <div className="flex items-center gap-1 mb-2 text-xs font-bold text-indigo-500 bg-indigo-50 w-fit px-2 py-0.5 rounded-md"><UserCircle size={12} /> {msg.data.clientName}</div>}
                                             <div className="flex items-baseline gap-2 mb-1">
                                                 <span className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter">
                                                     {msg.data.targetCurrency.includes('VES') ? formatBs(msg.data.resultAmount) : formatUsd(msg.data.resultAmount)}
@@ -61,9 +72,8 @@ export const ChatMode = ({ rates, accounts, voiceControl }) => {
                                             </p>
                                         </div>
                                         <div className="p-2 bg-slate-50 dark:bg-slate-800 flex gap-2">
-                                            <button onClick={() => navigator.clipboard.writeText(msg.data.resultAmount)} className="flex-1 py-2 bg-white dark:bg-slate-700 rounded-xl shadow-sm text-xs font-bold text-slate-600 hover:text-brand-dark flex items-center justify-center gap-1"><Copy size={14}/> Copiar</button>
-                                            {/* Aquí abrirías tu modal de compartir */}
-                                            <button className="flex-1 py-2 bg-brand text-slate-900 rounded-xl shadow-sm text-xs font-bold hover:brightness-110 flex items-center justify-center gap-1"><Share2 size={14}/> Enviar</button>
+                                            <button onClick={() => navigator.clipboard.writeText(msg.data.resultAmount)} className="flex-1 py-2 bg-white dark:bg-slate-700 rounded-xl shadow-sm text-xs font-bold text-slate-600 hover:text-brand-dark flex items-center justify-center gap-1"><Copy size={14} /> Copiar</button>
+                                            <button onClick={() => handleShareClick(msg.data)} className="flex-1 py-2 bg-brand text-slate-900 rounded-xl shadow-sm text-xs font-bold hover:brightness-110 flex items-center justify-center gap-1"><Share2 size={14} /> Enviar</button>
                                         </div>
                                     </div>
                                 )}
@@ -71,17 +81,32 @@ export const ChatMode = ({ rates, accounts, voiceControl }) => {
                         )}
                     </div>
                 ))}
-                {isProcessing && <div className="flex justify-start"><div className="bg-white dark:bg-slate-900 p-3 rounded-2xl rounded-tl-none border border-slate-100 shadow-sm flex gap-2 items-center"><RefreshCcw size={16} className="animate-spin text-brand"/><span className="text-xs font-bold text-slate-400">Pensando...</span></div></div>}
-                <div ref={messagesEndRef}/>
+                {isProcessing && <div className="flex justify-start"><div className="bg-white dark:bg-slate-900 p-3 rounded-2xl rounded-tl-none border border-slate-100 shadow-sm flex gap-2 items-center"><RefreshCcw size={16} className="animate-spin text-brand" /><span className="text-xs font-bold text-slate-400">Pensando...</span></div></div>}
+                <div ref={messagesEndRef} />
             </div>
+
+            {/* Modal de Compartir */}
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Datos de Pago">
+                {!selectedAccount ? (
+                    <AccountSelector accounts={accounts} onSelect={setSelectedAccount} />
+                ) : (
+                    <PaymentSummaryChat
+                        selectedAccount={selectedAccount}
+                        chatData={selectedMsgData}
+                        rates={rates}
+                        onBack={() => setSelectedAccount(null)}
+                        onConfirm={handlePaymentConfirm}
+                    />
+                )}
+            </Modal>
 
             {/* Input Area */}
             <div className="absolute bottom-6 left-4 right-4">
                 <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-[2rem] shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800 ring-1 ring-slate-100 dark:ring-slate-800/50">
-                    <button onClick={() => fileInputRef.current.click()} className="p-3 text-slate-400 hover:text-brand-dark hover:bg-slate-50 rounded-full transition-colors"><Camera size={20}/></button>
+                    <button onClick={() => fileInputRef.current.click()} className="p-3 text-slate-400 hover:text-brand-dark hover:bg-slate-50 rounded-full transition-colors"><Camera size={20} /></button>
                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e.target.files[0])} />
-                    <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && onSend()} placeholder="Escribe aquí (ej: 100 USDT a BCV)..." className="flex-1 bg-transparent border-none outline-none px-2 py-3 text-sm font-medium text-slate-800 dark:text-white placeholder-slate-400"/>
-                    {input.trim() ? <button onClick={onSend} className="p-3 bg-brand text-slate-900 rounded-full shadow-md hover:scale-105 transition-transform"><Send size={18} fill="currentColor"/></button> : <button onClick={handleVoiceInput} className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 rounded-full transition-colors"><Mic size={18}/></button>}
+                    <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && onSend()} placeholder="Escribe aquí (ej: 100 USDT a BCV)..." className="flex-1 bg-transparent border-none outline-none px-2 py-3 text-sm font-medium text-slate-800 dark:text-white placeholder-slate-400" />
+                    {input.trim() ? <button onClick={onSend} className="p-3 bg-brand text-slate-900 rounded-full shadow-md hover:scale-105 transition-transform"><Send size={18} fill="currentColor" /></button> : <button onClick={handleVoiceInput} className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 rounded-full transition-colors"><Mic size={18} /></button>}
                 </div>
             </div>
         </div>

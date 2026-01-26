@@ -5,9 +5,9 @@ const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 // 🔍 DIAGNÓSTICO
 console.log("🔑 ESTADO API KEY:", GROQ_API_KEY ? "✅ Cargada correctamente" : "❌ NO ENCONTRADA");
 
-const groq = new Groq({ 
-    apiKey: GROQ_API_KEY, 
-    dangerouslyAllowBrowser: true 
+const groq = new Groq({
+    apiKey: GROQ_API_KEY,
+    dangerouslyAllowBrowser: true
 });
 
 // --- 🧠 CEREBRO MAESTRO: MISTER CAMBIO ---
@@ -15,7 +15,7 @@ export const interpretVoiceCommandAI = async (messagesHistoryOrText) => {
     if (!GROQ_API_KEY) return null;
 
     // Adaptador: Si recibimos un string directo (Calculadora Manual) lo convertimos a formato mensaje
-    const messages = typeof messagesHistoryOrText === 'string' 
+    const messages = typeof messagesHistoryOrText === 'string'
         ? [{ role: "user", content: messagesHistoryOrText }]
         : messagesHistoryOrText;
 
@@ -24,15 +24,18 @@ export const interpretVoiceCommandAI = async (messagesHistoryOrText) => {
             messages: [
                 {
                     role: "system",
-                    content: `Eres "Mister Cambio", un experto financiero latino amable y servicial.
+                    content: `Eres "Mister Cambio", experto financiero.
                     
-                    ⚠️ REGLAS DE IDENTIFICACIÓN DE MONEDA:
-                    1. "USDT", "Tether", "Binance" -> SIEMPRE ES: "USDT"
-                    2. "Dólar", "USD", "Efectivo", "Verdes" -> SIEMPRE ES: "USD"
-                    3. "Euro", "Euros" -> SIEMPRE ES: "EUR"
-                    4. "Bolívares", "Bs", "Bolos" -> SIEMPRE ES: "VES"
+                    ⚠️ REGLAS DE IDENTIFICACIÓN ESTRICTA:
+                    1. "USDT", "Tether", "Binance", "Cripto" -> "USDT"
+                    2. "Dólar", "USD", "Verdes", "Efectivo", "Zelle" -> "USD" (Implica Dólar BCV/Paralelo)
+                    3. "Euro", "Euros" -> "EUR"
+                    4. "Bolívares", "Bs", "Soberanos" -> "VES"
 
                     TU TRABAJO: Extraer datos para cálculo.
+                    Si el usuario dice "100 USDT a Dolar", el target es "USD".
+                    Si dice "100 Dolares a USDT", el target es "USDT".
+                    Si dice "100 USDT" (sin destino), target es null (la app decidirá).
 
                     ESTRUCTURA JSON OBLIGATORIA:
                     {
@@ -44,10 +47,10 @@ export const interpretVoiceCommandAI = async (messagesHistoryOrText) => {
 
                     Responde SOLO el objeto JSON.`
                 },
-                ...messages 
+                ...messages
             ],
-            model: "llama-3.1-8b-instant", 
-            temperature: 0, 
+            model: "llama-3.1-8b-instant",
+            temperature: 0,
             response_format: { type: "json_object" },
         });
 
@@ -85,7 +88,7 @@ export const generateSmartMessage = async (account, amountsString, tone, clientN
     if (!GROQ_API_KEY) return null;
     try {
         const safeName = (clientName && clientName.length < 20) ? clientName : "Estimado/a";
-        
+
         const personas = {
             standard: "Mister Cambio: Caballero amable, claro y servicial.",
             formal: "Mister Cambio Ejecutivo: Muy respetuoso y pulcro.",
