@@ -12,7 +12,6 @@ import { useRates } from './hooks/useRates';
 import { useSecurity } from './hooks/useSecurity';
 import PremiumGuard from './components/security/PremiumGuard';
 import TermsOverlay from './components/TermsOverlay';
-import runOneSignal from './OneSignal';
 
 export default function App() {
   // Estado para la vista (monitor, calc, wallet, info -> tienda)
@@ -30,7 +29,6 @@ export default function App() {
   const { generateCodeForClient } = useSecurity();
 
   useEffect(() => {
-    runOneSignal();
     const handler = (e) => { e.preventDefault(); setInstallPrompt(e); };
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
