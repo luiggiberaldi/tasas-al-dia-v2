@@ -6,10 +6,12 @@ import MonitorView from './views/MonitorView';
 import CalculatorView from './views/CalculatorView';
 import { ProductsView } from './views/ProductsView';
 import WalletView from './views/WalletView';
+import { TesterView } from './views/TesterView';
 
 import { useRates } from './hooks/useRates';
 import { useSecurity } from './hooks/useSecurity';
 import PremiumGuard from './components/security/PremiumGuard';
+import TermsOverlay from './components/TermsOverlay';
 import runOneSignal from './OneSignal';
 
 export default function App() {
@@ -20,6 +22,7 @@ export default function App() {
   // Admin Panel States
   const [adminClicks, setAdminClicks] = useState(0);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showTester, setShowTester] = useState(false);
   const [clientDeviceId, setClientDeviceId] = useState('');
   const [generatedCode, setGeneratedCode] = useState('');
 
@@ -104,10 +107,20 @@ export default function App() {
   };
 
   return (
-    <div className="font-sans antialiased bg-slate-50 dark:bg-black min-h-screen transition-colors duration-300">
+    <div className="font-sans antialiased bg-slate-50 dark:bg-black h-[100dvh] overflow-hidden transition-colors duration-300">
+
+      {/* Terms and Conditions Overlay (First Use) */}
+      <TermsOverlay />
+
+      {/* Golden Tester View Overlay */}
+      {showTester && (
+        <div className="fixed inset-0 z-[150] bg-slate-50 dark:bg-slate-950">
+          <TesterView rates={rates} onBack={() => setShowTester(false)} />
+        </div>
+      )}
 
       {/* Viewport */}
-      <main className="w-full max-w-md md:max-w-3xl lg:max-w-7xl mx-auto min-h-screen p-3 sm:p-6 relative pb-36">
+      <main className={`w-full max-w-md md:max-w-3xl lg:max-w-7xl mx-auto h-[100dvh] p-3 sm:p-6 relative pb-36 scrollbar-hide ${activeTab === 'monitor' || activeTab === 'calc' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
 
         {/* Hidden Admin Trigger Area (Top Left, invisible) */}
         <div
@@ -136,8 +149,8 @@ export default function App() {
       </main>
 
       {/* Navegación Inferior */}
-      <div className="fixed bottom-6 left-0 right-0 px-6 max-w-md mx-auto z-30">
-        <div className="bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-xl rounded-3xl p-1.5 flex justify-between items-center shadow-2xl shadow-slate-900/30 border border-white/10 ring-1 ring-black/5">
+      <div className="fixed bottom-0 left-0 right-0 px-6 pb-[env(safe-area-inset-bottom)] pt-0 mb-6 max-w-md mx-auto z-30 pointer-events-none">
+        <div className="bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-xl rounded-3xl p-1.5 flex justify-between items-center shadow-2xl shadow-slate-900/30 border border-white/10 ring-1 ring-black/5 pointer-events-auto">
           <TabButton icon={<LayoutDashboard size={20} strokeWidth={activeTab === 'monitor' ? 3 : 2} />} label="Inicio" isActive={activeTab === 'monitor'} onClick={() => { triggerHaptic(); setActiveTab('monitor'); }} />
           <TabButton icon={<Calculator size={20} strokeWidth={activeTab === 'calc' ? 3 : 2} />} label="Calc" isActive={activeTab === 'calc'} onClick={() => { triggerHaptic(); setActiveTab('calc'); }} />
           <TabButton icon={<Wallet size={20} strokeWidth={activeTab === 'wallet' ? 3 : 2} />} label="Cuentas" isActive={activeTab === 'wallet'} onClick={() => { triggerHaptic(); setActiveTab('wallet'); }} />
@@ -176,6 +189,13 @@ export default function App() {
                 Generar Código
               </button>
             </form>
+
+            <button
+              onClick={() => { triggerHaptic(); setShowTester(true); setShowAdminPanel(false); }}
+              className="w-full bg-indigo-600/20 border border-indigo-500/50 text-indigo-400 font-bold py-2 rounded-lg text-xs uppercase tracking-tighter hover:bg-indigo-600/30 transition-colors"
+            >
+              🚀 Abrir Golden Tester (PDA v3.0)
+            </button>
 
             {generatedCode && (
               <div className="bg-green-900/30 border border-green-500/50 p-4 rounded-lg text-center">

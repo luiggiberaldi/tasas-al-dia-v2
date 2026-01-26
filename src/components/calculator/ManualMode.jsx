@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Check, Copy, MessageSquare, ArrowRightLeft } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Check, Copy, MessageSquare, ArrowRightLeft, Clock, History } from 'lucide-react'; // [UPDATED]
 
 // Hooks
 import { useCalculator } from '../../hooks/useCalculator';
@@ -16,6 +16,42 @@ export const ManualMode = ({ rates, accounts, theme, triggerHaptic }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedAccount, setSelectedAccount] = useState(null);
 
+    // [NEW] History State
+    const [history, setHistory] = useState([]);
+
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem('calc_history');
+            if (saved) setHistory(JSON.parse(saved));
+        } catch (e) {
+            console.error(e);
+        }
+    }, []);
+
+    const addToHistory = () => {
+        if (!calc.amountTop || !calc.amountBot) return;
+
+        const newEntry = {
+            id: Date.now(),
+            from: calc.from,
+            to: calc.to,
+            in: calc.amountTop,
+            out: calc.amountBot,
+            ts: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+
+        const newHistory = [newEntry, ...history].slice(0, 5);
+        setHistory(newHistory);
+        localStorage.setItem('calc_history', JSON.stringify(newHistory));
+    };
+
+    const restoreHistory = (item) => {
+        triggerHaptic && triggerHaptic();
+        calc.setFrom(item.from);
+        calc.setTo(item.to);
+        calc.handleAmountChange(item.in, 'top');
+    };
+
     const modifiedCurrencies = calc.currencies.map(c => ({
         ...c,
         label: (c.label === '$ BCV' || c.id === 'USD' || c.id === 'BCV') ? 'Dolar' : c.label
@@ -23,6 +59,7 @@ export const ManualMode = ({ rates, accounts, theme, triggerHaptic }) => {
 
     const handleCopy = () => {
         triggerHaptic && triggerHaptic();
+        addToHistory(); // [NEW] Save to history
         if (!calc.amountBot) return;
         const text = `💰 Cambio: ${calc.amountTop} ${calc.from} -> ${calc.amountBot} ${calc.to}`;
         navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000);
@@ -86,9 +123,28 @@ export const ManualMode = ({ rates, accounts, theme, triggerHaptic }) => {
                 </div>
             </div>
 
-            {/* ÁREA FIJA INFERIOR (Botones de Acción) */}
+            {/* ÁREA FIJA INFERIOR (Botones de Acción + Historial) */}
             {/* flex-shrink-0 asegura que NUNCA se aplasten */}
             <div className="p-4 sm:p-5 pt-2 flex-shrink-0 z-20 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent dark:from-slate-950 dark:via-slate-950">
+
+                {/* [NEW] History Bar */}
+                {history.length > 0 && (
+                    <div className="mb-3 overflow-x-auto pb-1 scrollbar-hide flex gap-2">
+                        {history.map(item => (
+                            <button
+                                key={item.id}
+                                onClick={() => restoreHistory(item)}
+                                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm active:scale-95 transition-transform"
+                            >
+                                <History size={10} className="text-slate-400" />
+                                <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">
+                                    {item.in} {item.from} <span className="text-slate-300 mx-0.5">→</span> {item.out} {item.to}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                )}
+
                 <div className="flex gap-3">
 
                     {/* Botón Copiar */}
@@ -102,7 +158,12 @@ export const ManualMode = ({ rates, accounts, theme, triggerHaptic }) => {
 
                     {/* Botón COBRAR (Principal) */}
                     <button
-                        onClick={() => { triggerHaptic && triggerHaptic(); setSelectedAccount(null); setIsModalOpen(true); }}
+                        onClick={() => {
+                            triggerHaptic && triggerHaptic();
+                            addToHistory(); // [NEW] Save to history
+                            setSelectedAccount(null);
+                            setIsModalOpen(true);
+                        }}
                         disabled={!calc.amountTop}
                         className="flex-1 h-20 bg-brand text-slate-900 rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg shadow-brand/20 hover:shadow-brand/40 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 flex items-center justify-center gap-2"
                     >

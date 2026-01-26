@@ -7,7 +7,7 @@ export const ProductShareModal = ({ isOpen, onClose, product, rates, accounts })
     const [selectedAccountId, setSelectedAccountId] = useState('');
     const [config, setConfig] = useState({
         showUsdt: true,
-        showCash: true,
+        showEfectivo: true,
         showBs: true,
         showRefBcv: false,
         showRefEuro: false
@@ -24,19 +24,19 @@ export const ProductShareModal = ({ isOpen, onClose, product, rates, accounts })
 
     // Cálculos
     const valBs = product.priceUsdt * rates.usdt.price;
-    const valCash = Math.ceil(product.priceUsdt * 1.05); // Lógica Smart Rounding simplificada para display
+    const valEfectivo = Math.ceil(product.priceUsdt * 1.05); // Lógica Smart Rounding simplificada para display
 
     // Presets
     const applyPreset = (type) => {
         switch (type) {
             case 'fiscal':
-                setConfig({ showUsdt: false, showCash: false, showBs: true, showRefBcv: true, showRefEuro: false });
+                setConfig({ showUsdt: false, showEfectivo: false, showBs: true, showRefBcv: true, showRefEuro: false });
                 break;
             case 'market':
-                setConfig({ showUsdt: true, showCash: true, showBs: true, showRefBcv: false, showRefEuro: false });
+                setConfig({ showUsdt: true, showEfectivo: true, showBs: true, showRefBcv: false, showRefEuro: false });
                 break;
-            case 'cash':
-                setConfig({ showUsdt: false, showCash: true, showBs: false, showRefBcv: false, showRefEuro: false });
+            case 'efectivo':
+                setConfig({ showUsdt: false, showEfectivo: true, showBs: false, showRefBcv: false, showRefEuro: false });
                 break;
         }
     };
@@ -48,7 +48,7 @@ export const ProductShareModal = ({ isOpen, onClose, product, rates, accounts })
 
         lines.push('*Precios:*');
         if (config.showUsdt) lines.push(`🇺🇸 USDT: ${formatUsd(product.priceUsdt)}`);
-        if (config.showCash) lines.push(`💵 Efectivo: $${valCash}`);
+        if (config.showEfectivo) lines.push(`💵 Efectivo: $${valEfectivo}`);
         if (config.showBs) lines.push(`🇻🇪 Bs: ${formatBs(valBs)}`);
 
         // Referencias explícitas con símbolo forzado
@@ -109,7 +109,7 @@ export const ProductShareModal = ({ isOpen, onClose, product, rates, accounts })
                         <button onClick={() => applyPreset('fiscal')} className="flex-1 py-2 px-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 hover:bg-slate-100 transition-colors">
                             🏛️ Fiscal
                         </button>
-                        <button onClick={() => applyPreset('cash')} className="flex-1 py-2 px-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-bold border border-emerald-100 dark:border-emerald-800 hover:bg-emerald-100 transition-colors">
+                        <button onClick={() => applyPreset('efectivo')} className="flex-1 py-2 px-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-bold border border-emerald-100 dark:border-emerald-800 hover:bg-emerald-100 transition-colors">
                             💵 Efectivo
                         </button>
                     </div>
@@ -122,8 +122,8 @@ export const ProductShareModal = ({ isOpen, onClose, product, rates, accounts })
                             key={key}
                             onClick={() => setConfig(prev => ({ ...prev, [key]: !prev[key] }))}
                             className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-colors ${config[key]
-                                    ? 'bg-brand/10 border-brand text-brand-dark'
-                                    : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-400'
+                                ? 'bg-brand/10 border-brand text-brand-dark'
+                                : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-400'
                                 }`}
                         >
                             {key.replace('show', '')}

@@ -3,6 +3,8 @@ import { ArrowLeft, Sparkles, MessageSquare, UserCircle } from 'lucide-react';
 import { generateSmartMessage } from '../../utils/aiClient';
 import { formatBs, formatUsd } from '../../utils/calculatorUtils';
 
+import { auditor } from '../../utils/SilentAuditor'; // [NEW]
+
 export const PaymentSummaryChat = ({ selectedAccount, chatData, rates, onBack, onConfirm }) => {
     const [tone, setTone] = useState('standard');
     const [clientName, setClientName] = useState(chatData.clientName || '');
@@ -22,6 +24,10 @@ export const PaymentSummaryChat = ({ selectedAccount, chatData, rates, onBack, o
     const valUSD = baseBs / rates.bcv.price;
     const valUSDT = baseBs / rates.usdt.price;
     const valEUR = baseBs / rates.euro.price;
+
+    // [AUDITOR] Verify Report Integrity
+    auditor.audit({ input: valVES, rate: 1 / rates.bcv.price, output: valUSD, context: 'PaymentChatGen', operation: 'Bs -> USD (BCV)' });
+    auditor.audit({ input: valVES, rate: 1 / rates.usdt.price, output: valUSDT, context: 'PaymentChatGen', operation: 'Bs -> USDT' });
 
     const generateMessageContent = () => {
         let content = "";

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { RefreshCw, TrendingUp, TrendingDown, WifiOff, Clock, Bell, BellRing, Maximize, Minimize, Camera, Loader2, AlertTriangle } from 'lucide-react';
+import { RefreshCw, TrendingUp, TrendingDown, WifiOff, Clock, Bell, BellRing, Maximize, Minimize, Camera, Loader2, AlertTriangle, Sun, Moon } from 'lucide-react';
 // ✅ Asegúrate de tener instalado: npm i html2canvas
 import html2canvas from 'html2canvas';
 
@@ -32,7 +32,7 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
     };
 
     const formatVES = (amount) => {
-        return new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
+        return new Intl.NumberFormat('es-VE', { maximumFractionDigits: 0 }).format(Math.ceil(amount));
     };
 
     // Cálculos matemáticos
@@ -119,8 +119,7 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
                 {/* PRECIO GIGANTE (Responsive con vw) */}
                 <div className="flex flex-col items-center justify-center -mt-8">
                     <h1 className="text-[18vw] sm:text-[10rem] font-black font-mono leading-none tracking-tighter text-brand drop-shadow-[0_0_40px_rgba(255,204,0,0.2)]">
-                        {formatVES(rates.usdt.price).split(',')[0]}
-                        <span className="text-[10vw] sm:text-[5rem] text-slate-500">,{formatVES(rates.usdt.price).split(',')[1]}</span>
+                        {formatVES(rates.usdt.price)}
                     </h1>
                     <p className="text-xl sm:text-3xl text-slate-500 font-mono font-medium tracking-widest mt-2">1 USDT = BS</p>
                 </div>
@@ -186,16 +185,26 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
 
     // --- VISTA NORMAL (GRID PRINCIPAL) ---
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500 pb-24 relative">
+        <div className="flex flex-col h-[calc(100dvh-150px)] overflow-hidden justify-between py-2 animate-in fade-in slide-in-from-bottom-2 duration-500 relative">
 
             {/* HEADER */}
-            <header className="flex items-center justify-between pt-5 pb-2 px-3 sm:px-4">
-                <button onClick={handleSecretDebug} className="flex flex-col items-start gap-1 active:scale-95 transition-transform outline-none">
-                    <img src={theme === 'dark' ? '/logodark.png' : '/logoprincipal.png'} alt="TasasAlDía" className="h-10 sm:h-12 w-auto object-contain animate-in fade-in slide-in-from-left-2 duration-500 drop-shadow-sm" />
-                    <div className="bg-slate-100 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm ml-1 mt-0.5">
-                        <p className="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.15em] leading-none">V3.0 FÉNIX</p>
+            <header className="flex items-center justify-between pt-2 pb-2 px-3 sm:px-4 shrink-0">
+                <div className="flex flex-col items-start gap-1">
+                    <button onClick={handleSecretDebug} className="active:scale-95 transition-transform outline-none">
+                        <img src={theme === 'dark' ? '/logodark.png' : '/logoprincipal.png'} alt="TasasAlDía" className="h-10 sm:h-12 w-auto object-contain animate-in fade-in slide-in-from-left-2 duration-500 drop-shadow-sm" />
+                    </button>
+                    <div className="flex items-center gap-2 ml-1 mt-0.5">
+                        <div className="bg-slate-100 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm pointer-events-none">
+                            <p className="text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.15em] leading-none">V3.0 FÉNIX</p>
+                        </div>
+                        <button
+                            onClick={() => { triggerHaptic && triggerHaptic(); toggleTheme(); }}
+                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-opacity active:scale-90 outline-none"
+                        >
+                            {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+                        </button>
                     </div>
-                </button>
+                </div>
 
                 <div className="flex items-center gap-1.5 sm:gap-2">
                     {/* BOTÓN MODO KIOSCO (Visible en Móvil y PC) */}
@@ -218,7 +227,7 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
 
             {/* Warning de Datos Viejos */}
             {isOldData && (
-                <div className="mx-3 sm:mx-4 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 rounded-xl flex items-center justify-center gap-2 animate-in slide-in-from-top-2">
+                <div className="mx-3 sm:mx-4 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 rounded-xl flex items-center justify-center gap-2 animate-in slide-in-from-top-2 shrink-0">
                     <AlertTriangle size={14} className="text-amber-600 dark:text-amber-500" />
                     <p className="text-xs font-bold text-amber-700 dark:text-amber-500">
                         Precios referenciales (No actualizados hoy)
@@ -226,16 +235,16 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
                 </div>
             )}
 
-            {/* Grid de Tarjetas */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* CONTENEDOR TARJETAS (FLEX-1 PARA OCUPAR ESPACIO Y CENTRAR) */}
+            <div className="flex-1 flex flex-col justify-center gap-4 min-h-0">
+
                 {/* Tarjeta Principal USDT */}
-                <div className="relative group lg:h-full">
+                <div className="relative group shrink-0">
                     <div className="absolute -inset-0.5 bg-gradient-to-r from-brand/30 to-purple-500/30 rounded-[2.2rem] blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
-                    <div className="relative bg-white dark:bg-slate-900 rounded-[2rem] p-7 shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800 overflow-hidden h-full flex flex-col justify-between">
-                        {/* ...rest of content... (kept structure, just ensuring h-full for alignment) */}
+                    <div className="relative bg-white dark:bg-slate-900 rounded-[2rem] p-6 shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800 overflow-hidden">
                         <div className="absolute top-0 right-0 p-8 opacity-[0.03] dark:opacity-[0.02] transform rotate-12 pointer-events-none"><TrendingUp size={140} /></div>
 
-                        <div className="flex justify-between items-start mb-6">
+                        <div className="flex justify-between items-start mb-4">
                             <div className="flex flex-col gap-1">
                                 <span className="text-sm font-medium text-slate-400 dark:text-slate-500">Promedio P2P</span>
                                 <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight flex items-center gap-2">
@@ -245,9 +254,9 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
                             {renderChange(rates.usdt.change)}
                         </div>
 
-                        <div className="flex items-baseline gap-1 mb-6">
+                        <div className="flex items-baseline gap-1 mb-4 select-none">
                             <span className="text-2xl text-slate-300 dark:text-slate-600 font-bold font-sans transform -translate-y-4">$</span>
-                            <div className="text-[13vw] sm:text-[4rem] lg:text-[3.5rem] xl:text-[4rem] leading-none font-black text-slate-900 dark:text-white tracking-tighter font-mono">
+                            <div className="text-[12vw] sm:text-[4rem] lg:text-[3.5rem] xl:text-[4rem] leading-none font-black text-slate-900 dark:text-white tracking-tighter font-mono">
                                 {formatVES(rates.usdt.price).split(',')[0]}
                                 <span className="text-3xl text-slate-400 dark:text-slate-600">,{formatVES(rates.usdt.price).split(',')[1]}</span>
                             </div>
@@ -264,14 +273,14 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
                 </div>
 
                 {/* Tarjetas Secundarias (BCV / Euro) */}
-                <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
+                <div className="grid grid-cols-2 gap-4 shrink-0">
                     <RateCardMini title="Dolar BCV Oficial" price={rates.bcv.price} change={rates.bcv.change} icon="🏛️" formatVES={formatVES} renderChange={renderChange} symbol="Bs / $" />
                     <RateCardMini title="Euro BCV Oficial" price={rates.euro.price} change={rates.euro.change} icon="🇪🇺" formatVES={formatVES} renderChange={renderChange} symbol="Bs / €" />
                 </div>
             </div>
 
             {/* Footer Clock */}
-            <div className="flex justify-center pb-4 opacity-60 hover:opacity-100 transition-opacity">
+            <div className="flex justify-center mt-auto opacity-60 hover:opacity-100 transition-opacity shrink-0">
                 <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50">
                     <Clock size={12} className="text-slate-400" />
                     <span className="text-[10px] font-mono font-medium text-slate-500 dark:text-slate-400">

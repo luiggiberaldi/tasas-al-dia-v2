@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Send, Mic, Camera, RefreshCcw, Copy, Share2, UserCircle } from 'lucide-react';
+import { Send, Mic, Camera, RefreshCcw, Copy, Share2, UserCircle, ShieldCheck } from 'lucide-react';
 // import { useChatCalculator } from '../../hooks/useChatCalculator'; // Ya no se usa aquí
 import { formatBs, formatUsd } from '../../utils/calculatorUtils';
 import { Modal } from '../../components/Modal';
@@ -54,7 +54,15 @@ export const ChatMode = ({ rates, accounts, voiceControl, chatState }) => {
                             </div>
                         ) : (
                             <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl rounded-tl-none max-w-[85%] shadow-sm overflow-hidden">
-                                {msg.type === 'text' && <div className="p-4 text-sm text-slate-600 dark:text-slate-300 font-medium">{msg.content}</div>}
+                                {msg.type === 'text' && (
+                                    <div className="p-4">
+                                        <div className="text-sm text-slate-600 dark:text-slate-300 font-medium mb-1">{msg.content}</div>
+                                        <div className="flex items-center gap-1 opacity-40">
+                                            <ShieldCheck size={10} className="text-emerald-500" />
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Verificado por Auditoría VIP</span>
+                                        </div>
+                                    </div>
+                                )}
                                 {msg.type === 'calculation' && (
                                     <div className="min-w-[240px]">
                                         <div className="bg-brand/10 p-3 flex justify-between items-center border-b border-brand/10">
@@ -103,11 +111,23 @@ export const ChatMode = ({ rates, accounts, voiceControl, chatState }) => {
 
             {/* Input Area */}
             <div className="px-4 pb-4 pt-2">
-                <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-[2rem] shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800 ring-1 ring-slate-100 dark:ring-slate-800/50">
-                    <button onClick={() => fileInputRef.current.click()} className="p-3 text-slate-400 hover:text-brand-dark hover:bg-slate-50 rounded-full transition-colors"><Camera size={20} /></button>
+                <div className={`flex items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-[2rem] shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800 ring-1 ring-slate-100 dark:ring-slate-800/50 ${isProcessing ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <button onClick={() => fileInputRef.current.click()} disabled={isProcessing} className="p-3 text-slate-400 hover:text-brand-dark hover:bg-slate-50 rounded-full transition-colors"><Camera size={20} /></button>
                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e.target.files[0])} />
-                    <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && onSend()} placeholder="Escribe aquí (ej: 100 USDT a BCV)..." className="flex-1 bg-transparent border-none outline-none px-2 py-3 text-sm font-medium text-slate-800 dark:text-white placeholder-slate-400" />
-                    {input.trim() ? <button onClick={onSend} className="p-3 bg-brand text-slate-900 rounded-full shadow-md hover:scale-105 transition-transform"><Send size={18} fill="currentColor" /></button> : <button onClick={handleVoiceInput} className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 rounded-full transition-colors"><Mic size={18} /></button>}
+                    <input
+                        type="text"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && !isProcessing && onSend()}
+                        disabled={isProcessing}
+                        placeholder={isProcessing ? "Procesando..." : "Escribe aquí (ej: 100 USDT a BCV)..."}
+                        className="flex-1 bg-transparent border-none outline-none px-2 py-3 text-sm font-medium text-slate-800 dark:text-white placeholder-slate-400"
+                    />
+                    {input.trim() ? (
+                        <button onClick={onSend} disabled={isProcessing} className="p-3 bg-brand text-slate-900 rounded-full shadow-md hover:scale-105 transition-transform"><Send size={18} fill="currentColor" /></button>
+                    ) : (
+                        <button onClick={handleVoiceInput} disabled={isProcessing} className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 rounded-full transition-colors"><Mic size={18} /></button>
+                    )}
                 </div>
             </div>
         </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { auditor } from '../utils/SilentAuditor'; // [NEW]
 
 export function useCalculator(rates) {
   const [amountTop, setAmountTop] = useState('');
@@ -25,18 +26,39 @@ export function useCalculator(rates) {
 
     // Función interna para aplicar reglas de redondeo (Bs = Techo, USD = 2 decimales)
     const applyRounding = (value, currencyId) => {
-        if (currencyId === 'VES') return Math.ceil(value).toString();
-        return value.toFixed(2);
+      if (currencyId === 'VES') return Math.ceil(value).toString();
+      return value.toFixed(2);
     };
 
     if (lastEdited === 'top') {
-        if (!amountTop) { setAmountBot(''); return; }
-        const res = (safeParse(amountTop) * rateFrom) / rateTo;
-        setAmountBot(applyRounding(res, to));
+      if (!amountTop) { setAmountBot(''); return; }
+      const res = (safeParse(amountTop) * rateFrom) / rateTo;
+      const finalVal = applyRounding(res, to);
+      setAmountBot(finalVal);
+
+      // [AUDITOR] Verify Integrity
+      auditor.audit({
+        input: safeParse(amountTop),
+        rate: rateFrom / rateTo,
+        output: parseFloat(finalVal),
+        context: 'CalculatorCore',
+        operation: `${from} -> ${to}`
+      });
+
     } else {
-        if (!amountBot) { setAmountTop(''); return; }
-        const res = (safeParse(amountBot) * rateTo) / rateFrom;
-        setAmountTop(applyRounding(res, from));
+      if (!amountBot) { setAmountTop(''); return; }
+      const res = (safeParse(amountBot) * rateTo) / rateFrom;
+      const finalVal = applyRounding(res, from);
+      setAmountTop(finalVal);
+
+      // [AUDITOR] Verify Integrity
+      auditor.audit({
+        input: safeParse(amountBot),
+        rate: rateTo / rateFrom,
+        output: parseFloat(finalVal),
+        context: 'CalculatorCore',
+        operation: `${to} -> ${from}`
+      });
     }
   }, [amountTop, amountBot, from, to, rates, lastEdited]);
 
@@ -44,20 +66,20 @@ export function useCalculator(rates) {
   const handleAmountChange = (val, source) => {
     const currentCurrency = source === 'top' ? from : to;
     // Validación: Si es VES solo enteros, si no, decimales
-    const isValid = currentCurrency === 'VES' 
-        ? /^\d*$/.test(val) 
-        : /^\d*\.?\d{0,2}$/.test(val.replace(/,/g, '.'));
+    const isValid = currentCurrency === 'VES'
+      ? /^\d*$/.test(val)
+      : /^\d*\.?\d{0,2}$/.test(val.replace(/,/g, '.'));
 
     if (isValid) {
-        if (source === 'top') { setAmountTop(val); setLastEdited('top'); }
-        else { setAmountBot(val); setLastEdited('bot'); }
+      if (source === 'top') { setAmountTop(val); setLastEdited('top'); }
+      else { setAmountBot(val); setLastEdited('bot'); }
     }
   };
 
   const handleSwap = () => {
     setFrom(to);
     setTo(from);
-    setAmountTop(amountBot); 
+    setAmountTop(amountBot);
     setLastEdited('top');
   };
 

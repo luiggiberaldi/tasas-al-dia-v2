@@ -1,16 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Package, Plus, Trash2, Camera, X, Store, Tag, Pencil, Banknote, Search, ChevronLeft, ChevronRight, Share2 } from 'lucide-react';
+import { Package, Plus, Trash2, Camera, X, Store, Tag, Pencil, Banknote, Search, ChevronLeft, ChevronRight, Share2, Settings, Zap } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import { ProductShareModal } from '../components/ProductShareModal';
+import SettingsModal from '../components/SettingsModal';
 import { formatBs, formatUsd } from '../utils/calculatorUtils';
 import { useWallet } from '../hooks/useWallet';
 
 export const ProductsView = ({ rates, triggerHaptic }) => {
     const [products, setProducts] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false); // [NEW] backup state
+
+    // MARKET LOGIC (PDA v1.0) - REPOSITION PARITY
+    const [streetRate, setStreetRate] = useState(() => {
+        const saved = localStorage.getItem('street_rate_bs');
+        return saved ? parseFloat(saved) : 0;
+    });
+    const [isCalibrationOpen, setIsCalibrationOpen] = useState(false);
+    const [streetPriceInput, setStreetPriceInput] = useState('');
 
     // Share State
-    const [shareProduct, setShareProduct] = useState(null); // Producto a compartir
+    const [shareProduct, setShareProduct] = useState(null);
     const { accounts } = useWallet();
 
     // Paginación y Búsqueda
@@ -22,20 +32,33 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
     const [editingId, setEditingId] = useState(null);
     const [name, setName] = useState('');
     const [priceUsdt, setPriceUsdt] = useState('');
+    const [priceEfectivo, setPriceEfectivo] = useState('');
     const [image, setImage] = useState(null);
     const fileInputRef = useRef(null);
 
-    // Cargar productos al montar
+    // Initial Load
     useEffect(() => {
         const saved = localStorage.getItem('my_products_v1');
         if (saved) setProducts(JSON.parse(saved));
     }, []);
+
+    // Set Initial Street Rate if not set (Safe default: USDT Rate)
+    // ONLY if no value is present in localStorage
+    useEffect(() => {
+        if (!streetRate && rates.usdt.price > 0 && !localStorage.getItem('street_rate_bs')) {
+            setStreetRate(rates.usdt.price);
+        }
+    }, [rates.usdt.price, streetRate]);
 
     // Guardar al cambiar
     useEffect(() => {
         if (products.length > 0) localStorage.setItem('my_products_v1', JSON.stringify(products));
         else localStorage.removeItem('my_products_v1');
     }, [products]);
+
+    useEffect(() => {
+        if (streetRate > 0) localStorage.setItem('street_rate_bs', streetRate.toString());
+    }, [streetRate]);
 
     // Función comprimir imagen (OPTIMIZADA PDA v1.0: 400x400 WebP 70%)
     const handleImageUpload = (e) => {
@@ -94,6 +117,9 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
         setCurrentPage(1);
     }, [searchTerm]);
 
+    // [NEW] Delete State
+    const [deleteId, setDeleteId] = useState(null);
+
     const handleSave = () => {
         triggerHaptic && triggerHaptic();
         if (!name || !priceUsdt) return alert("Nombre y precio requeridos");
@@ -126,20 +152,76 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
         setEditingId(product.id);
         setName(product.name);
         setPriceUsdt(product.priceUsdt);
+
+        // Calculate Init Efectivo (Parity: what value in efectivo allows buying the product valBs at street rate?)
+        if (streetRate > 0) {
+            const valBs = product.priceUsdt * rates.usdt.price;
+            const parityEfectivo = valBs / streetRate;
+            setPriceEfectivo(Math.round(parityEfectivo).toFixed(2));
+        } else {
+            setPriceEfectivo(product.priceUsdt);
+        }
+
         setImage(product.image);
         setIsModalOpen(true);
     };
 
+    // [UPDATED] Pricing Logic Handlers (Parity)
+    const handleEfectivoChange = (val) => {
+        setPriceEfectivo(val);
+        if (!val || parseFloat(val) <= 0 || streetRate <= 0) { setPriceUsdt(''); return; }
+
+        // Efectivo -> USDT (Parity Logic Reverse)
+        // Efectivo * StreetRate = TotalBs -> TotalBs / USDT_Rate = USDT
+        const totalBs = parseFloat(val) * streetRate;
+        const usdt = totalBs / rates.usdt.price;
+        setPriceUsdt(usdt.toFixed(2));
+    };
+
+    const handleUsdtChange = (val) => {
+        setPriceUsdt(val);
+        if (!val || parseFloat(val) <= 0 || streetRate <= 0) { setPriceEfectivo(''); return; }
+
+        // USDT -> Efectivo (Parity Logic)
+        // USDT * USDT_Rate = TotalBs -> TotalBs / StreetRate = Efectivo
+        const totalBs = parseFloat(val) * rates.usdt.price;
+        const efectivo = totalBs / streetRate;
+        setPriceEfectivo(Math.round(efectivo).toFixed(2)); // Smart Rounding to Integer
+    };
+
+    // [NEW] Calibration Logic (Set Street Rate Directly)
+    const handleCalibration = (val) => {
+        setStreetPriceInput(val);
+    };
+
+    const applyCalibration = () => {
+        const val = parseFloat(streetPriceInput);
+        if (val > 0) {
+            setStreetRate(val);
+            setIsCalibrationOpen(false);
+            setStreetPriceInput('');
+            triggerHaptic && triggerHaptic();
+        }
+    };
+
+    // [UPDATED] Trigger Custom Modal
     const handleDelete = (id) => {
         triggerHaptic && triggerHaptic();
-        if (confirm("¿Borrar producto?")) {
-            const clean = products.filter(p => p.id !== id);
+        setDeleteId(id);
+    };
+
+    // [NEW] Execute Delete
+    const confirmDelete = () => {
+        if (deleteId) {
+            const clean = products.filter(p => p.id !== deleteId);
             setProducts(clean);
+            setDeleteId(null);
+            triggerHaptic && triggerHaptic();
         }
     };
 
     const handleClose = () => {
-        setName(''); setPriceUsdt(''); setImage(null); setEditingId(null); setIsModalOpen(false);
+        setName(''); setPriceUsdt(''); setPriceEfectivo(''); setImage(null); setEditingId(null); setIsModalOpen(false);
     };
 
     return (
@@ -154,12 +236,67 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
                         </h2>
                         <p className="text-sm text-slate-400 font-medium ml-1">Mis Productos</p>
                     </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => { triggerHaptic && triggerHaptic(); setIsSettingsOpen(true); }}
+                            className="p-3 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl shadow-sm hover:scale-105 transition-transform"
+                            title="Ajustes y Backup"
+                        >
+                            <Settings size={24} strokeWidth={2.5} />
+                        </button>
+                        <button
+                            onClick={() => { triggerHaptic && triggerHaptic(); setIsModalOpen(true); }}
+                            className="p-3 bg-brand text-slate-900 rounded-2xl shadow-lg shadow-brand/20 hover:scale-105 transition-transform"
+                        >
+                            <Plus size={24} strokeWidth={2.5} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* [NEW] Calibration Tool (Parity Logic) */}
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                     <button
-                        onClick={() => { triggerHaptic && triggerHaptic(); setIsModalOpen(true); }}
-                        className="p-3 bg-brand text-slate-900 rounded-2xl shadow-lg shadow-brand/20 hover:scale-105 transition-transform"
+                        onClick={() => setIsCalibrationOpen(!isCalibrationOpen)}
+                        className="w-full flex items-center justify-between p-3 text-xs font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                     >
-                        <Plus size={24} strokeWidth={2.5} />
+                        <span className="flex items-center gap-2">
+                            <Zap size={16} className={streetRate > rates.usdt.price ? "text-amber-500" : "text-slate-400"} />
+                            Calibrar Tasa Efectivo
+                        </span>
+                        <span className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg text-slate-600 dark:text-slate-300">
+                            {streetRate > 0 ? `${streetRate} Bs/Efectivo` : 'Sin Calibrar'}
+                        </span>
                     </button>
+
+                    {isCalibrationOpen && (
+                        <div className="p-3 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 space-y-3 animate-in slide-in-from-top-2">
+                            <div className="flex gap-2 items-end">
+                                <div className="flex-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1 block">Precio en Calle (Bs)</label>
+                                    <input
+                                        type="number"
+                                        value={streetPriceInput}
+                                        onChange={(e) => handleCalibration(e.target.value)}
+                                        placeholder={streetRate || "0.00"}
+                                        className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-white outline-none focus:border-brand"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Help Text for Parity Logic */}
+                            <p className="text-[10px] text-slate-400 leading-tight px-1">
+                                Calculando precio para que al vender tus dólares físicos a <strong className="text-slate-600 dark:text-slate-300">{streetPriceInput || streetRate || '...'} Bs</strong> obtengas el mismo valor que el USDT (Digital).
+                            </p>
+
+                            <button
+                                onClick={applyCalibration}
+                                disabled={!streetPriceInput || parseFloat(streetPriceInput) <= 0}
+                                className="w-full py-2 bg-slate-800 dark:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-black uppercase tracking-wider disabled:opacity-50 hover:opacity-90 transition-opacity"
+                            >
+                                Aplicar Calibración
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Search Bar */}
@@ -188,7 +325,7 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
                 </div>
             ) : (
                 <>
-                    <div className="flex-1 overflow-y-auto pb-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 scrollbar-hide">
+                    <div className="flex-1 overflow-y-auto pb-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 scrollbar-hide content-start items-start">
                         {paginatedProducts.map(p => {
                             // --- LÓGICA DE NEGOCIO (CORREGIDA) ---
                             // 1. Monto Real en Bolívares (Precio Base * Tasa USDT)
@@ -220,14 +357,16 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
                                             <span className="text-xs font-bold text-slate-400">USDT (Digital)</span>
                                         </div>
 
-                                        {/* Costo Efectivo (Nuevo - Smart Rounding) */}
+                                        {/* Costo Efectivo (Nuevo - Parity Logic) */}
                                         <div className="flex items-center gap-1.5 mb-3 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-lg w-fit border border-emerald-100 dark:border-emerald-900/30">
                                             <Banknote size={14} className="text-emerald-600 dark:text-emerald-400" />
                                             <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
                                                 Efectivo: {(() => {
-                                                    const raw = p.priceUsdt * 1.05;
-                                                    const decimal = raw - Math.floor(raw);
-                                                    const final = decimal < 0.2 ? Math.floor(raw) : Math.ceil(raw);
+                                                    if (streetRate <= 0) return `$${p.priceUsdt}`;
+                                                    // Parity Logic
+                                                    const valBs = p.priceUsdt * rates.usdt.price;
+                                                    const efectivo = valBs / streetRate;
+                                                    const final = Math.round(efectivo); // Smart Integer Rounding
                                                     return `$${final}`;
                                                 })()}
                                             </span>
@@ -317,14 +456,30 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
                                 className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl font-bold text-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-brand/50 capitalize"
                             />
                         </div>
-                        <div>
-                            <label className="text-xs font-bold text-slate-400 ml-1 mb-1 block uppercase">Precio Base (USDT)</label>
-                            <input
-                                type="number"
-                                value={priceUsdt} onChange={e => setPriceUsdt(e.target.value)}
-                                placeholder="0.00"
-                                className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl font-bold text-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-brand/50"
-                            />
+
+                        {/* Inputs de Precio (Efectivo vs USDT) */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="relative">
+                                <label className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 ml-1 mb-1 block uppercase flex items-center gap-1">
+                                    <Banknote size={12} /> Efectivo
+                                </label>
+                                <input
+                                    type="number"
+                                    value={priceEfectivo} onChange={e => handleEfectivoChange(e.target.value)}
+                                    placeholder="42.00"
+                                    className="w-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30 p-4 rounded-xl font-black text-emerald-800 dark:text-emerald-400 outline-none focus:ring-2 focus:ring-emerald-500/50"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-400 ml-1 mb-1 block uppercase">Base USDT</label>
+                                <input
+                                    type="number"
+                                    value={priceUsdt} onChange={e => handleUsdtChange(e.target.value)}
+                                    placeholder="40.00"
+                                    className="w-full bg-slate-50 dark:bg-slate-800 p-4 rounded-xl font-bold text-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-brand/50"
+                                />
+                            </div>
                         </div>
 
                         {/* Live Conversion Preview */}
@@ -336,8 +491,13 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
                                     <span className="font-black text-slate-700 dark:text-white">{formatBs(parseFloat(priceUsdt) * rates.usdt.price)} Bs</span>
                                 </div>
                                 <div className="flex justify-between items-center text-xs text-slate-400">
+                                    <span>Tasa USDT:</span>
+                                    <span className="font-mono">{formatBs(rates.usdt.price)}</span>
+                                </div>
+                                <div className="h-px bg-slate-200 dark:bg-slate-700 my-1" />
+                                <div className="flex justify-between items-center text-xs text-slate-400">
                                     <span>Ref. Dolar (BCV):</span>
-                                    <span className="font-mono">${formatUsd((parseFloat(priceUsdt) * rates.usdt.price) / rates.bcv.price).replace('$', '')}</span>
+                                    <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">${formatUsd((parseFloat(priceUsdt) * rates.usdt.price) / rates.bcv.price).replace('$', '')}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-xs text-slate-400">
                                     <span>Ref. Euro (BCV):</span>
@@ -361,6 +521,38 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
                 rates={rates}
                 accounts={accounts}
             />
+
+            {/* Modal ELIMINAR PRODCUCTO (Professional Custom) */}
+            <Modal isOpen={!!deleteId} onClose={() => setDeleteId(null)} title="Eliminar Producto">
+                <div className="flex flex-col items-center text-center space-y-4 py-4">
+                    <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-2">
+                        <Trash2 size={32} className="text-red-500" />
+                    </div>
+                    <div>
+                        <h4 className="text-lg font-bold text-slate-800 dark:text-white">¿Estás seguro?</h4>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 px-4">
+                            Esta acción eliminará el producto de tu catálogo permanentemente. No se puede deshacer.
+                        </p>
+                    </div>
+                    <div className="flex gap-3 w-full pt-2">
+                        <button
+                            onClick={() => setDeleteId(null)}
+                            className="flex-1 py-3 text-sm font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            onClick={confirmDelete}
+                            className="flex-1 py-3 text-sm font-bold text-white bg-red-500 hover:bg-red-600 rounded-xl shadow-lg shadow-red-500/30 active:scale-95 transition-all"
+                        >
+                            ¡Sí, eliminar!
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Settings Modal (Fixed) */}
+            <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
         </div>
     );
 };
