@@ -112,33 +112,54 @@ export const ChatMode = ({ rates, accounts, voiceControl, chatState }) => {
                 )}
             </Modal>
 
-            {/* Input Area */}
-            <div className="px-4 pb-4 pt-2">
-                <div className={`flex items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-[2rem] shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800 ring-1 ring-slate-100 dark:ring-slate-800/50 ${isProcessing ? 'opacity-50 pointer-events-none' : ''}`}>
+            {/* Input Area (Optimized for Mobile) */}
+            <div className="px-3 pb-3 pt-2">
+                <div className={`flex items-center gap-1 bg-white dark:bg-slate-900 p-1.5 rounded-[2rem] shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800 ring-1 ring-slate-100 dark:ring-slate-800/50 w-full ${isProcessing ? 'opacity-50 pointer-events-none' : ''}`}>
+
+                    {/* Botón Info */}
                     <button
                         onClick={() => setShowInfoModal(true)}
                         disabled={isProcessing}
-                        className="p-3 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors"
+                        className="p-2.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors flex-shrink-0"
                         title="¿Cómo funciona?"
                     >
                         <Info size={20} />
                     </button>
-                    <button onClick={() => fileInputRef.current.click()} disabled={isProcessing} className="p-3 text-slate-400 hover:text-brand-dark hover:bg-slate-50 rounded-full transition-colors"><Camera size={20} /></button>
+
+                    {/* Botón Cámara */}
+                    <button
+                        onClick={() => fileInputRef.current.click()}
+                        disabled={isProcessing}
+                        className="p-2.5 text-slate-400 hover:text-brand-dark hover:bg-slate-50 rounded-full transition-colors flex-shrink-0"
+                    >
+                        <Camera size={20} />
+                    </button>
+
                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e.target.files[0])} />
+
+                    {/* Input Field (Flexible) */}
                     <input
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && !isProcessing && onSend()}
                         disabled={isProcessing}
-                        placeholder={isProcessing ? "Procesando..." : "Escribe aquí (ej: 100 USDT a BCV)..."}
-                        className="flex-1 bg-transparent border-none outline-none px-2 py-3 text-sm font-medium text-slate-800 dark:text-white placeholder-slate-400"
+                        placeholder={isProcessing ? "Procesando..." : "Escribe aquí (ej: 100 USDT)..."}
+                        className="flex-1 min-w-0 bg-transparent border-none outline-none px-2 py-3 text-sm font-medium text-slate-800 dark:text-white placeholder-slate-400 truncate"
                     />
-                    {input.trim() ? (
-                        <button onClick={onSend} disabled={isProcessing} className="p-3 bg-brand text-slate-900 rounded-full shadow-md hover:scale-105 transition-transform"><Send size={18} fill="currentColor" /></button>
-                    ) : (
-                        <button onClick={handleVoiceInput} disabled={isProcessing} className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 rounded-full transition-colors"><Mic size={18} /></button>
-                    )}
+
+                    {/* Botón Acción (Send/Mic) */}
+                    <div className="flex-shrink-0 pr-1">
+                        {input.trim() ? (
+                            <button onClick={onSend} disabled={isProcessing} className="p-2.5 bg-brand text-slate-900 rounded-full shadow-md hover:scale-105 transition-transform flex items-center justify-center">
+                                <Send size={18} fill="currentColor" />
+                            </button>
+                        ) : (
+                            <button onClick={handleVoiceInput} disabled={isProcessing} className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 rounded-full transition-colors flex items-center justify-center">
+                                <Mic size={18} />
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
