@@ -37,16 +37,51 @@ export const ChatMode = ({ rates, accounts, voiceControl, chatState }) => {
         setInput('');
     };
 
-    const handleVoiceInput = () => {
-        if (!window.webkitSpeechRecognition) return alert("Usa Chrome");
-        const recognition = new window.webkitSpeechRecognition();
-        recognition.lang = 'es-419';
-        recognition.start();
-        recognition.onresult = (e) => handleTextSend(e.results[0][0].transcript);
+    // Voice Logic (Hold to Record)
+    const [isRecording, setIsRecording] = useState(false);
+    const recognitionRef = useRef(null);
+
+    const startRecording = () => {
+        if (!window.webkitSpeechRecognition) return alert("Usa Chrome/Android");
+
+        try {
+            const recognition = new window.webkitSpeechRecognition();
+            recognition.lang = 'es-419';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onstart = () => {
+                setIsRecording(true);
+                if (navigator.vibrate) navigator.vibrate(50);
+            };
+
+            recognition.onend = () => {
+                setIsRecording(false);
+            };
+
+            recognition.onresult = (e) => {
+                const text = e.results[0][0].transcript;
+                if (text) handleTextSend(text);
+            };
+
+            recognitionRef.current = recognition;
+            recognition.start();
+
+        } catch (e) {
+            console.error("Error micrófono:", e);
+            setIsRecording(false);
+        }
+    };
+
+    const stopRecording = () => {
+        if (recognitionRef.current) {
+            recognitionRef.current.stop();
+            if (navigator.vibrate) navigator.vibrate([50, 50]);
+        }
     };
 
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full overflow-hidden">
             <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 scrollbar-hide">
                 {messages.map((msg) => (
                     <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-500`}>
@@ -98,22 +133,27 @@ export const ChatMode = ({ rates, accounts, voiceControl, chatState }) => {
             </div>
 
             {/* Modal de Compartir */}
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Datos de Pago">
-                {!selectedAccount ? (
-                    <AccountSelector accounts={accounts} onSelect={setSelectedAccount} />
-                ) : (
-                    <PaymentSummaryChat
-                        selectedAccount={selectedAccount}
-                        chatData={selectedMsgData}
-                        rates={rates}
-                        onBack={() => setSelectedAccount(null)}
-                        onConfirm={handlePaymentConfirm}
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Compartir Cobro">
+                {selectedMsgData && !selectedAccount ? (
+                    <AccountSelector
+                        accounts={accounts}
+                        onSelect={acc => setSelectedAccount(acc)}
+                        onSkip={() => setSelectedAccount({ alias: 'Sin cuenta' })}
                     />
+                ) : (
+                    selectedMsgData && selectedAccount && (
+                        <PaymentSummaryChat
+                            data={selectedMsgData}
+                            account={selectedAccount}
+                            rates={rates}
+                            onConfirm={handlePaymentConfirm}
+                        />
+                    )
                 )}
             </Modal>
 
             {/* Input Area (Optimized for Mobile) */}
-            <div className="px-3 pb-3 pt-2">
+            <div className="px-3 pb-3 pt-2 flex-shrink-0">
                 <div className={`flex items-center gap-1 bg-white dark:bg-slate-900 p-1.5 rounded-[2rem] shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800 ring-1 ring-slate-100 dark:ring-slate-800/50 w-full ${isProcessing ? 'opacity-50 pointer-events-none' : ''}`}>
 
                     {/* Botón Info */}
@@ -137,15 +177,15 @@ export const ChatMode = ({ rates, accounts, voiceControl, chatState }) => {
 
                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e.target.files[0])} />
 
-                    {/* Input Field (Flexible) */}
+                    {/* Input Field (Flexible) - Si graba, mostramos texto "Grabando..." en rojo o similar */}
                     <input
                         type="text"
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
+                        value={isRecording ? "🎤 Escuchando..." : input}
+                        onChange={(e) => !isRecording && setInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && !isProcessing && onSend()}
-                        disabled={isProcessing}
+                        disabled={isProcessing || isRecording}
                         placeholder={isProcessing ? "Procesando..." : "Escribe aquí (ej: 100 USDT)..."}
-                        className="flex-1 min-w-0 bg-transparent border-none outline-none px-2 py-3 text-sm font-medium text-slate-800 dark:text-white placeholder-slate-400 truncate"
+                        className={`flex-1 min-w-0 bg-transparent border-none outline-none px-2 py-3 text-sm font-medium placeholder-slate-400 truncate ${isRecording ? 'text-red-500 animate-pulse font-black' : 'text-slate-800 dark:text-white'}`}
                     />
 
                     {/* Botón Acción (Send/Mic) */}
@@ -155,8 +195,20 @@ export const ChatMode = ({ rates, accounts, voiceControl, chatState }) => {
                                 <Send size={18} fill="currentColor" />
                             </button>
                         ) : (
-                            <button onClick={handleVoiceInput} disabled={isProcessing} className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 rounded-full transition-colors flex items-center justify-center">
-                                <Mic size={18} />
+                            // Botón Micrófono Hold-to-Talk
+                            <button
+                                onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
+                                onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
+                                onMouseDown={startRecording}
+                                onMouseUp={stopRecording}
+                                onMouseLeave={stopRecording} // Cancelar si sale
+                                disabled={isProcessing}
+                                className={`p-2.5 rounded-full transition-all flex items-center justify-center ${isRecording
+                                    ? 'bg-red-500 text-white scale-110 shadow-lg shadow-red-500/30'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700'
+                                    }`}
+                            >
+                                <Mic size={18} className={isRecording ? 'animate-bounce' : ''} />
                             </button>
                         )}
                     </div>
