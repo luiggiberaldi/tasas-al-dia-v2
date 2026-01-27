@@ -192,10 +192,33 @@ export const getSmartResponse = async (messagesHistoryOrText, isPremium = false,
             if (hasNumber || hasCurrency) {
                 let amount = 1;
                 if (amountMatch) {
-                    const matchVal = amountMatch[0].toLowerCase();
-                    if (matchVal === 'un' || matchVal === 'una') amount = 1;
-                    else amount = parseFloat(matchVal.replace(/\./g, '').replace(',', '.'));
+                    let rawNum = amountMatch[0];
+                    // Lógica Inteligente de Miles vs Decimales
+                    // 1. Si tiene punto/coma y 3 dígitos exactos al final (ej: 100.000 o 100,000), asumimos MILES.
+                    // 2. Si tiene 1 o 2 dígitos (ej: 100.50), es decimal.
+
+                    // Caso: 100,000 o 100.000 (Sin otro separador) -> Es 100 mil
+                    if (/^\d{1,3}[.,]\d{3}$/.test(rawNum)) {
+                        amount = parseFloat(rawNum.replace(/[.,]/g, ''));
+                    }
+                    // Caso: 1.000.000 (Múltiples puntos)
+                    else if ((rawNum.match(/\./g) || []).length > 1) {
+                        amount = parseFloat(rawNum.replace(/\./g, '').replace(',', '.'));
+                    }
+                    // Caso: 1,000,000 (Múltiples comas)
+                    else if ((rawNum.match(/,/g) || []).length > 1) {
+                        amount = parseFloat(rawNum.replace(/,/g, ''));
+                    }
+                    // Caso Standard (detectar separador decimal por posición o cultura)
+                    else {
+                        // Si hay una coma, reemplazar por punto para JS
+                        amount = parseFloat(rawNum.replace(',', '.'));
+                    }
+
+                    // Si el regex capturó "un" o "una"
+                    if (rawNum.toLowerCase() === 'un' || rawNum.toLowerCase() === 'una') amount = 1;
                 }
+
                 if (isNaN(amount)) amount = 1;
 
                 let from = 'USD', to = 'VES';
