@@ -1,13 +1,25 @@
+// [CONFIGURACIÓN] Comisión de efectivo REMOVIDA
+// La tasa de efectivo ahora depende exclusivamente de la calibración manual del usuario
+
 // Formateadores
 export const formatBs = (val) => new Intl.NumberFormat('es-VE', { maximumFractionDigits: 0 }).format(Math.ceil(val));
 export const formatUsd = (val) => new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
 
-export const generatePaymentMessage = ({ 
-    amountTop, amountBot, from, to, 
-    selectedAccount, includeRef, rates, currencies 
+// [REDONDEO INTELIGENTE PARA EFECTIVO]
+// Regla: Si decimal <= 0.20 -> Redondeo abajo (Floor)
+//        Si decimal > 0.20  -> Redondeo arriba (Ceil)
+export const smartCashRounding = (amount) => {
+    const integer = Math.floor(amount);
+    const decimal = amount - integer;
+    return decimal <= 0.2001 ? integer : integer + 1; // Usamos 0.2001 para margen de error flotante
+};
+
+export const generatePaymentMessage = ({
+    amountTop, amountBot, from, to,
+    selectedAccount, includeRef, rates, currencies
 }) => {
     const safeParse = (val) => (!val || val === '.') ? 0 : parseFloat(val.replace(/,/g, '.'));
-    
+
     const valTop = safeParse(amountTop);
     const valBot = safeParse(amountBot);
     const rateTo = currencies.find(c => c.id === to)?.rate;
@@ -26,8 +38,8 @@ export const generatePaymentMessage = ({
 
     // Ajuste preciso según dirección para evitar discrepancias
     if (to !== 'VES' && from !== 'VES') {
-         // Si es divisa a divisa, calculamos base USDT
-         totalBsRaw = valTop * rateFrom; 
+        // Si es divisa a divisa, calculamos base USDT
+        totalBsRaw = valTop * rateFrom;
     }
 
     const totalUsdRaw = totalBsRaw / automaticRefRate;

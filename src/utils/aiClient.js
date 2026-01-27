@@ -61,7 +61,7 @@ REDACCIÓN:
 3. TONO ADAPTATIVO:
    - Consulta ("cuánto son"): "Mi estimado socio, esos [MONTO] [ORIGEN] = [RESULTADO] [DESTINO]. ¿Necesitas ayuda?"
    - Transacción ("calcula/envía"): "Mi estimado socio, esos [MONTO] [ORIGEN] = [RESULTADO] [DESTINO]. Operación lista."
-   - Efectivo/Cash: +5% al monto. Menciona costo operativo.
+   - Efectivo/Cash: Usa estrictamente el RESULTADO MAESTRO proveído. Si mencionan "Tasa Calibrada", explícalo.
 4. FORMATO: VES→entero (ej: 5.105), USD/USDT/EUR→2 decimales (ej: 14,36).
 5. ANÁLISIS: 1 línea técnica/motivadora.
 
@@ -220,14 +220,38 @@ export const getSmartResponse = async (messagesHistoryOrText, isPremium = false,
 
             let calculated = auditor.calculateExpected(amount, from, to, rates);
             const isCash = text.includes('efectivo') || text.includes('cash');
-            if (isCash) calculated = calculated * 1.05;
+            let cashRateUsed = 0;
+
+            if (isCash) {
+                // Leer tasa calibrada desde localStorage
+                const streetRateStored = typeof localStorage !== 'undefined' ? localStorage.getItem('street_rate_bs') : null;
+                const streetRate = streetRateStored ? parseFloat(streetRateStored) : 0;
+
+                if (streetRate > 0) {
+                    cashRateUsed = streetRate;
+                    // Si es USD/Efectivo a Bs, usamos la tasa calibrada directamente
+                    if (from === 'USD' && to === 'VES') {
+                        calculated = amount * streetRate;
+                    }
+                    // Si es Bs a USD/Efectivo
+                    else if (from === 'VES' && to === 'USD') {
+                        calculated = amount / streetRate;
+                    }
+                    // Otros casos (USDT -> Efectivo, etc) requieren lógica más compleja o asumimos paridad
+                }
+                // Si no hay tasa calibrada, el efectivo vale igual que el instrumento base (sin recargo)
+            }
 
             if (calculated) {
                 const formattedResult = (to === 'VES') ? formatBs(calculated) : formatUsd(calculated);
                 const numResult = (to === 'VES') ? Math.ceil(calculated) : parseFloat(calculated.toFixed(2));
 
+                const cashInfo = isCash
+                    ? (cashRateUsed > 0 ? ` (MODO EFECTIVO: Tasa Calibrada ${cashRateUsed} Bs/$)` : ' (MODO EFECTIVO: Sin calibrar, usando paridad estándar)')
+                    : '';
+
                 PREVENTIVE_DATA = `\n\n🎯 RESULTADO MAESTRO (VERIFICADO):
-Para esta operación de ${amount} ${from} a ${to}${isCash ? ' (MODO EFECTIVO +5%)' : ''}, el TOTAL es EXACTAMENTE: ${formattedResult}. 
+Para esta operación de ${amount} ${from} a ${to}${cashInfo}, el TOTAL es EXACTAMENTE: ${formattedResult}. 
 INSTRUCCIONES OBLIGATORIAS:
 1. En tu JSON, el campo "convertedAmount" DEBE ser ${numResult}. NUNCA uses null ni 0.
 2. En tu "textResponse", menciona explícitamente el total de ${formattedResult}.

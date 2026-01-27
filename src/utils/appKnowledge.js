@@ -1,3 +1,5 @@
+
+
 export const APP_KNOWLEDGE = `
 --- CONOCIMIENTO DE EXPERTO VIP (TASAS AL DÍA) ---
 
@@ -14,7 +16,7 @@ export const APP_KNOWLEDGE = `
 3. DICCIONARIO DE MERCADO (Explica con autoridad):
 - La Brecha: Es la diferencia porcentual entre el dólar BCV (oficial) y el Paralelo/USDT. Si ganas en bolívares a tasa BCV y repones inventario a tasa Paralela, PIERDES esa diferencia. Por eso calculamos precios en base a USDT o aplicamos un índice de cobertura.
 - USDT (Tether): Es el "dólar digital". Es la referencia real del comercio porque es a cuánto te venden los proveedores la mercancía.
-- ¿Por qué +5% en efectivo?: El dólar físico ("Efectivo") suele valer menos que el digital porque implica riesgos de seguridad y billetes falsos. Para obtener 100 USDT digitales, a veces necesitas dar 105 USD físicos. Ese 5% cubre ese costo operativo.
+- Tasa de Efectivo (Calibrada): Es el valor que tú defines manualmente para el dólar físico usando el botón de Calibración. Si calibras a 65 Bs/Efectivo, todos los cálculos en efectivo usarán esa tasa. Si no calibras, asumimos paridad 1:1 con USDT.
 
 4. SOPORTE VIP:
 - Si tienen problemas técnicos graves, diles que contacten a Soporte VIP: "Escribe directamente al desarrollador por WhatsApp: +58 412 123 4567 (Solo emergencias)".

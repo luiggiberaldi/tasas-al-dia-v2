@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from './Modal';
 import { Copy, Share2, Check, Smartphone, Building2, Wallet } from 'lucide-react';
-import { formatBs, formatUsd } from '../utils/calculatorUtils';
+import { formatBs, formatUsd, smartCashRounding } from '../utils/calculatorUtils';
 
-export const ProductShareModal = ({ isOpen, onClose, product, rates, accounts }) => {
+export const ProductShareModal = ({ isOpen, onClose, product, rates, accounts, streetRate }) => {
     const [selectedAccountId, setSelectedAccountId] = useState('');
     const [config, setConfig] = useState({
         showUsdt: true,
@@ -24,7 +24,13 @@ export const ProductShareModal = ({ isOpen, onClose, product, rates, accounts })
 
     // Cálculos
     const valBs = product.priceUsdt * rates.usdt.price;
-    const valEfectivo = Math.ceil(product.priceUsdt * 1.05); // Lógica Smart Rounding simplificada para display
+
+    // Lógica Street Rate (Calibrada)
+    // Si hay tasa calibrada (>0), el precio efectivo es Bs / TasaCalibrada
+    // Si no, asumimos paridad 1:1 con USDT (Precio Efectivo = Precio USDT)
+    const valEfectivo = streetRate > 0
+        ? smartCashRounding(valBs / streetRate)
+        : Math.ceil(product.priceUsdt); // Si no calibra, mantenemos techo simple o redondeo
 
     // Presets
     const applyPreset = (type) => {

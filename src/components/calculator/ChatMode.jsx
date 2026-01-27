@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Send, Mic, Camera, RefreshCcw, Copy, Share2, UserCircle, ShieldCheck } from 'lucide-react';
+import { Send, Mic, Camera, RefreshCcw, Copy, Share2, UserCircle, ShieldCheck, Info } from 'lucide-react';
 // import { useChatCalculator } from '../../hooks/useChatCalculator'; // Ya no se usa aquí
 import { formatBs, formatUsd } from '../../utils/calculatorUtils';
 import { Modal } from '../../components/Modal';
@@ -16,6 +16,9 @@ export const ChatMode = ({ rates, accounts, voiceControl, chatState }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedMsgData, setSelectedMsgData] = useState(null);
     const [selectedAccount, setSelectedAccount] = useState(null);
+
+    // Estado para el Modal de información
+    const [showInfoModal, setShowInfoModal] = useState(false);
 
     const handleShareClick = (data) => {
         setSelectedMsgData(data);
@@ -112,6 +115,14 @@ export const ChatMode = ({ rates, accounts, voiceControl, chatState }) => {
             {/* Input Area */}
             <div className="px-4 pb-4 pt-2">
                 <div className={`flex items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-[2rem] shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800 ring-1 ring-slate-100 dark:ring-slate-800/50 ${isProcessing ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <button
+                        onClick={() => setShowInfoModal(true)}
+                        disabled={isProcessing}
+                        className="p-3 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-colors"
+                        title="¿Cómo funciona?"
+                    >
+                        <Info size={20} />
+                    </button>
                     <button onClick={() => fileInputRef.current.click()} disabled={isProcessing} className="p-3 text-slate-400 hover:text-brand-dark hover:bg-slate-50 rounded-full transition-colors"><Camera size={20} /></button>
                     <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e.target.files[0])} />
                     <input
@@ -130,6 +141,72 @@ export const ChatMode = ({ rates, accounts, voiceControl, chatState }) => {
                     )}
                 </div>
             </div>
+
+            {/* Modal de Información */}
+            <Modal isOpen={showInfoModal} onClose={() => setShowInfoModal(false)} title="💡 Cómo Funciona la Calculadora Inteligente">
+                <div className="space-y-4 text-sm text-slate-600 dark:text-slate-300">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-xl p-4">
+                        <h3 className="font-bold text-blue-900 dark:text-blue-300 mb-2 flex items-center gap-2">
+                            <ShieldCheck size={18} />
+                            Calculadora con IA Premium
+                        </h3>
+                        <p className="text-blue-800 dark:text-blue-200 text-xs leading-relaxed">
+                            Mister Cambio es tu asistente financiero inteligente. Habla naturalmente y él entenderá tus conversiones.
+                        </p>
+                    </div>
+
+                    <div className="space-y-3">
+                        <div>
+                            <h4 className="font-bold text-slate-800 dark:text-white mb-1">📝 Ejemplos de uso:</h4>
+                            <ul className="space-y-1 text-xs">
+                                <li className="flex items-start gap-2">
+                                    <span className="text-brand">•</span>
+                                    <span>"100 dólares a bolívares"</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="text-brand">•</span>
+                                    <span>"Cuánto son 50 USDT en BCV"</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="text-brand">•</span>
+                                    <span>"22000 bs a dólares"</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="text-brand">•</span>
+                                    <span>"100 USD en efectivo" (usa tu tasa calibrada)</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div>
+                            <h4 className="font-bold text-slate-800 dark:text-white mb-1">📸 Análisis de imágenes:</h4>
+                            <p className="text-xs">
+                                Usa el botón de <Camera size={14} className="inline" /> para subir tickets o comprobantes.
+                                La IA leerá el monto automáticamente.
+                            </p>
+                        </div>
+
+                        <div>
+                            <h4 className="font-bold text-slate-800 dark:text-white mb-1">💰 Monedas soportadas:</h4>
+                            <div className="flex flex-wrap gap-2 text-xs">
+                                <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md">USD (BCV)</span>
+                                <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md">USDT (Binance)</span>
+                                <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md">EUR</span>
+                                <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md">VES (Bs)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-200 dark:border-slate-700">
+                        <button
+                            onClick={() => setShowInfoModal(false)}
+                            className="w-full py-2.5 bg-brand text-slate-900 font-bold rounded-xl hover:bg-brand-light transition-colors"
+                        >
+                            Entendido
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };

@@ -3,7 +3,7 @@ import { Package, Plus, Trash2, Camera, X, Store, Tag, Pencil, Banknote, Search,
 import { Modal } from '../components/Modal';
 import { ProductShareModal } from '../components/ProductShareModal';
 import SettingsModal from '../components/SettingsModal';
-import { formatBs, formatUsd } from '../utils/calculatorUtils';
+import { formatBs, formatUsd, smartCashRounding } from '../utils/calculatorUtils';
 import { useWallet } from '../hooks/useWallet';
 
 export const ProductsView = ({ rates, triggerHaptic }) => {
@@ -157,7 +157,7 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
         if (streetRate > 0) {
             const valBs = product.priceUsdt * rates.usdt.price;
             const parityEfectivo = valBs / streetRate;
-            setPriceEfectivo(Math.round(parityEfectivo).toFixed(2));
+            setPriceEfectivo(smartCashRounding(parityEfectivo).toString()); // Usamos nueva lógica <= 0.2 Down
         } else {
             setPriceEfectivo(product.priceUsdt);
         }
@@ -366,7 +366,7 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
                                                     // Parity Logic
                                                     const valBs = p.priceUsdt * rates.usdt.price;
                                                     const efectivo = valBs / streetRate;
-                                                    const final = Math.round(efectivo); // Smart Integer Rounding
+                                                    const final = smartCashRounding(efectivo); // Regla Smart: <=0.2 Down, >0.2 Up
                                                     return `$${final}`;
                                                 })()}
                                             </span>
@@ -550,6 +550,16 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
                     </div>
                 </div>
             </Modal>
+
+            {/* Share Modal */}
+            <ProductShareModal
+                isOpen={!!shareProduct}
+                onClose={() => setShareProduct(null)}
+                product={shareProduct}
+                rates={rates}
+                accounts={accounts}
+                streetRate={streetRate}
+            />
 
             {/* Settings Modal (Fixed) */}
             <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />

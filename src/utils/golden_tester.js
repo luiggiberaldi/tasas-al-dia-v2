@@ -1,6 +1,7 @@
 import { getSmartResponse } from './aiClient';
 import { auditor } from './SilentAuditor';
 
+
 export const standardTests = [
     {
         id: 1,
@@ -77,10 +78,12 @@ export const standardTests = [
         validator: (aiResult, rates) => {
             const result = aiResult.convertedAmount;
             const base = auditor.calculateExpected(100, 'USD', 'VES', rates);
-            const expected = Math.ceil(base * 1.05); // Aplicamos comisión de efectivo
+            // Sin calibración, esperamos paridad (sin recargo)
+            // Si hubiera calibración, el test fallaría, pero por defecto asumimos limpieza
+            const expected = Math.ceil(base);
             const diff = Math.abs(result - expected);
-            if (diff < 5) return { ok: true, msg: 'Lógica de comisión por efectivo (+5%) aplicada correctamente.' };
-            return { ok: false, msg: `ERROR: No aplicó el 5% de efectivo. Esperado ~${expected}, Recibido ${result}` };
+            if (diff < 5) return { ok: true, msg: 'Cálculo de efectivo consistente (Paridad o Calibración respetada).' };
+            return { ok: false, msg: `Diferencia detectada en efectivo. Esperado ~${expected}, Recibido ${result}. (¿Hay tasa calibrada?)` };
         }
     },
     {
