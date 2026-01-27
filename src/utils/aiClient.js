@@ -179,12 +179,14 @@ export const getSmartResponse = async (messagesHistoryOrText, isPremium = false,
         const text = lastUserMessage.toLowerCase();
 
         try {
-            // [MEJORA] Regex más robustos con límites de palabra y soporte unicode
+            // [MEJORA] Regex más robustos: Aceptan "100usdt", "50bs", etc.
             const amountMatch = text.match(/(\d+[.,]?\d*)|(\bun\b|\buna\b)/i);
-            const isUSDT = (s) => /\b(binance|usdt|binace|cripto|tether|teter|digital)\b/i.test(s);
-            const isVES = (s) => /\b(bs|bolos|ves|bolivares|bolívares|bolivar|bolívar|soberanos|bolis)\b/i.test(s);
-            const isEUR = (s) => /\b(euro|eur|euros)\b/i.test(s);
-            const isUSD = (s) => /\b(dolares|dólares|usd|bcv|verdes|oficial|dolar|dólar|doalr|dolla|dolr|dollar)\b/i.test(s);
+
+            // Regex Permisivos: (?:^|[\s\d.,]) asegura que antes haya inicio, espacio, número o punto/coma
+            const isUSDT = (s) => /(?:^|[\s\d.,])(binance|usdt|binace|cripto|tether|teter|digital)(?:$|[\s.,!?;])/i.test(s);
+            const isVES = (s) => /(?:^|[\s\d.,])(bs|bolos|ves|bolivares|bolívares|bolivar|bolívar|soberanos|bolis)(?:$|[\s.,!?;])/i.test(s);
+            const isEUR = (s) => /(?:^|[\s\d.,])(euro|eur|euros|€)(?:$|[\s.,!?;])/i.test(s);
+            const isUSD = (s) => /(?:^|[\s\d.,])(dolares|dólares|usd|bcv|verdes|oficial|dolar|dólar|doalr|dolla|dolr|dollar|\$)(?:$|[\s.,!?;])/i.test(s);
 
             const hasNumber = !!amountMatch;
             const hasCurrency = isUSDT(text) || isVES(text) || isEUR(text) || isUSD(text);
@@ -403,6 +405,7 @@ Si el usuario pregunta por ticket/foto sin enviar imagen, DILE: "Usa el botón d
                 messages: [{ role: "system", content: systemPrompt }, ...optimizedMessages],
                 model: model,
                 temperature: isPremium ? 0.3 : 0,
+                max_tokens: 1024, // [FIX] Evitar truncamiento de JSON
                 response_format: { type: "json_object" },
             });
         } catch (initialErr) {
@@ -419,6 +422,7 @@ Si el usuario pregunta por ticket/foto sin enviar imagen, DILE: "Usa el botón d
                     messages: [{ role: "system", content: systemPrompt }, ...optimizedMessages],
                     model: model,
                     temperature: 0.2,
+                    max_tokens: 1024, // [FIX] Evitar truncamiento de JSON
                     response_format: { type: "json_object" },
                 });
             } else {
