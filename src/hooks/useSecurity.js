@@ -128,7 +128,7 @@ export function useSecurity() {
         loading,
         unlockApp,
         generateCodeForClient,
-        isDemo,        // [NEW]
-        demoExpires    // [NEW]
+        isDemo,
+        demoExpires
     };
 }

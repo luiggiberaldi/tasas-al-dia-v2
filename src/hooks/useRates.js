@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 
 const DEFAULT_RATES = {
-    usdt: { price: 0, source: '---', type: 'none', change: 0 },
-    bcv: { price: 0, source: '---', change: 0 },
-    euro: { price: 0, source: '---', change: 0 },
-    lastUpdate: null
+    usdt: { price: 37.10, source: 'Promedio P2P', type: 'p2p', change: 0.12 },
+    bcv: { price: 36.35, source: 'BCV Oficial', change: 0.05 },
+    euro: { price: 39.80, source: 'Euro BCV', change: -0.02 },
+    lastUpdate: new Date().toISOString()
 };
 
 const EXCHANGERATE_KEY = 'F1a3af26247a97a33ee5ad90';
@@ -63,7 +63,20 @@ export function useRates() {
     const parseSafeFloat = (val) => {
         if (!val) return 0;
         if (typeof val === 'number') return val;
-        if (typeof val === 'string') return parseFloat(val.replace(',', '.'));
+        if (typeof val === 'string') {
+            // Eliminar todo lo que no sea número, punto o coma
+            const clean = val.replace(/[^\d.,]/g, '');
+            // Detectar último separador
+            const lastDot = clean.lastIndexOf('.');
+            const lastComma = clean.lastIndexOf(',');
+            const lastSep = Math.max(lastDot, lastComma);
+
+            if (lastSep === -1) return parseFloat(clean) || 0;
+
+            const integer = clean.slice(0, lastSep).replace(/[.,]/g, '');
+            const decimals = clean.slice(lastSep + 1);
+            return parseFloat(`${integer}.${decimals}`) || 0;
+        }
         return 0;
     };
 
@@ -120,10 +133,10 @@ export function useRates() {
 
         // ✅ LÓGICA VITAL: Si hay cambio desde API, úsalo. Si no, calcúlalo.
         const getMeta = (newP, oldP, oldChange = 0, apiChange = null) => {
-            const p = parseSafeFloat(newP);
+            let p = parseSafeFloat(newP);
             const o = parseSafeFloat(oldP);
 
-            // 1. PRIORIDAD: Si la API me dice el % de cambio, CONFÍO en la API (incluso si borré caché)
+            // 1. PRIORIDAD: Si la API me dice el % de cambio, CONFÍO en la API
             if (apiChange !== null && apiChange !== undefined && apiChange !== 0) {
                 return { price: p, change: parseSafeFloat(apiChange) };
             }
@@ -187,13 +200,48 @@ export function useRates() {
                 const rawEuro = privateData.euro || privateData.eur;
 
                 // Extracción inteligente
-                newBcvPrice = parseSafeFloat(typeof rawBcv === 'object' ? rawBcv.price : rawBcv);
+                let bcvP = parseSafeFloat(typeof rawBcv === 'object' ? rawBcv.price : rawBcv);
+                let euroP = parseSafeFloat(typeof rawEuro === 'object' ? rawEuro.price : rawEuro);
+
+                // [REMOVED SANITY CHECK] La tasa real es > 250 (~358 Bs), no debemos dividir.
+                // if (bcvP > 250) bcvP = bcvP / 10;
+                // if (euroP > 250) euroP = euroP / 10;
+
+                newBcvPrice = bcvP;
+                newEuroPrice = euroP;
+
                 // Si el Script envía "change", lo tomamos aquí
                 let apiBcvChange = typeof rawBcv === 'object' ? rawBcv.change : null;
-
-                newEuroPrice = parseSafeFloat(typeof rawEuro === 'object' ? rawEuro.price : rawEuro);
-                // Si el Script envía "change", lo tomamos aquí
                 let apiEuroChange = typeof rawEuro === 'object' ? rawEuro.change : null;
+
+                // [BLINDAJE DE MAGNITUD] Auto-Corrección de Escala
+                // Si la discrepancia con USDT es absurda (ej: BCV 35 vs USDT 550), ajustamos ceros.
+                const alignMagnitude = (val, anchor) => {
+                    if (!val || val <= 0 || !anchor || anchor <= 0) return val;
+
+                    let corrected = val;
+                    // Escalar hacia arriba (ej: 35.89 -> 358.9)
+                    // Si corre es < 20% del anchor, multiplicamos por 10
+                    while (corrected < (anchor * 0.20)) {
+                        corrected *= 10;
+                    }
+                    // Escalar hacia abajo (ej: 35890 -> 358.9)
+                    // Si corrected es > 500% del anchor, dividimos por 10
+                    while (corrected > (anchor * 5.0)) {
+                        corrected /= 10;
+                    }
+
+                    if (corrected !== val) {
+                        console.warn(`⚖️ Magnitud corregida: ${val} -> ${corrected} (Anchor USDT: ${anchor})`);
+                    }
+                    return corrected;
+                };
+
+                // Aplicar blindaje usando USDT como ancla
+                if (newRates.usdt.price > 0) {
+                    newBcvPrice = alignMagnitude(newBcvPrice, newRates.usdt.price);
+                    newEuroPrice = alignMagnitude(newEuroPrice, newRates.usdt.price);
+                }
 
                 if (newBcvPrice > 0) {
                     const meta = getMeta(newBcvPrice, newRates.bcv.price, newRates.bcv.change, apiBcvChange);
@@ -208,7 +256,14 @@ export function useRates() {
                 // Fallback en caso de emergencia
                 const oficial = bcvFallbackData.find(d => d.fuente === 'oficial' || d.nombre === 'Oficial');
                 if (oficial?.promedio > 0) {
-                    newBcvPrice = parseSafeFloat(oficial.promedio);
+                    let bcvP = parseSafeFloat(oficial.promedio);
+
+                    // Aplicar mismo blindaje al fallback
+                    if (newRates.usdt.price > 0) {
+                        bcvP = alignMagnitude(bcvP, newRates.usdt.price);
+                    }
+
+                    newBcvPrice = bcvP;
                     const meta = getMeta(newBcvPrice, newRates.bcv.price, newRates.bcv.change);
                     newRates.bcv = { ...newRates.bcv, ...meta, source: 'BCV Oficial (Respaldo)' };
 

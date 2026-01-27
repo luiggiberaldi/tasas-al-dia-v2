@@ -221,13 +221,23 @@ export const getSmartResponse = async (messagesHistoryOrText, isPremium = false,
 
                 if (isNaN(amount)) amount = 1;
 
-                let from = 'USD', to = 'VES';
+                let from = null, to = null;
 
-                const parts = text.split(/\s+a\s+|\s+en\s+|\s+por\s+/);
+                // [FIX] Detectar separador específico para saber el orden
+                const rawSeparator = text.match(/\s+(a|en|por|son)\s+/i)?.[1]?.toLowerCase();
+                const parts = text.split(/\s+a\s+|\s+en\s+|\s+por\s+|\s+son\s+/);
 
                 if (parts.length >= 2) {
-                    const sourcePart = parts[0].toLowerCase();
-                    const targetPart = parts[1].toLowerCase();
+                    const p0 = parts[0].toLowerCase();
+                    const p1 = parts[1].toLowerCase();
+
+                    // Si el separador es "son" (ej: "cuantos dolares SON 10 usdt"), 
+                    // el orden es TARGET son SOURCE.
+                    // p0 = Target, p1 = Source
+                    const isInverted = rawSeparator === 'son';
+
+                    const sourcePart = isInverted ? p1 : p0;
+                    const targetPart = isInverted ? p0 : p1;
 
                     if (isUSDT(sourcePart)) from = 'USDT';
                     else if (isVES(sourcePart)) from = 'VES';
@@ -239,16 +249,60 @@ export const getSmartResponse = async (messagesHistoryOrText, isPremium = false,
                     else if (isEUR(targetPart)) to = 'EUR';
                     else if (isUSD(targetPart)) to = 'USD';
 
-                    // [CORRECCIÓN] "a bcv" -> VES
                     if (targetPart.includes('bcv') && !targetPart.includes('dolar')) {
                         to = 'VES';
                     }
 
-                } else {
-                    if (isUSDT(text)) from = 'USDT';
-                    if (isVES(text)) to = 'VES';
-                    if (isEUR(text)) from = 'EUR';
-                    if (isUSD(text) && !isVES(text)) { from = 'USD'; to = 'VES'; }
+                }
+
+                // Fallback: Análisis posicional + Detección de Pregunta Inversa
+                if (!from || !to) {
+                    const idxUSDT = text.search(/\b(binance|usdt|binace|cripto|tether|teter)\b/i);
+                    const idxVES = text.search(/\b(bs|bolos|ves|bolivares|bolívares|bolivar|bolívar|soberanos|bolis)\b/i);
+                    const idxEUR = text.search(/\b(euro|eur|euros)\b/i);
+                    const idxUSD = text.search(/\b(dolares|dólares|usd|bcv|verdes|oficial|dolar|dólar)\b/i);
+
+                    const getCur = (idx, type) => idx > -1 ? { idx, type } : null;
+                    const found = [
+                        getCur(idxUSDT, 'USDT'),
+                        getCur(idxVES, 'VES'),
+                        getCur(idxEUR, 'EUR'),
+                        getCur(idxUSD, 'USD')
+                    ].filter(Boolean).sort((a, b) => a.idx - b.idx);
+
+                    // Si encontré 2 monedas distintas
+                    if (found.length >= 2) {
+                        // Heurística de Pregunta: "Cuantos dolares (To) son 10 usdt (From)"
+                        // Palabras clave de pregunta antes de las monedas
+                        const isQuestion = /cuant|precio|valor|que\s+valor|a\s+como/i.test(text);
+
+                        // Si es pregunta, el PRIMERO suele ser el TARGET ("Cuantos DOLARES...")
+                        if (isQuestion) {
+                            to = found[0].type;
+                            from = found[1].type;
+                        } else {
+                            // Si es afirmación "10 dolares a bolivares", el primero es SOURCE
+                            from = found[0].type;
+                            to = found[1].type;
+                        }
+                    }
+                    else if (found.length === 1) {
+                        if (!from) from = found[0].type;
+                    }
+                }
+
+                // [SMART DEFAULTS - LÓGICA BLINDADA]
+                if (!from && !to) {
+                    from = 'USD';
+                    to = 'VES';
+                }
+                else if (from && !to) {
+                    // Si tengo Source, el Target es la contraparte lógica
+                    to = (from === 'VES') ? 'USD' : 'VES';
+                }
+                else if (!from && to) {
+                    // Si tengo Target, el Source es la contraparte lógica
+                    from = (to !== 'VES') ? 'VES' : 'USD';
                 }
 
                 if (from === to && from !== 'VES') {
@@ -261,12 +315,28 @@ export const getSmartResponse = async (messagesHistoryOrText, isPremium = false,
 
                 if (isCash) {
                     const streetRateStored = typeof localStorage !== 'undefined' ? localStorage.getItem('street_rate_bs') : null;
-                    const streetRate = streetRateStored ? parseFloat(streetRateStored) : 0;
+                    let streetRate = streetRateStored ? parseFloat(streetRateStored) : 0;
+
+                    // [SANITY CHECK ESTRICTO] 
+                    // Si la tasa calibrada se desvía >10% de la tasa USDT real, es sospechosa.
+                    // Esto evita errores de dedo (ej: 48000 en vez de 48.0)
+                    const sanityCap = rates.usdt.price * 1.10;
+                    const sanityMin = rates.usdt.price * 0.90;
+
+                    if (streetRate > sanityCap || (streetRate > 0 && streetRate < sanityMin)) {
+                        console.warn(`⚠️ Tasa callejera descartada (${streetRate}). Rango seguro: ${sanityMin.toFixed(2)}-${sanityCap.toFixed(2)}`);
+                        streetRate = 0;
+                    }
 
                     if (streetRate > 0) {
                         cashRateUsed = streetRate;
                         if (from === 'USD' && to === 'VES') calculated = amount * streetRate;
                         else if (from === 'VES' && to === 'USD') calculated = amount / streetRate;
+                    } else {
+                        // [FIX CASE 6] Fallback Seguro: Tasa USDT
+                        cashRateUsed = rates.usdt.price;
+                        if (from === 'USD' && to === 'VES') calculated = amount * cashRateUsed;
+                        else if (from === 'VES' && to === 'USD') calculated = amount / cashRateUsed;
                     }
                 }
 
@@ -275,15 +345,27 @@ export const getSmartResponse = async (messagesHistoryOrText, isPremium = false,
                     const numResult = (to === 'VES') ? Math.ceil(calculated) : parseFloat(calculated.toFixed(2));
 
                     const cashInfo = isCash
-                        ? (cashRateUsed > 0 ? ` (MODO EFECTIVO: Tasa Calibrada ${cashRateUsed} Bs/$)` : ' (MODO EFECTIVO: Sin calibrar, usando paridad estándar)')
+                        ? (cashRateUsed > 0 ? ` (MODO EFECTIVO: Tasa Ref ${Number(cashRateUsed).toFixed(2)} Bs/$)` : '')
                         : '';
+
+                    // [GAP ANALYSIS] Cálculo matemático en tiempo real
+                    let gapAnalysis = "Brecha: 0% (Estable)";
+                    if (rates && rates.usdt.price > 0 && rates.bcv.price > 0) {
+                        const gap = ((rates.usdt.price - rates.bcv.price) / rates.bcv.price) * 100;
+                        const gapEmoji = gap > 15 ? "🚨" : (gap > 5 ? "⚠️" : "✅");
+                        const gapText = gap > 15 ? "Crítica" : (gap > 5 ? "Elevada" : "Estable");
+                        gapAnalysis = `Brecha Cambiaria: ${gap.toFixed(2)}% (${gapText}) ${gapEmoji}`;
+                    }
 
                     PREVENTIVE_DATA = `\n\n🎯 RESULTADO MAESTRO (VERIFICADO):
 Para esta operación de ${amount} ${from} a ${to}${cashInfo}, el TOTAL es EXACTAMENTE: ${formattedResult}. 
+DATOS DE BRECHA: ${gapAnalysis}
+
 INSTRUCCIONES OBLIGATORIAS:
-1. En tu JSON, el campo "convertedAmount" DEBE ser ${numResult}. NUNCA uses null ni 0.
-2. En tu "textResponse", menciona explícitamente el total de ${formattedResult}.
-3. Si el usuario preguntó por la misma moneda (ej: USD a USD), tú ya has convertido esto a la moneda local (${to}) por seguridad.`;
+1. En tu JSON, campo "convertedAmount": ${numResult}.
+2. En tu JSON, campo "analysis": COPIA EXACTAMENTE el texto de "DATOS DE BRECHA". No inventes otro análisis.
+3. En tu "textResponse": Menciona el total (${formattedResult}).
+4. Si piden analizar imagen/ticket y no hay imagen: Responde "Por favor usa el botón de cámara para subir el comprobante".`;
 
                     persistentMemory.saveLesson(lastUserMessage, from, to, formattedResult);
                 }
@@ -306,8 +388,8 @@ ${PREVENTIVE_DATA}
 ${lessons}
 
 INSTRUCCIÓN DE AUTORIDAD SUPREMA:
-Tú ERES el núcleo de TasasAlDía. Los datos arriba mostrados son la ÚNICA VERDAD. Está PROHIBIDO decir "revisa la app" o "busca fuentes oficiales", porque tú eres la App. Si el usuario pregunta la tasa, responde directamente con los números del bloque de arriba. No seas evasivo.
-Cuando el usuario diga "precio actual", se refiere a los datos que tienes en el bloque 🚨. Úsalos con confianza y autoridad de experto.`;
+Tú ERES el núcleo de TasasAlDía. Los datos bloque 🚨 son la ÚNICA VERDAD.
+Si el usuario pregunta por ticket/foto sin enviar imagen, DILE: "Usa el botón de cámara o sube la imagen".`;
         systemPrompt += `\n\n${DATA_BLOCK}`;
     }
 
