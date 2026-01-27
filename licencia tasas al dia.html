@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Master Key Gen - TasasAlDía</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background: #0f172a;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            border: 1px solid #334155;
+        }
+
+        h1 {
+            color: #fcd535;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        input {
+            w-full;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            width: 90%;
+            font-family: monospace;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+        }
+
+        button {
+            background: #fcd535;
+            color: #0f172a;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 0.75rem;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1rem;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        #result {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: #064e3b;
+            color: #34d399;
+            border-radius: 0.75rem;
+            font-weight: bold;
+            font-family: monospace;
+            font-size: 1.2rem;
+            display: none;
+            border: 1px solid #059669;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h1>🔑 Generador VIP</h1>
+        <p style="color: #94a3b8; font-size: 0.8rem;">Introduce el ID del cliente (TASAS-XXXX)</p>
+        <input type="text" id="devId" placeholder="TASAS-ABCD">
+        <button onclick="generate()">GENERAR CLAVE PERMANENTE</button>
+        <button onclick="setDemo()"
+            style="background: transparent; border: 1px solid #334155; color: #94a3b8; margin-top: 10px; font-size: 0.75rem; padding: 0.5rem;">GENERAR
+            CLAVE DEMO (PORTAFOLIO)</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        // ESTA CLAVE DEBE SER LA MISMA QUE EN useSecurity.js
+        const MASTER_SECRET_KEY = "VENEZUELA_PRO_2026_GLOBAL";
+
+        function setDemo() {
+            document.getElementById('devId').value = 'TASAS-DEMO';
+            generate();
+        }
+
+        async function generate() {
+            const devId = document.getElementById('devId').value.trim().toUpperCase();
+            if (!devId) return alert("Pon el ID, mi pana.");
+
+            const encoder = new TextEncoder();
+            const data = encoder.encode(devId + MASTER_SECRET_KEY);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+
+            const finalKey = `ACTIV-${hashHex.substring(0, 4)}-${hashHex.substring(4, 8)}`;
+
+            const resDiv = document.getElementById('result');
+            resDiv.innerText = finalKey;
+            resDiv.style.display = 'block';
+        }
+    </script>
+</body>
+
+</html>

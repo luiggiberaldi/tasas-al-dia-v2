@@ -3,7 +3,7 @@ import { Bot, Calculator as CalculatorIcon, Volume2, VolumeX, Trash2, Crown } fr
 import { useSecurity } from '../../hooks/useSecurity';
 
 export const CalculatorHeader = ({ viewMode, setViewMode, voiceEnabled, setVoiceEnabled, onClearChat, triggerHaptic }) => {
-    const { isPremium } = useSecurity();
+    const { isPremium, isDemo, demoExpires } = useSecurity();
 
     return (
         <div className="flex-shrink-0 px-6 py-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 flex flex-col gap-3 shadow-sm z-30 relative">
@@ -16,9 +16,29 @@ export const CalculatorHeader = ({ viewMode, setViewMode, voiceEnabled, setVoice
                         <h3 className="font-black text-slate-800 dark:text-white text-lg leading-none tracking-tight flex items-center flex-wrap gap-2">
                             {viewMode === 'chat' ? 'Mister Cambio' : 'Calculadora'}
                             {viewMode === 'chat' && isPremium && (
-                                <span className="inline-flex shrink-0 items-center gap-1 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-lg shadow-sm shadow-orange-200 dark:shadow-none uppercase">
-                                    <Crown size={10} strokeWidth={3} /> VIP
-                                </span>
+                                <div className="flex items-center gap-1 flex-wrap">
+                                    <span className="inline-flex shrink-0 items-center gap-1 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-lg shadow-sm shadow-orange-200 dark:shadow-none uppercase">
+                                        <Crown size={10} strokeWidth={3} /> VIP
+                                    </span>
+                                    {isDemo && demoExpires && (
+                                        <span className="inline-flex shrink-0 items-center gap-1 bg-red-500 text-white text-[9px] font-black tracking-widest px-1.5 py-0.5 rounded-lg shadow-sm animate-pulse uppercase">
+                                            DEMO ({Math.max(0, Math.ceil((demoExpires - Date.now()) / (3600000)))}h)
+                                        </span>
+                                    )}
+                                    {/* PANIC BUTTON (TEMPORAL) */}
+                                    <button
+                                        onClick={() => {
+                                            if (confirm('⚠️ ¿RESET TOTAL? Se borrará ID y Licencia.')) {
+                                                localStorage.clear();
+                                                window.location.reload();
+                                            }
+                                        }}
+                                        className="bg-slate-200 dark:bg-slate-700 text-slate-500 hover:bg-red-500 hover:text-white p-1 rounded-md transition-colors"
+                                        title="Borrar Todo"
+                                    >
+                                        <Trash2 size={10} />
+                                    </button>
+                                </div>
                             )}
                         </h3>
                         <div className="flex items-center gap-1.5 mt-1">

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, Copy, Check, Star, Sparkles, Send, Bot, Store, MessageCircle, Database, Calculator } from 'lucide-react'; // [UPDATED imports]
+import { Lock, Copy, Check, Star, Sparkles, Send, Bot, Store, MessageCircle, Database, Calculator, Clock, XCircle, Crown } from 'lucide-react'; // [UPDATED imports]
 import { useSecurity } from '../../hooks/useSecurity';
 
 export default function PremiumGuard({ children, featureName = "Esta función", isAI = false, isShop = false }) { // [UPDATED]
@@ -8,6 +8,7 @@ export default function PremiumGuard({ children, featureName = "Esta función", 
     const [error, setError] = useState(false);
     const [success, setSuccess] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [showConfirmation, setShowConfirmation] = useState(false); // [NEW]
 
     // Mientras carga el estado de seguridad, mostramos un loader simple o nada
     if (loading) return <div className="p-10 text-center text-slate-400">Verificando licencia...</div>;
@@ -168,6 +169,69 @@ export default function PremiumGuard({ children, featureName = "Esta función", 
                     {error && <p className="text-[10px] text-red-500 mt-1 font-bold animate-pulse">Código inválido.</p>}
                     {success && <p className="text-[10px] text-green-500 mt-1 font-bold">¡Activado!</p>}
                 </form>
+
+                {/* Demo Button (Portafolio) */}
+                <button
+                    onClick={() => setShowConfirmation(true)}
+                    className="w-full mt-2 py-2 text-[10px] text-slate-400 dark:text-slate-500 hover:text-brand-dark dark:hover:text-white font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 opacity-60 hover:opacity-100"
+                >
+                    {deviceId === 'TASAS-DEMO' ? (
+                        <>
+                            <XCircle size={11} />
+                            <span>Salir de Demo</span>
+                        </>
+                    ) : (
+                        <>
+                            <Clock size={11} />
+                            <span>Solicitar Demo (24h)</span>
+                        </>
+                    )}
+                </button>
+
+                {/* MODAL DE CONFIRMACIÓN CUSTOM */}
+                {showConfirmation && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl rounded-2xl p-6 max-w-xs text-center transform scale-100 animate-in zoom-in-95 duration-200">
+
+                            <div className="mx-auto w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-3">
+                                <Crown size={24} className="text-amber-500" />
+                            </div>
+
+                            <h3 className="text-lg font-black text-slate-800 dark:text-white mb-2 leading-tight">
+                                {deviceId === 'TASAS-DEMO' ? '¿Finalizar Sesión Demo?' : '¿Activar Entorno Demo?'}
+                            </h3>
+
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-5 leading-relaxed">
+                                {deviceId === 'TASAS-DEMO'
+                                    ? 'Se borrará la licencia temporal y se restaurará la configuración original del dispositivo.'
+                                    : 'Esta acción configurará el dispositivo para pruebas de evaluación técnica durante 24 horas.'}
+                            </p>
+
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setShowConfirmation(false)}
+                                    className="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (deviceId === 'TASAS-DEMO') {
+                                            localStorage.removeItem('device_id');
+                                            localStorage.removeItem('premium_token');
+                                        } else {
+                                            localStorage.setItem('device_id', 'TASAS-DEMO');
+                                        }
+                                        window.location.reload();
+                                    }}
+                                    className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white bg-slate-900 dark:bg-brand-dark hover:opacity-90 transition-opacity shadow-lg shadow-slate-500/20"
+                                >
+                                    {deviceId === 'TASAS-DEMO' ? 'Restaurar' : 'Activar Demo'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
             </div>
         </div>

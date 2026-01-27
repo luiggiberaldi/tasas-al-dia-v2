@@ -8,6 +8,8 @@ export function useSecurity() {
     const [deviceId, setDeviceId] = useState('');
     const [isPremium, setIsPremium] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [isDemo, setIsDemo] = useState(false); // [NEW]
+    const [demoExpires, setDemoExpires] = useState(null); // [NEW]
 
     useEffect(() => {
         // 1. Obtener o Generar Device ID
@@ -37,7 +39,7 @@ export function useSecurity() {
     };
 
     const checkLicense = async (currentDeviceId) => {
-        const storedToken = localStorage.getItem('premium_token');
+        let storedToken = localStorage.getItem('premium_token');
 
         if (!storedToken) {
             setIsPremium(false);
@@ -45,23 +47,68 @@ export function useSecurity() {
             return;
         }
 
-        // Validar si el token guardado coincide con el esperado para este device
-        const validToken = await generateActivationCode(currentDeviceId);
+        // Validar token esperado
+        const validTokenStr = await generateActivationCode(currentDeviceId);
 
-        if (storedToken === validToken) {
-            setIsPremium(true);
-        } else {
-            setIsPremium(false); // Token inválido o de otro dispositivo
+        // Lógica Híbrida: String (Lifetime) vs JSON (Temporal/Demo)
+        try {
+            // Intentar parsear como JSON (Formato Nuevo Demo)
+            const tokenObj = JSON.parse(storedToken);
+
+            if (tokenObj && tokenObj.code && tokenObj.expires) {
+                // Es un token temporal
+                if (tokenObj.code === validTokenStr) {
+                    if (Date.now() < tokenObj.expires) {
+                        setIsPremium(true);
+                        setIsDemo(true);
+                        setDemoExpires(tokenObj.expires);
+                    } else {
+                        // Expiró
+                        console.warn("Licencia Demo Expirada");
+                        localStorage.removeItem('premium_token');
+                        setIsPremium(false);
+                        setIsDemo(false);
+                    }
+                } else {
+                    setIsPremium(false);
+                }
+            } else {
+                // JSON inválido -> Asumir fallo o formato viejo
+                setIsPremium(false);
+            }
+        } catch (e) {
+            // No es JSON, asumimos que es el formato String antiguo (Lifetime License)
+            if (storedToken === validTokenStr) {
+                setIsPremium(true);
+                setIsDemo(false);
+            } else {
+                setIsPremium(false);
+            }
         }
         setLoading(false);
     };
 
     const unlockApp = async (inputCode) => {
-        // Esperamos que el código ingresado coincida con lo que generamos nosotros
         const validCode = await generateActivationCode(deviceId);
 
         if (inputCode.trim().toUpperCase() === validCode) {
-            localStorage.setItem('premium_token', validCode);
+            // Si es el dispositivo de DEMOSTRACIÓN (Portafolio), forzamos caducidad en 24h
+            if (deviceId === 'TASAS-DEMO') {
+                const expires = Date.now() + (24 * 60 * 60 * 1000);
+                const demoToken = {
+                    code: validCode,
+                    expires: expires,
+                    isDemo: true
+                };
+                localStorage.setItem('premium_token', JSON.stringify(demoToken));
+                setIsDemo(true);
+                setDemoExpires(expires);
+            } else {
+                // Licencia estándar de por vida
+                localStorage.setItem('premium_token', validCode);
+                setIsDemo(false);
+            }
+
             setIsPremium(true);
             return true;
         }
@@ -80,6 +127,8 @@ export function useSecurity() {
         isPremium,
         loading,
         unlockApp,
-        generateCodeForClient
+        generateCodeForClient,
+        isDemo,        // [NEW]
+        demoExpires    // [NEW]
     };
 }
