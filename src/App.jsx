@@ -12,6 +12,7 @@ import { useRates } from './hooks/useRates';
 import { useSecurity } from './hooks/useSecurity';
 import PremiumGuard from './components/security/PremiumGuard';
 import TermsOverlay from './components/TermsOverlay';
+import ErrorBoundary from './components/ErrorBoundary';
 
 export default function App() {
   // Estado para la vista (monitor, calc, wallet, info -> tienda)
@@ -132,7 +133,9 @@ export default function App() {
         )}
 
         {activeTab === 'calc' && (
-          <CalculatorView rates={rates} toggleTheme={toggleTheme} theme={theme} triggerHaptic={triggerHaptic} />
+          <ErrorBoundary>
+            <CalculatorView rates={rates} toggleTheme={toggleTheme} theme={theme} triggerHaptic={triggerHaptic} />
+          </ErrorBoundary>
         )}
 
         {activeTab === 'wallet' && (

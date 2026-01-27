@@ -4,7 +4,16 @@ import { formatBs, formatUsd } from '../utils/calculatorUtils';
 import { useSecurity } from './useSecurity';
 
 export const useChatCalculator = (rates, speak) => {
-    const { isPremium } = useSecurity();
+    // [BLINDAJE P1] Defensive Security Check
+    let isPremium = false;
+    try {
+        const security = useSecurity();
+        isPremium = security?.isPremium || false;
+    } catch (e) {
+        console.error('🔴 useSecurity failed in useChatCalculator:', e);
+        isPremium = false; // Fallback seguro: modo Free
+    }
+
     const [messages, setMessages] = useState([
         { id: 1, role: 'bot', type: 'text', content: '👋 ¡Hola! Soy Mister Cambio. ¿Qué calculamos hoy?' }
     ]);

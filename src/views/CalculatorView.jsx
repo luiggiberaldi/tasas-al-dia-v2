@@ -20,7 +20,13 @@ export default function CalculatorView({ rates, theme, triggerHaptic }) {
   const chatState = useChatCalculator(currentRates, voiceControl.speak);
 
   useEffect(() => {
-    try { setAccounts(JSON.parse(localStorage.getItem('my_accounts_v2')) || []); } catch (e) { }
+    try {
+      const raw = localStorage.getItem('my_accounts_v2');
+      setAccounts(raw ? JSON.parse(raw) : []);
+    } catch (e) {
+      console.warn('⚠️ localStorage bloqueado o corrupto en CalculatorView:', e);
+      setAccounts([]); // Fallback seguro
+    }
   }, []);
 
   return (
