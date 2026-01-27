@@ -25,19 +25,6 @@ export const CalculatorHeader = ({ viewMode, setViewMode, voiceEnabled, setVoice
                                             DEMO ({Math.max(0, Math.ceil((demoExpires - Date.now()) / (3600000)))}h)
                                         </span>
                                     )}
-                                    {/* PANIC BUTTON (TEMPORAL) */}
-                                    <button
-                                        onClick={() => {
-                                            if (confirm('⚠️ ¿RESET TOTAL? Se borrará ID y Licencia.')) {
-                                                localStorage.clear();
-                                                window.location.reload();
-                                            }
-                                        }}
-                                        className="bg-slate-200 dark:bg-slate-700 text-slate-500 hover:bg-red-500 hover:text-white p-1 rounded-md transition-colors"
-                                        title="Borrar Todo"
-                                    >
-                                        <Trash2 size={10} />
-                                    </button>
                                 </div>
                             )}
                         </h3>
