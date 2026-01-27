@@ -26,20 +26,23 @@ export const useSpeech = () => {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
 
-        // Estrategia de Selección de Voz CONSISTENTE (Prioridad Google)
-        // Buscamos voces de Google primero para que suene igual en Chrome PC y Android
+        // Estrategia: MISTER CAMBIO (Voz Masculina)
+        // 1. Microsoft Raul (Windows - La mejor)
+        // 2. Google Español (Suele ser mujer, pero bajaremos el pitch)
         let selectedVoice =
+            voices.find(v => v.name.includes('Microsoft Raul')) ||
             voices.find(v => v.name === 'Google español de Estados Unidos') ||
             voices.find(v => v.name === 'Google español') ||
-            voices.find(v => v.lang === 'es-US' && v.name.includes('Google')) ||
-            voices.find(v => v.name.includes('Microsoft Raul')) || // Fallback Windows
             voices.find(v => v.lang === 'es-MX') ||
             voices.find(v => v.lang === 'es-419');
 
         if (selectedVoice) utterance.voice = selectedVoice;
 
-        utterance.pitch = 0.9; // Tono ligeramente más grave (profesional)
-        utterance.rate = 1.1;  // Un poco más rápido y fluido
+        // [EFECTO DE VOZ] Masculinización
+        // Bajamos el pitch para que incluso una voz femenina suene más grave/masculina
+        // 1.0 = Normal. 0.7-0.8 = Masculino/Grave.
+        utterance.pitch = selectedVoice?.name?.includes('Raul') ? 0.9 : 0.75;
+        utterance.rate = 1.1; // Velocidad fluida
 
         window.speechSynthesis.speak(utterance);
     }, [voiceEnabled, voices]);
