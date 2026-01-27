@@ -26,15 +26,15 @@ export const useSpeech = () => {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
 
-        // Estrategia de Selección de Voz LATINA MASCULINA (Prioridad)
-        // 1. Microsoft Raul - Spanish (Mexico) -> Nativo Windows MASCULINO
-        // 2. Google Español de Estados Unidos -> Suele ser neutra buena
-        // 3. Sabina (Mujer) como fallback de alta calidad si no hay Raul
-        let selectedVoice = voices.find(v => v.name.includes('Microsoft Raul')) ||
-            voices.find(v => v.name === 'Google Español de Estados Unidos') ||
+        // Estrategia de Selección de Voz CONSISTENTE (Prioridad Google)
+        // Buscamos voces de Google primero para que suene igual en Chrome PC y Android
+        let selectedVoice =
+            voices.find(v => v.name === 'Google español de Estados Unidos') ||
+            voices.find(v => v.name === 'Google español') ||
+            voices.find(v => v.lang === 'es-US' && v.name.includes('Google')) ||
+            voices.find(v => v.name.includes('Microsoft Raul')) || // Fallback Windows
             voices.find(v => v.lang === 'es-MX') ||
-            voices.find(v => v.lang === 'es-419') ||
-            voices.find(v => v.lang === 'es-US');
+            voices.find(v => v.lang === 'es-419');
 
         if (selectedVoice) utterance.voice = selectedVoice;
 

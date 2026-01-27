@@ -55,11 +55,14 @@ SALIDA: JSON { "amount": number, "currency": "USD"|"USDT"|"VES"|"EUR", "targetCu
 const SYSTEM_PROMPT_PREMIUM = `Mister Cambio VIP - Socio financiero de élite.
 PERSONALIDAD: Carismático, profesional. Varía expresiones: "mi estimado socio", "blindemos ese dinero".
 
+REGLA DE ORO: SI TIENES DATOS DE CÁLCULO (RESULTADO MAESTRO), TU RESPUESTA *DEBE* SER UN JSON VÁLIDO CON EL MONTO CONVERTIDO.
+
 REDACCIÓN:
 1. SIN asteriscos ni fórmulas matemáticas.
 2. PRECISIÓN: Usa TASAS del bloque 🚨. USDT≠USD. Número exacto del RESULTADO MAESTRO.
 3. TONO ADAPTATIVO:
    - Consulta ("cuánto son"): "Mi estimado socio, esos [MONTO] [ORIGEN] = [RESULTADO] [DESTINO]. ¿Necesitas ayuda?"
+   - Pregunta Tasa ("precio/cuanto es usdt"): Asume 1 UNIDAD. Responde: "El [ORIGEN] hoy cotiza a [RESULTADO] [DESTINO]."
    - Transacción ("calcula/envía"): "Mi estimado socio, esos [MONTO] [ORIGEN] = [RESULTADO] [DESTINO]. Operación lista."
    - Efectivo/Cash: Usa estrictamente el RESULTADO MAESTRO proveído. Si mencionan "Tasa Calibrada", explícalo.
 4. FORMATO: VES→entero (ej: 5.105), USD/USDT/EUR→2 decimales (ej: 14,36).
@@ -174,91 +177,96 @@ export const getSmartResponse = async (messagesHistoryOrText, isPremium = false,
             : [...messagesHistoryOrText].reverse().find(m => m.role === 'user')?.content || "";
 
         const text = lastUserMessage.toLowerCase();
-        const amountMatch = lastUserMessage.match(/[\d.]+/);
 
-        const isUSDT = (s) => /binance|usdt|binace|cripto|tether|teter|digital/.test(s);
-        const isVES = (s) => /bs|bolos|ves|bolivares|bolívares|bolivar|soberanos|bolis/.test(s);
-        const isEUR = (s) => /euro|eur/.test(s);
-        const isUSD = (s) => /dolares|dólares|usd|bcv|verdes|oficial|dolar|doalr|dolla|dolr|dollar/.test(s);
+        try {
+            // [MEJORA] Regex más robustos con límites de palabra y soporte unicode
+            const amountMatch = text.match(/(\d+[.,]?\d*)|(\bun\b|\buna\b)/i);
+            const isUSDT = (s) => /\b(binance|usdt|binace|cripto|tether|teter|digital)\b/i.test(s);
+            const isVES = (s) => /\b(bs|bolos|ves|bolivares|bolívares|bolivar|bolívar|soberanos|bolis)\b/i.test(s);
+            const isEUR = (s) => /\b(euro|eur|euros)\b/i.test(s);
+            const isUSD = (s) => /\b(dolares|dólares|usd|bcv|verdes|oficial|dolar|dólar|doalr|dolla|dolr|dollar)\b/i.test(s);
 
-        const hasNumber = !!amountMatch;
-        const hasCurrency = isUSDT(text) || isVES(text) || isEUR(text) || isUSD(text);
+            const hasNumber = !!amountMatch;
+            const hasCurrency = isUSDT(text) || isVES(text) || isEUR(text) || isUSD(text);
 
-        // SOLO procedemos si hay un número o una moneda clara
-        if (hasNumber || hasCurrency) {
-            let amount = hasNumber ? parseFloat(amountMatch[0].replace(/\./g, '')) : 1;
-            if (isNaN(amount)) amount = 1;
-
-            let from = 'USD', to = 'VES';
-            let isRateCheck = false;
-
-            const parts = text.split(/\s+a\s+|\s+en\s+|\s+por\s+/);
-
-            if (parts.length >= 2) {
-                const sourcePart = parts[0];
-                const targetPart = parts[1];
-                if (isUSDT(sourcePart)) from = 'USDT';
-                else if (isVES(sourcePart)) from = 'VES';
-                else if (isEUR(sourcePart)) from = 'EUR';
-                else if (isUSD(sourcePart)) from = 'USD';
-
-                if (isUSDT(targetPart)) to = 'USDT';
-                else if (isVES(targetPart)) to = 'VES';
-                else if (isEUR(targetPart)) to = 'EUR';
-                else if (isUSD(targetPart)) to = 'USD';
-            } else {
-                if (isUSDT(text)) from = 'USDT';
-                if (isVES(text)) to = 'VES';
-                if (isEUR(text)) from = 'EUR';
-                if (isUSD(text) && !isVES(text)) { from = 'USD'; to = 'VES'; }
-            }
-
-            if (from === to && from !== 'VES') {
-                to = 'VES';
-                isRateCheck = true;
-            }
-
-            let calculated = auditor.calculateExpected(amount, from, to, rates);
-            const isCash = text.includes('efectivo') || text.includes('cash');
-            let cashRateUsed = 0;
-
-            if (isCash) {
-                // Leer tasa calibrada desde localStorage
-                const streetRateStored = typeof localStorage !== 'undefined' ? localStorage.getItem('street_rate_bs') : null;
-                const streetRate = streetRateStored ? parseFloat(streetRateStored) : 0;
-
-                if (streetRate > 0) {
-                    cashRateUsed = streetRate;
-                    // Si es USD/Efectivo a Bs, usamos la tasa calibrada directamente
-                    if (from === 'USD' && to === 'VES') {
-                        calculated = amount * streetRate;
-                    }
-                    // Si es Bs a USD/Efectivo
-                    else if (from === 'VES' && to === 'USD') {
-                        calculated = amount / streetRate;
-                    }
-                    // Otros casos (USDT -> Efectivo, etc) requieren lógica más compleja o asumimos paridad
+            if (hasNumber || hasCurrency) {
+                let amount = 1;
+                if (amountMatch) {
+                    const matchVal = amountMatch[0].toLowerCase();
+                    if (matchVal === 'un' || matchVal === 'una') amount = 1;
+                    else amount = parseFloat(matchVal.replace(/\./g, '').replace(',', '.'));
                 }
-                // Si no hay tasa calibrada, el efectivo vale igual que el instrumento base (sin recargo)
-            }
+                if (isNaN(amount)) amount = 1;
 
-            if (calculated) {
-                const formattedResult = (to === 'VES') ? formatBs(calculated) : formatUsd(calculated);
-                const numResult = (to === 'VES') ? Math.ceil(calculated) : parseFloat(calculated.toFixed(2));
+                let from = 'USD', to = 'VES';
 
-                const cashInfo = isCash
-                    ? (cashRateUsed > 0 ? ` (MODO EFECTIVO: Tasa Calibrada ${cashRateUsed} Bs/$)` : ' (MODO EFECTIVO: Sin calibrar, usando paridad estándar)')
-                    : '';
+                const parts = text.split(/\s+a\s+|\s+en\s+|\s+por\s+/);
 
-                PREVENTIVE_DATA = `\n\n🎯 RESULTADO MAESTRO (VERIFICADO):
+                if (parts.length >= 2) {
+                    const sourcePart = parts[0].toLowerCase();
+                    const targetPart = parts[1].toLowerCase();
+
+                    if (isUSDT(sourcePart)) from = 'USDT';
+                    else if (isVES(sourcePart)) from = 'VES';
+                    else if (isEUR(sourcePart)) from = 'EUR';
+                    else if (isUSD(sourcePart)) from = 'USD';
+
+                    if (isUSDT(targetPart)) to = 'USDT';
+                    else if (isVES(targetPart)) to = 'VES';
+                    else if (isEUR(targetPart)) to = 'EUR';
+                    else if (isUSD(targetPart)) to = 'USD';
+
+                    // [CORRECCIÓN] "a bcv" -> VES
+                    if (targetPart.includes('bcv') && !targetPart.includes('dolar')) {
+                        to = 'VES';
+                    }
+
+                } else {
+                    if (isUSDT(text)) from = 'USDT';
+                    if (isVES(text)) to = 'VES';
+                    if (isEUR(text)) from = 'EUR';
+                    if (isUSD(text) && !isVES(text)) { from = 'USD'; to = 'VES'; }
+                }
+
+                if (from === to && from !== 'VES') {
+                    to = 'VES';
+                }
+
+                let calculated = auditor.calculateExpected(amount, from, to, rates);
+                const isCash = text.includes('efectivo') || text.includes('cash');
+                let cashRateUsed = 0;
+
+                if (isCash) {
+                    const streetRateStored = typeof localStorage !== 'undefined' ? localStorage.getItem('street_rate_bs') : null;
+                    const streetRate = streetRateStored ? parseFloat(streetRateStored) : 0;
+
+                    if (streetRate > 0) {
+                        cashRateUsed = streetRate;
+                        if (from === 'USD' && to === 'VES') calculated = amount * streetRate;
+                        else if (from === 'VES' && to === 'USD') calculated = amount / streetRate;
+                    }
+                }
+
+                if (calculated) {
+                    const formattedResult = (to === 'VES') ? formatBs(calculated) : formatUsd(calculated);
+                    const numResult = (to === 'VES') ? Math.ceil(calculated) : parseFloat(calculated.toFixed(2));
+
+                    const cashInfo = isCash
+                        ? (cashRateUsed > 0 ? ` (MODO EFECTIVO: Tasa Calibrada ${cashRateUsed} Bs/$)` : ' (MODO EFECTIVO: Sin calibrar, usando paridad estándar)')
+                        : '';
+
+                    PREVENTIVE_DATA = `\n\n🎯 RESULTADO MAESTRO (VERIFICADO):
 Para esta operación de ${amount} ${from} a ${to}${cashInfo}, el TOTAL es EXACTAMENTE: ${formattedResult}. 
 INSTRUCCIONES OBLIGATORIAS:
 1. En tu JSON, el campo "convertedAmount" DEBE ser ${numResult}. NUNCA uses null ni 0.
 2. En tu "textResponse", menciona explícitamente el total de ${formattedResult}.
 3. Si el usuario preguntó por la misma moneda (ej: USD a USD), tú ya has convertido esto a la moneda local (${to}) por seguridad.`;
 
-                persistentMemory.saveLesson(lastUserMessage, from, to, formattedResult);
+                    persistentMemory.saveLesson(lastUserMessage, from, to, formattedResult);
+                }
             }
+        } catch (e) {
+            console.error("Error en auditoría:", e);
         }
     }
 

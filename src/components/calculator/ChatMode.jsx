@@ -82,7 +82,7 @@ export const ChatMode = ({ rates, accounts, voiceControl, chatState }) => {
 
     return (
         <div className="flex flex-col h-full overflow-hidden">
-            <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 scrollbar-hide">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-4 py-6 space-y-6 scrollbar-hide">
                 {messages.map((msg) => (
                     <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-500`}>
                         {msg.role === 'user' ? (
