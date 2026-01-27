@@ -3,12 +3,15 @@ import { auditor } from "./SilentAuditor"; // [NEW] Auditor Matémetico
 import { formatBs, formatUsd } from "./calculatorUtils"; // [NEW]
 import { persistentMemory } from "./PersistentMemory"; // [NEW] Memoria de Aprendizaje
 
-// --- CONFIGURACIÓN DE LLAVES (Round-Robin) ---
-const GROQ_KEYS = [
+// --- CONFIGURACIÓN DE LLAVES (Round-Robin Inteligente) ---
+let GROQ_KEYS = [
     import.meta.env.VITE_GROQ_API_KEY,
     import.meta.env.VITE_GROQ_KEY_1,
     import.meta.env.VITE_GROQ_KEY_2,
-    import.meta.env.VITE_GROQ_KEY_3
+    import.meta.env.VITE_GROQ_KEY_3,
+    import.meta.env.VITE_GROQ_KEY_4,
+    import.meta.env.VITE_GROQ_KEY_5,
+    import.meta.env.VITE_GROQ_KEY_6
 ].filter(Boolean); // Filtrar llaves no definidas
 
 let currentKeyIndex = 0;
@@ -17,68 +20,62 @@ const getNextGroqClient = () => {
     if (GROQ_KEYS.length === 0) return null;
     const key = GROQ_KEYS[currentKeyIndex];
     currentKeyIndex = (currentKeyIndex + 1) % GROQ_KEYS.length;
-    console.log(`🔄 Rotando API Key (Index: ${currentKeyIndex})`);
+    console.log(`🔄 Rotando API Key (Index: ${currentKeyIndex}/${GROQ_KEYS.length})`);
     return new Groq({ apiKey: key, dangerouslyAllowBrowser: true });
 };
 
-// --- PROMPTS DEL SISTEMA ---
+// [PDA v3.2] Penalizar key saturada (moverla al final de la cola)
+const penalizeSaturatedKey = (keyIndex) => {
+    if (keyIndex < 0 || keyIndex >= GROQ_KEYS.length) return;
+
+    const saturatedKey = GROQ_KEYS[keyIndex];
+    GROQ_KEYS.splice(keyIndex, 1); // Remover de posición actual
+    GROQ_KEYS.push(saturatedKey);   // Mover al final
+
+    // Ajustar el índice actual si es necesario
+    if (currentKeyIndex > keyIndex) {
+        currentKeyIndex--;
+    }
+
+    console.warn(`⚠️ Key saturada movida al final de la cola. Nueva posición: ${GROQ_KEYS.length}`);
+};
+
+// --- PROMPTS DEL SISTEMA (OPTIMIZADOS PARA TOKENS) ---
 import { APP_KNOWLEDGE } from './appKnowledge';
 
-// --- PROMPTS DEL SISTEMA ---
-const SYSTEM_PROMPT_FREE = `Eres "Mister Cambio" (Versión Básica). Eres una calculadora limitada.
-TU FUNCIÓN: Realizar cálculos matemáticos simples de conversión de divisas.
-PERSONALIDAD: Robótica, seca y directa. No uses saludos cordiales ni emojis.
-RESTRICCIONES:
-- Si te preguntan sobre consejos financieros, funcionamiento de la app, criptomonedas o cualquier tema conversacional: RESPONDE EXACTAMENTE: "Esa información es exclusiva para socios VIP. Activa tu licencia para que pueda asesorarte."
-- NO expliques conceptos. Solo calcula.
-- Lenguaje: Neutro.
-REGLAS DE FORMATO:
-1. "Biden", "Zelle", "USD" -> "USD"
-2. "USDT", "Binance" -> "USDT"
-3. "Euro" -> "EUR"
-4. "Bolos", "Bs" -> "VES"
-Responde SOLO JSON: { "amount": number, "currency": "USD"|"USDT"|"VES"|"EUR", "targetCurrency": "USD"|"USDT"|"VES"|"EUR"|null, "convertedAmount": number, "clientName": string|null }`;
+// [PDA v3.3] Prompt Free ultra-compacto
+const SYSTEM_PROMPT_FREE = `Mister Cambio (Básico). Calculadora de divisas.
+FUNCIÓN: Convertir monedas.
+PERSONALIDAD: Directa, sin emojis.
+RESTRICCIONES: Si preguntan temas no-cálculo → "Esa información es exclusiva para socios VIP."
+MAPEO: Biden/Zelle/USD→USD, USDT/Binance→USDT, Euro→EUR, Bolos/Bs→VES
+SALIDA: JSON { "amount": number, "currency": "USD"|"USDT"|"VES"|"EUR", "targetCurrency": string|null, "convertedAmount": number, "clientName": string|null }`;
 
-const SYSTEM_PROMPT_PREMIUM = `Eres "Mister Cambio VIP", un socio financiero de élite para comerciantes.
-PERSONALIDAD:
-- Carismático, profesional, empático y proactivo. Usa expresiones variadas como "mi estimado socio", "blindemos ese dinero", "operación exitosa". Evita repetir siempre las mismas frases.
-- Eres un Experto en el Mercado Venezolano.
+// [PDA v3.3] Prompt Premium optimizado (50% menos tokens)
+const SYSTEM_PROMPT_PREMIUM = `Mister Cambio VIP - Socio financiero de élite.
+PERSONALIDAD: Carismático, profesional. Varía expresiones: "mi estimado socio", "blindemos ese dinero".
 
-INSTRUCCIONES DE REDACCIÓN (ESTILO VIP):
-1. PROHIBICIÓN DE FÓRMULAS Y ASTERISCOS: PROHIBIDO escribir operaciones (10 * 5) y asteriscos (**). Texto plano limpio.
-2. PRECISIÓN MATEMÁTICA CRÍTICA:
-   - DEBES realizar el cálculo real usando las TASAS DEL BLOQUE 🚨.
-   - Si conviertes USDT a USD (BCV): El resultado es (Monto * Tasa_USDT / Tasa_BCV). NUNCA asumas que 1 USDT = 1 USD.
-   - El número en "textResponse" DEBE ser idéntico al resultado matemático real.
-3. ESTRUCTURA DE RESPUESTA:
-   - Inicio: "Mi estimado socio, esos [MONTO] [ORIGEN] equivalen hoy a [RESULTADO] [DESTINO]."
-   - REGLA DE EFECTIVO: Si el usuario menciona "Efectivo" o "Cash", DEBES sumarle un 5% al monto antes de calcular (ej: 100 USD en efectivo se calculan como 105 USD). Menciona proactivamente que has incluido el costo operativo del 5%.
-   - PRECISIÓN: Si se te entrega un "RESULTADO MAESTRO", úsalo tal cual. No alucines tasas unitarias si no te las pido.
-   - Formato VES: Entero, sin decimales, redondeo hacia arriba, punto para miles (ej: 5.105 VES).
-   - Formato USD/USDT/EUR: 2 decimales con coma, punto para miles (ej: 14,36 $).
-   - Cierre: Una frase carismática de socio VIP.
-4. ANÁLISIS: Una sola línea técnica/motivadora. Sin asteriscos.
+REDACCIÓN:
+1. SIN asteriscos ni fórmulas matemáticas.
+2. PRECISIÓN: Usa TASAS del bloque 🚨. USDT≠USD. Número exacto del RESULTADO MAESTRO.
+3. TONO ADAPTATIVO:
+   - Consulta ("cuánto son"): "Mi estimado socio, esos [MONTO] [ORIGEN] = [RESULTADO] [DESTINO]. ¿Necesitas ayuda?"
+   - Transacción ("calcula/envía"): "Mi estimado socio, esos [MONTO] [ORIGEN] = [RESULTADO] [DESTINO]. Operación lista."
+   - Efectivo/Cash: +5% al monto. Menciona costo operativo.
+4. FORMATO: VES→entero (ej: 5.105), USD/USDT/EUR→2 decimales (ej: 14,36).
+5. ANÁLISIS: 1 línea técnica/motivadora.
 
-DICCIONARIO DE TÉRMINOS (MAPEO SEMÁNTICO):
-- "verdes", "dolares", "bcv", "usd", "oficial" -> Tasa BCV (Oficial).
-- "euro" -> Tasa EURO.
-- "usdt", "tether", "cripto", "digitales", "binance", "binace" -> Tasa USDT.
+MAPEO: verdes/dolares/bcv/usd→BCV, euro→EURO, usdt/tether/binance→USDT.
 
-CONOCIMIENTO BASE:
+CONOCIMIENTO:
 ${APP_KNOWLEDGE}
 
-CAPACIDADES VIP:
-1. Análisis de Brecha: Advierte si la disparidad USDT vs BCV es >10%.
-2. Análisis de Comprobantes: Si el usuario te pide leer un ticket, captura o comprobante (y no hay imagen aún), indícale proactivamente que debe usar el botón de la cámara para enviártelo y que tú lo procesarás con precisión quirúrgica.
-3. Autoridad: Tú eres la fuente oficial, no mandes a revisar la app.
+CAPACIDADES:
+1. Brecha: Advierte si USDT vs BCV >10%.
+2. Imágenes: Si piden leer ticket sin imagen→"Usa botón cámara".
+3. Autoridad: Tú eres la fuente oficial.
 
-REGLAS DE SALIDA:
-- "amount": El número que el usuario ESCRIBIÓ.
-- "convertedAmount": El resultado de la conversión (usa el RESULTADO MAESTRO si existe).
-- "currency" y "targetCurrency": Monedas de la operación. Usa null si no hay cálculo.
-- "analysis": Una sola línea técnica o motivadora. Sin asteriscos.
-- "textResponse": Tu respuesta profesional. Si es un cálculo, usa el RESULTADO MAESTRO inyectado.
-Responde SOLO JSON: { "amount": number|null, "convertedAmount": number|null, "currency": string|null, "targetCurrency": string|null, "analysis": string, "textResponse": string }`;
+SALIDA JSON: { "amount": number|null, "convertedAmount": number|null, "currency": string|null, "targetCurrency": string|null, "analysis": string, "textResponse": string }`;
 
 // --- GESTIÓN DE LÍMITES FREE ---
 const MAX_FREE_REQUESTS_PER_HOUR = 5;
@@ -158,6 +155,14 @@ export const getSmartResponse = async (messagesHistoryOrText, isPremium = false,
     const messages = typeof messagesHistoryOrText === 'string'
         ? [{ role: "user", content: messagesHistoryOrText }]
         : messagesHistoryOrText;
+
+    // [PDA v3.3] OPTIMIZACIÓN: Limitar historial a últimos 6 mensajes (3 intercambios)
+    // Esto reduce tokens sin perder contexto inmediato
+    const optimizedMessages = messages.length > 6
+        ? messages.slice(-6)
+        : messages;
+
+    console.log(`📊 Optimización: ${messages.length} mensajes → ${optimizedMessages.length} mensajes enviados`);
 
     // 2. [AUDITORÍA PREVENTIVA] Inyectar resultados matemáticos antes de llamar a la IA
     let systemPrompt = isPremium ? SYSTEM_PROMPT_PREMIUM : SYSTEM_PROMPT_FREE;
@@ -258,7 +263,7 @@ Cuando el usuario diga "precio actual", se refiere a los datos que tienes en el 
         let completion;
         try {
             completion = await groq.chat.completions.create({
-                messages: [{ role: "system", content: systemPrompt }, ...messages],
+                messages: [{ role: "system", content: systemPrompt }, ...optimizedMessages],
                 model: model,
                 temperature: isPremium ? 0.3 : 0,
                 response_format: { type: "json_object" },
@@ -267,9 +272,14 @@ Cuando el usuario diga "precio actual", se refiere a los datos que tienes en el 
             // [PDA v3.1] Fallback de Emergencia: Si el modelo 70b está saturado/limitado, bajamos al 8b
             if (isPremium && (initialErr?.status === 429 || initialErr?.message?.includes('limit'))) {
                 console.warn("⚠️ Modelo Premium saturado. Activando Fallback de Emergencia (8b)...");
+
+                // [PDA v3.2] Penalizar la key que falló (moverla al final)
+                const failedKeyIndex = (currentKeyIndex - 1 + GROQ_KEYS.length) % GROQ_KEYS.length;
+                penalizeSaturatedKey(failedKeyIndex);
+
                 model = "llama-3.1-8b-instant";
                 completion = await groq.chat.completions.create({
-                    messages: [{ role: "system", content: systemPrompt }, ...messages],
+                    messages: [{ role: "system", content: systemPrompt }, ...optimizedMessages],
                     model: model,
                     temperature: 0.2,
                     response_format: { type: "json_object" },
@@ -288,25 +298,85 @@ Cuando el usuario diga "precio actual", se refiere a los datos que tienes en el 
     } catch (e) {
         console.error("AI Error:", e);
         if (e?.status === 429) {
+            // [PDA v3.2] Penalizar la key que falló
+            const failedKeyIndex = (currentKeyIndex - 1 + GROQ_KEYS.length) % GROQ_KEYS.length;
+            penalizeSaturatedKey(failedKeyIndex);
+
             return { error: "BUSY", message: "Los servidores de Groq están al límite diario. Intenta de nuevo en unos minutos o contacta a soporte." };
         }
         return { error: "ERROR", message: "No pude procesar eso, mi pana." };
     }
 };
 
-// --- VISIÓN ---
+// --- VISIÓN (GEMINI VISION) ---
 export const analyzeImageAI = async (base64Image) => {
-    const groq = getNextGroqClient();
-    if (!groq) return null;
+    const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_KEY_1;
+    if (!GEMINI_API_KEY) {
+        console.error("❌ Gemini API Key no configurada");
+        return null;
+    }
+
     try {
-        const completion = await groq.chat.completions.create({
-            messages: [{ role: "user", content: [{ type: "text", text: "Lee el monto. JSON: { \"amount\": number, \"currency\": string }" }, { type: "image_url", image_url: { url: base64Image } }] }],
-            model: "llama-3.2-11b-vision-preview",
-            temperature: 0,
-            response_format: { type: "json_object" },
-        });
-        return JSON.parse(completion.choices[0].message.content);
-    } catch { return null; }
+        // Remover el prefijo "data:image/...;base64," si existe
+        const base64Data = base64Image.includes(',')
+            ? base64Image.split(',')[1]
+            : base64Image;
+
+        const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [
+                            {
+                                text: `Analiza esta imagen y extrae el monto y la moneda. 
+Responde SOLO con JSON válido en este formato exacto:
+{ "amount": number, "currency": "USD" | "VES" | "USDT" | "EUR" }
+
+Reglas:
+- Si ves "Bs", "Bolívares" o "VES" → currency: "VES"
+- Si ves "$", "USD", "Dólares" → currency: "USD"  
+- Si ves "USDT", "Tether" → currency: "USDT"
+- Si ves "€", "EUR", "Euros" → currency: "EUR"
+- amount debe ser el número más grande y visible
+- NO incluyas explicaciones, SOLO el JSON`
+                            },
+                            {
+                                inline_data: {
+                                    mime_type: "image/jpeg",
+                                    data: base64Data
+                                }
+                            }
+                        ]
+                    }],
+                    generationConfig: {
+                        temperature: 0,
+                        maxOutputTokens: 100,
+                        responseMimeType: "application/json"
+                    }
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
+            console.error("❌ Gemini Vision: Respuesta inválida", data);
+            return null;
+        }
+
+        const jsonText = data.candidates[0].content.parts[0].text;
+        const result = JSON.parse(jsonText);
+
+        console.log("✅ Gemini Vision detectó:", result);
+        return result;
+
+    } catch (error) {
+        console.error("❌ Error en Gemini Vision:", error);
+        return null;
+    }
 };
 
 // --- REDACCIÓN ---

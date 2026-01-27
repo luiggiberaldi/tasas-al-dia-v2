@@ -35,6 +35,11 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
         return new Intl.NumberFormat('es-VE', { maximumFractionDigits: 0 }).format(Math.ceil(amount));
     };
 
+    // [NEW] Formato exacto para tasas (2 decimales, sin redondeo hacia arriba)
+    const formatExactRate = (amount) => {
+        return new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
+    };
+
     // Cálculos matemáticos
     const spread = rates.bcv.price > 0 ? ((rates.usdt.price - rates.bcv.price) / rates.bcv.price) * 100 : 0;
     const diffBs = rates.usdt.price - rates.bcv.price;
@@ -119,7 +124,7 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
                 {/* PRECIO GIGANTE (Responsive con vw) */}
                 <div className="flex flex-col items-center justify-center -mt-8">
                     <h1 className="text-[18vw] sm:text-[10rem] font-black font-mono leading-none tracking-tighter text-brand drop-shadow-[0_0_40px_rgba(255,204,0,0.2)]">
-                        {formatVES(rates.usdt.price)}
+                        {formatExactRate(rates.usdt.price)}
                     </h1>
                     <p className="text-xl sm:text-3xl text-slate-500 font-mono font-medium tracking-widest mt-2">1 USDT = BS</p>
                 </div>
@@ -128,11 +133,11 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
                 <div className="w-full max-w-md bg-slate-900/50 backdrop-blur-sm rounded-[2rem] border border-slate-800/50 p-6 sm:p-8 flex justify-between items-center mb-8">
                     <div className="text-center w-1/2 border-r border-slate-800 pr-4">
                         <p className="text-xs sm:text-sm font-bold uppercase text-slate-500 tracking-wider mb-2">BCV OFICIAL</p>
-                        <p className="text-2xl sm:text-4xl font-mono font-bold text-white">{formatVES(rates.bcv.price)}</p>
+                        <p className="text-2xl sm:text-4xl font-mono font-bold text-white">{formatExactRate(rates.bcv.price)}</p>
                     </div>
                     <div className="text-center w-1/2 pl-4">
                         <p className="text-xs sm:text-sm font-bold uppercase text-slate-500 tracking-wider mb-2">EURO BCV</p>
-                        <p className="text-2xl sm:text-4xl font-mono font-bold text-white">{formatVES(rates.euro.price)}</p>
+                        <p className="text-2xl sm:text-4xl font-mono font-bold text-white">{formatExactRate(rates.euro.price)}</p>
                     </div>
                 </div>
 
@@ -257,8 +262,8 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
                         <div className="flex items-baseline gap-1 mb-4 select-none">
                             <span className="text-2xl text-slate-300 dark:text-slate-600 font-bold font-sans transform -translate-y-4">$</span>
                             <div className="text-[12vw] sm:text-[4rem] lg:text-[3.5rem] xl:text-[4rem] leading-none font-black text-slate-900 dark:text-white tracking-tighter font-mono">
-                                {formatVES(rates.usdt.price).split(',')[0]}
-                                <span className="text-3xl text-slate-400 dark:text-slate-600">,{formatVES(rates.usdt.price).split(',')[1]}</span>
+                                {formatExactRate(rates.usdt.price).split(',')[0]}
+                                <span className="text-3xl text-slate-400 dark:text-slate-600">,{formatExactRate(rates.usdt.price).split(',')[1]}</span>
                             </div>
                             <span className="text-xl font-bold text-slate-400 ml-2">Bs</span>
                         </div>
@@ -274,8 +279,8 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
 
                 {/* Tarjetas Secundarias (BCV / Euro) */}
                 <div className="grid grid-cols-2 gap-4 shrink-0">
-                    <RateCardMini title="Dolar BCV Oficial" price={rates.bcv.price} change={rates.bcv.change} icon="🏛️" formatVES={formatVES} renderChange={renderChange} symbol="Bs / $" />
-                    <RateCardMini title="Euro BCV Oficial" price={rates.euro.price} change={rates.euro.change} icon="🇪🇺" formatVES={formatVES} renderChange={renderChange} symbol="Bs / €" />
+                    <RateCardMini title="Dolar BCV Oficial" price={rates.bcv.price} change={rates.bcv.change} icon="🏛️" formatVES={formatExactRate} renderChange={renderChange} symbol="Bs / $" />
+                    <RateCardMini title="Euro BCV Oficial" price={rates.euro.price} change={rates.euro.change} icon="🇪🇺" formatVES={formatExactRate} renderChange={renderChange} symbol="Bs / €" />
                 </div>
             </div>
 
