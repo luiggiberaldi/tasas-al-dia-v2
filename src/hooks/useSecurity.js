@@ -65,6 +65,12 @@ export function useSecurity() {
                     } else {
                         // Expiró
                         console.warn("Licencia Demo Expirada");
+
+                        // [NEW] Mensaje de Expiración (Solo si acabamos de detectar que expiró)
+                        if (isPremium) { // Evitar spam si ya estaba expirado
+                            alert("⏳ Tu periodo de demostración de 24 horas ha finalizado.\n\nEsperamos que hayas disfrutado la experiencia VIP. Para continuar operando sin límites y blindar tu negocio, adquiere tu licencia oficial hoy mismo.");
+                        }
+
                         localStorage.removeItem('premium_token');
                         setIsPremium(false);
                         setIsDemo(false);
@@ -94,6 +100,11 @@ export function useSecurity() {
         if (inputCode.trim().toUpperCase() === validCode) {
             // Si es el dispositivo de DEMOSTRACIÓN (Portafolio), forzamos caducidad en 24h
             if (deviceId === 'TASAS-DEMO') {
+                // [NEW] Verificar si ya se usó el demo antes
+                if (localStorage.getItem('demo_used_history')) {
+                    return { success: false, status: 'DEMO_USED' };
+                }
+
                 const expires = Date.now() + (24 * 60 * 60 * 1000);
                 const demoToken = {
                     code: validCode,
@@ -101,8 +112,14 @@ export function useSecurity() {
                     isDemo: true
                 };
                 localStorage.setItem('premium_token', JSON.stringify(demoToken));
+
+                // [NEW] Marcar demo como usado permanentemente
+                localStorage.setItem('demo_used_history', 'true');
+
                 setIsDemo(true);
                 setDemoExpires(expires);
+
+                return { success: true, status: 'DEMO_ACTIVATED' };
             } else {
                 // Licencia estándar de por vida
                 localStorage.setItem('premium_token', validCode);
@@ -110,9 +127,9 @@ export function useSecurity() {
             }
 
             setIsPremium(true);
-            return true;
+            return { success: true, status: 'PREMIUM_ACTIVATED' };
         }
-        return false;
+        return { success: false, status: 'INVALID_CODE' };
     };
 
     /**

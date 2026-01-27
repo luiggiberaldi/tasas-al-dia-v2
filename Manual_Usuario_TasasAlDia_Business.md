@@ -15,6 +15,9 @@ Cuando abras la app por primera vez, verás la pantalla de bienvenida:
 1. **Acepta los Términos y Condiciones**  
    Desliza hasta el final del documento y presiona "Aceptar y Continuar"
 
+   > **Nota Importante:** Si utilizas el **Modo Demo**, recuerda que es de **uso único**. Una vez expirado (24h), no podrás volver a activarlo en el mismo dispositivo y necesitarás una licencia oficial.
+
+
 2. **Copia tu ID de Instalación**  
    En la pantalla de activación verás tu ID único (formato: `TASAS-XXXX`)  
    Toca el botón de copiar (📋) para guardarlo en el portapapeles

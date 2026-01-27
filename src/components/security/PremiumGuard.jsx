@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Lock, Copy, Check, Star, Sparkles, Send, Bot, Store, MessageCircle, Database, Calculator, Clock, XCircle, Crown } from 'lucide-react'; // [UPDATED imports]
+import { Lock, Copy, Check, Star, Sparkles, Send, Bot, Store, MessageCircle, Database, Calculator, Clock, XCircle, Crown } from 'lucide-react';
 import { useSecurity } from '../../hooks/useSecurity';
+import { Modal } from '../Modal'; // Importar Modal Genérico
 
 export default function PremiumGuard({ children, featureName = "Esta función", isAI = false, isShop = false }) { // [UPDATED]
     const { deviceId, isPremium, loading, unlockApp } = useSecurity();
@@ -8,7 +9,10 @@ export default function PremiumGuard({ children, featureName = "Esta función", 
     const [error, setError] = useState(false);
     const [success, setSuccess] = useState(false);
     const [copied, setCopied] = useState(false);
-    const [showConfirmation, setShowConfirmation] = useState(false); // [NEW]
+    const [showConfirmation, setShowConfirmation] = useState(false);
+
+    // [NEW] Estado para Modales de Mensaje (Alert Replacement)
+    const [messageModal, setMessageModal] = useState({ open: false, title: '', content: '' });
 
     // Mientras carga el estado de seguridad, mostramos un loader simple o nada
     if (loading) return <div className="p-10 text-center text-slate-400">Verificando licencia...</div>;
@@ -20,12 +24,30 @@ export default function PremiumGuard({ children, featureName = "Esta función", 
     const handleUnlock = async (e) => {
         e.preventDefault();
         const result = await unlockApp(inputCode);
-        if (result) {
+
+        if (result.success) {
             setSuccess(true);
             setError(false);
+
+            if (result.status === 'DEMO_ACTIVATED') {
+                setMessageModal({
+                    open: true,
+                    title: '🎉 ¡Modo Demo Activado!',
+                    content: 'Disfruta de todas las funciones VIP por 24 horas. Aprovecha al máximo la herramienta para potenciar tu negocio.'
+                });
+            }
         } else {
             setError(true);
-            if (navigator.vibrate) navigator.vibrate([50, 50, 50]); // [NEW] Haptic Error
+            if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+
+            if (result.status === 'DEMO_USED') {
+                setMessageModal({
+                    open: true,
+                    title: '🚫 Demo Ya Utilizado',
+                    content: 'El periodo de prueba ya fue utilizado en este dispositivo. Por favor, contacta a soporte para adquirir una licencia ilimitada.'
+                });
+            }
+
             setTimeout(() => setError(false), 2000);
         }
     };
@@ -232,6 +254,25 @@ export default function PremiumGuard({ children, featureName = "Esta función", 
                         </div>
                     </div>
                 )}
+
+                {/* MODAL DE MENSAJES (Reemplazo de Alert) */}
+                <Modal
+                    isOpen={messageModal.open}
+                    onClose={() => setMessageModal({ ...messageModal, open: false })}
+                    title={messageModal.title}
+                >
+                    <div className="text-center py-4">
+                        <p className="text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
+                            {messageModal.content}
+                        </p>
+                        <button
+                            onClick={() => setMessageModal({ ...messageModal, open: false })}
+                            className="w-full py-3 bg-brand text-slate-900 font-bold rounded-xl shadow-lg shadow-brand/20 active:scale-95 transition-transform"
+                        >
+                            Entendido
+                        </button>
+                    </div>
+                </Modal>
 
             </div>
         </div>
