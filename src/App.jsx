@@ -100,25 +100,23 @@ export default function App() {
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
   useEffect(() => {
-    const handleFocus = (e) => {
-      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
-        setIsKeyboardOpen(true);
-      }
-    };
-    const handleBlur = (e) => {
-      // Small delay to allow focus transfer
-      setTimeout(() => {
-        if (!['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
-          setIsKeyboardOpen(false);
-        }
-      }, 100);
+    // Standard visualViewport approach for mobile
+    if (!window.visualViewport) return;
+
+    const handleResize = () => {
+      const vh = window.visualViewport.height;
+      const wh = window.innerHeight;
+
+      // If viewport height shrinks by more than 15%, keyboard is likely open
+      setIsKeyboardOpen(vh < wh * 0.85);
     };
 
-    window.addEventListener('focusin', handleFocus);
-    window.addEventListener('focusout', handleBlur);
+    window.visualViewport.addEventListener('resize', handleResize);
+    // Initial check
+    handleResize();
+
     return () => {
-      window.removeEventListener('focusin', handleFocus);
-      window.removeEventListener('focusout', handleBlur);
+      window.visualViewport.removeEventListener('resize', handleResize);
     };
   }, []);
 
