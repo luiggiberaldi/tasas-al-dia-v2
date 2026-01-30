@@ -27,6 +27,20 @@ export function useSecurity() {
     }, []);
 
     const generateActivationCode = async (devId) => {
+        // [BLINDAJE] Si no hay crypto.subtle (Contexto no seguro o navegador viejo), usaremos un hash simple
+        if (!window.crypto || !window.crypto.subtle) {
+            console.warn("⚠️ Crypto API no disponible. Usando fallback inseguro.");
+            // Fallback: Simple hash de string (DJB2 o similar simple)
+            let hash = 5381;
+            const str = devId + MASTER_SECRET_KEY;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) + hash) + str.charCodeAt(i);
+            }
+            // Hex de 8 caracteres
+            const hex = (hash >>> 0).toString(16).toUpperCase().padStart(8, '0');
+            return `ACTIV-${hex.substring(0, 4)}-${hex.substring(4, 8)}`;
+        }
+
         // Genera el hash SHA-256 de (deviceId + SECRET)
         const encoder = new TextEncoder();
         const data = encoder.encode(devId + MASTER_SECRET_KEY);

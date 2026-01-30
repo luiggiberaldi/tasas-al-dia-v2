@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 const DEFAULT_RATES = {
     usdt: { price: 37.10, source: 'Promedio P2P', type: 'p2p', change: 0.12 },
@@ -30,9 +30,11 @@ export function useRates() {
     const [logs, setLogs] = useState([]);
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
-    const currentRates = rates || DEFAULT_RATES;
+    // [PERFORMANCE] useRef impides re-renders inside updateData dependencies
+    const ratesRef = useRef(rates);
 
     useEffect(() => {
+        ratesRef.current = rates;
         if (rates) localStorage.setItem('monitor_rates_v12', JSON.stringify(rates));
         if ('Notification' in window && Notification.permission === 'granted') {
             setNotificationsEnabled(true);
@@ -64,9 +66,7 @@ export function useRates() {
         if (!val) return 0;
         if (typeof val === 'number') return val;
         if (typeof val === 'string') {
-            // Eliminar todo lo que no sea número, punto o coma
             const clean = val.replace(/[^\d.,]/g, '');
-            // Detectar último separador
             const lastDot = clean.lastIndexOf('.');
             const lastComma = clean.lastIndexOf(',');
             const lastSep = Math.max(lastDot, lastComma);
@@ -89,9 +89,12 @@ export function useRates() {
     };
 
     const updateData = useCallback(async (isAutoUpdate = false) => {
-        setLoading(true);
-        setIsOffline(false);
-        addLog(isAutoUpdate ? "--- Auto-Update (Refresco UI) ---" : "--- Actualización Manual ---");
+        if (!isAutoUpdate) setLoading(true); // Don't block UI on auto-update
+        // setIsOffline(false); // Avoid flickering
+
+        const log = (msg, type) => !isAutoUpdate && addLog(msg, type);
+
+        log(isAutoUpdate ? "--- Auto-Update ---" : "--- Actualización Manual ---");
 
         const fetchGeneric = async (url) => {
             const controller = new AbortController();
@@ -101,17 +104,11 @@ export function useRates() {
                 clearTimeout(id);
                 if (!res.ok) return null;
                 return await res.json();
-            } catch (e) { clearTimeout(id); return null; }
-        };
-
-        let privateData = null;
-        try {
-            const rawPrivate = await fetchGeneric(GOOGLE_SCRIPT_URL);
-            if (rawPrivate) {
-                privateData = rawPrivate;
-                addLog("✅ Datos Privados Recibidos", "success");
+            } catch (e) {
+                clearTimeout(id);
+                return null;
             }
-        } catch (e) { addLog("Error API Privada", "error"); }
+        };
 
         const getEuroFactorFallback = async () => {
             try {
@@ -131,23 +128,19 @@ export function useRates() {
             return 0;
         };
 
-        // ✅ LÓGICA VITAL: Si hay cambio desde API, úsalo. Si no, calcúlalo.
         const getMeta = (newP, oldP, oldChange = 0, apiChange = null) => {
             let p = parseSafeFloat(newP);
             const o = parseSafeFloat(oldP);
 
-            // 1. PRIORIDAD: Si la API me dice el % de cambio, CONFÍO en la API
             if (apiChange !== null && apiChange !== undefined && apiChange !== 0) {
                 return { price: p, change: parseSafeFloat(apiChange) };
             }
 
-            // 2. Fallback: Si no hay dato de API, intento calcularlo localmente
             if (p === o) return { price: p, change: oldChange };
             return { price: p, change: (p > 0 && o > 0) ? ((p - o) / o) * 100 : 0 };
         };
 
         const fetchUSDT = async () => {
-            // 1. ESTRATEGIA WEB (Fallback: CriptoYa)
             const targetUrl = `https://criptoya.com/api/binancep2p/USDT/VES/1`;
             for (const strategy of CONNECTION_STRATEGIES) {
                 try {
@@ -171,18 +164,22 @@ export function useRates() {
         };
 
         try {
-            const promises = [fetchUSDT()];
-            if (!privateData) {
-                promises.push(fetchGeneric('https://ve.dolarapi.com/v1/dolares'));
-                promises.push(getEuroFactorFallback());
-            }
+            // [PERFORMANCE] Parallel Execution
+            const taskPrivate = fetchGeneric(GOOGLE_SCRIPT_URL);
+            const taskUSDT = fetchUSDT();
+            const taskDolarApi = fetchGeneric('https://ve.dolarapi.com/v1/dolares');
+            const taskEuroFactor = getEuroFactorFallback();
 
-            const results = await Promise.all(promises);
-            const usdtResult = results[0];
-            const bcvFallbackData = !privateData ? results[1] : null;
-            const euroFactor = !privateData ? results[2] : null;
+            const [privateData, usdtResult, bcvFallbackData, euroFactor] = await Promise.all([
+                taskPrivate.catch(() => null),
+                taskUSDT.catch(() => null),
+                taskDolarApi.catch(() => null),
+                taskEuroFactor.catch(() => DEFAULT_EUR_USD_RATIO)
+            ]);
 
-            let newRates = { ...(rates || DEFAULT_RATES) };
+            if (privateData) log("✅ Datos Privados Recibidos", "success");
+
+            let newRates = { ...(ratesRef.current || DEFAULT_RATES) };
 
             // Procesar USDT
             if (usdtResult) {
@@ -193,54 +190,31 @@ export function useRates() {
             let newBcvPrice = 0;
             let newEuroPrice = 0;
 
-            // ✅ Procesar DATOS PRIVADOS (Google Script)
+            // Procesar BCV/Euro
             if (privateData) {
-                // Detectamos si viene estructura simple o avanzada
                 const rawBcv = privateData.bcv || privateData.usd;
                 const rawEuro = privateData.euro || privateData.eur;
 
-                // Extracción inteligente
                 let bcvP = parseSafeFloat(typeof rawBcv === 'object' ? rawBcv.price : rawBcv);
                 let euroP = parseSafeFloat(typeof rawEuro === 'object' ? rawEuro.price : rawEuro);
 
-                // [REMOVED SANITY CHECK] La tasa real es > 250 (~358 Bs), no debemos dividir.
-                // if (bcvP > 250) bcvP = bcvP / 10;
-                // if (euroP > 250) euroP = euroP / 10;
-
-                newBcvPrice = bcvP;
-                newEuroPrice = euroP;
-
-                // Si el Script envía "change", lo tomamos aquí
                 let apiBcvChange = typeof rawBcv === 'object' ? rawBcv.change : null;
                 let apiEuroChange = typeof rawEuro === 'object' ? rawEuro.change : null;
 
-                // [BLINDAJE DE MAGNITUD] Auto-Corrección de Escala
-                // Si la discrepancia con USDT es absurda (ej: BCV 35 vs USDT 550), ajustamos ceros.
                 const alignMagnitude = (val, anchor) => {
                     if (!val || val <= 0 || !anchor || anchor <= 0) return val;
-
                     let corrected = val;
-                    // Escalar hacia arriba (ej: 35.89 -> 358.9)
-                    // Si corre es < 20% del anchor, multiplicamos por 10
-                    while (corrected < (anchor * 0.20)) {
-                        corrected *= 10;
-                    }
-                    // Escalar hacia abajo (ej: 35890 -> 358.9)
-                    // Si corrected es > 500% del anchor, dividimos por 10
-                    while (corrected > (anchor * 5.0)) {
-                        corrected /= 10;
-                    }
-
-                    if (corrected !== val) {
-                        console.warn(`⚖️ Magnitud corregida: ${val} -> ${corrected} (Anchor USDT: ${anchor})`);
-                    }
+                    while (corrected < (anchor * 0.20)) corrected *= 10;
+                    while (corrected > (anchor * 5.0)) corrected /= 10;
                     return corrected;
                 };
 
-                // Aplicar blindaje usando USDT como ancla
                 if (newRates.usdt.price > 0) {
-                    newBcvPrice = alignMagnitude(newBcvPrice, newRates.usdt.price);
-                    newEuroPrice = alignMagnitude(newEuroPrice, newRates.usdt.price);
+                    newBcvPrice = alignMagnitude(bcvP, newRates.usdt.price);
+                    newEuroPrice = alignMagnitude(euroP, newRates.usdt.price);
+                } else {
+                    newBcvPrice = bcvP;
+                    newEuroPrice = euroP;
                 }
 
                 if (newBcvPrice > 0) {
@@ -253,16 +227,20 @@ export function useRates() {
                 }
 
             } else if (bcvFallbackData) {
-                // Fallback en caso de emergencia
-                const oficial = bcvFallbackData.find(d => d.fuente === 'oficial' || d.nombre === 'Oficial');
+                // Fallback Logic
+                const oficial = Array.isArray(bcvFallbackData) ? bcvFallbackData.find(d => d.fuente === 'oficial' || d.nombre === 'Oficial') : null;
+
                 if (oficial?.promedio > 0) {
                     let bcvP = parseSafeFloat(oficial.promedio);
-
-                    // Aplicar mismo blindaje al fallback
                     if (newRates.usdt.price > 0) {
+                        const alignMagnitude = (val, anchor) => {
+                            let corrected = val;
+                            while (corrected < (anchor * 0.20)) corrected *= 10;
+                            while (corrected > (anchor * 5.0)) corrected /= 10;
+                            return corrected;
+                        };
                         bcvP = alignMagnitude(bcvP, newRates.usdt.price);
                     }
-
                     newBcvPrice = bcvP;
                     const meta = getMeta(newBcvPrice, newRates.bcv.price, newRates.bcv.change);
                     newRates.bcv = { ...newRates.bcv, ...meta, source: 'BCV Oficial (Respaldo)' };
@@ -276,14 +254,18 @@ export function useRates() {
             }
 
             // Notificaciones
-            if (notificationsEnabled && rates) {
-                const oldBcv = rates.bcv.price;
+            // Access ratesRef.current to compare with LATEST known confirmed rates, 
+            // but for notifications usually we compare 'rates' state vs 'newRates'. 
+            // Since we are inside updateData, ratesRef.current holds the state from before this update cycle.
+            if (notificationsEnabled) {
+                const oldBcv = ratesRef.current?.bcv?.price || 0;
                 const currentBcv = newRates.bcv.price;
                 if (currentBcv > 0 && oldBcv > 0 && currentBcv !== oldBcv) {
                     const emoji = currentBcv > oldBcv ? "📈" : "📉";
                     sendRateNotification(`${emoji} Cambio Tasa BCV`, `La tasa oficial cambió a ${currentBcv.toFixed(2)} Bs.`);
                 }
-                const oldEuro = rates.euro.price;
+
+                const oldEuro = ratesRef.current?.euro?.price || 0;
                 const currentEuro = newRates.euro.price;
                 if (currentEuro > 0 && oldEuro > 0 && currentEuro !== oldEuro) {
                     const emoji = currentEuro > oldEuro ? "📈" : "📉";
@@ -293,22 +275,25 @@ export function useRates() {
 
             newRates.lastUpdate = new Date();
             setRates(newRates);
-            addLog("Actualización completada", 'success');
+            if (!isAutoUpdate) addLog("Actualización completada", 'success');
 
         } catch (e) {
             console.error(e);
-            addLog("Error actualización", 'error');
+            log("Error actualización", 'error');
             setIsOffline(true);
         } finally {
             setLoading(false);
         }
-    }, [addLog, rates, notificationsEnabled]);
+    }, [addLog, notificationsEnabled]); // ratesRef is stable, no need to include
 
     useEffect(() => {
-        if (!rates) updateData();
+        // Initial load
+        updateData(false);
+        // Interval
         const intervalId = setInterval(() => { updateData(true); }, UPDATE_INTERVAL);
         return () => clearInterval(intervalId);
-    }, [updateData, rates]);
+    }, [updateData]);
 
+    const currentRates = rates || DEFAULT_RATES;
     return { rates: currentRates, loading, isOffline, logs, updateData, enableNotifications, notificationsEnabled };
 }

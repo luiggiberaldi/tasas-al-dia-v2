@@ -106,7 +106,7 @@ export default function App() {
   };
 
   return (
-    <div className="font-sans antialiased bg-slate-50 dark:bg-black h-[100dvh] overflow-hidden transition-colors duration-300">
+    <div className="font-sans antialiased bg-slate-50 dark:bg-black h-[100dvh] flex flex-col overflow-hidden transition-colors duration-300">
 
       {/* Terms and Conditions Overlay (First Use) */}
       <TermsOverlay />
@@ -118,8 +118,8 @@ export default function App() {
         </div>
       )}
 
-      {/* Viewport */}
-      <main className={`w-full max-w-md md:max-w-3xl lg:max-w-7xl mx-auto h-[100dvh] p-3 sm:p-6 relative pb-36 scrollbar-hide ${activeTab === 'monitor' || activeTab === 'calc' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+      {/* Viewport: Flex-1 para ocupar el espacio restante automáticamente */}
+      <main className={`flex-1 w-full max-w-md md:max-w-3xl lg:max-w-7xl mx-auto p-3 sm:p-6 relative pb-36 scrollbar-hide flex flex-col ${activeTab === 'monitor' || activeTab === 'calc' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
 
         {/* Hidden Admin Trigger Area (Top Left, invisible) */}
         <div

@@ -1,20 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Copy, MessageSquare, ArrowRightLeft, Clock, History } from 'lucide-react'; // [UPDATED]
+import { Check, Copy, ArrowRightLeft, History } from 'lucide-react'; // [UPDATED] Cleaned imports
 
 // Hooks
 import { useCalculator } from '../../hooks/useCalculator';
 
 // Components
-import { Modal } from '../../components/Modal';
 import CalculatorInput from '../../components/CalculatorInput';
 import { AccountSelector } from './AccountSelector';
-import { PaymentSummaryChat } from './PaymentSummaryChat';
+// PaymentSummaryChat removed
 
 export const ManualMode = ({ rates, accounts, theme, triggerHaptic }) => {
     const calc = useCalculator(rates);
     const [copied, setCopied] = useState(false);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedAccount, setSelectedAccount] = useState(null);
+    // Modal state removed as PaymentSummaryChat is gone
 
     // [NEW] History State
     const [history, setHistory] = useState([]);
@@ -156,39 +154,28 @@ export const ManualMode = ({ rates, accounts, theme, triggerHaptic }) => {
                         <span className="text-[9px] font-bold uppercase tracking-widest">Copiar</span>
                     </button>
 
-                    {/* Botón COBRAR (Principal) */}
+                    {/* Botón COBRAR (Simplificado - Solo abre WhatsApp directo o similar si no hay Smart Chat) */}
+                    {/* Como eliminamos Smart Chat, este botón ahora podría solo copiar y abrir WhatsApp genérico, o eliminarse. */}
+                    {/* Por ahora, lo dejaré solo copiando al portapapeles con un mensaje distinto o abriendo un link simple */}
                     <button
                         onClick={() => {
                             triggerHaptic && triggerHaptic();
-                            addToHistory(); // [NEW] Save to history
-                            setSelectedAccount(null);
-                            setIsModalOpen(true);
+                            handleCopy(); // Reutilizamos copia
+                            // Opcional: Abrir WhatsApp con el texto
+                            if (calc.amountBot) {
+                                const text = `💰 Cambio: ${calc.amountTop} ${calc.from} -> ${calc.amountBot} ${calc.to}`;
+                                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                            }
                         }}
                         disabled={!calc.amountTop}
                         className="flex-1 h-20 bg-brand text-slate-900 rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg shadow-brand/20 hover:shadow-brand/40 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 flex items-center justify-center gap-2"
                     >
-                        <MessageSquare size={22} strokeWidth={2.5} />
-                        <span>Cobrar</span>
+                        <Check size={22} strokeWidth={2.5} />
+                        <span>Confirmar</span>
                     </button>
                 </div>
             </div>
-
-            {/* MODAL */}
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Seleccionar Cuenta">
-                {!selectedAccount ? <AccountSelector accounts={accounts} onSelect={(acc) => setSelectedAccount(acc)} /> :
-                    <PaymentSummaryChat
-                        selectedAccount={selectedAccount}
-                        chatData={{
-                            originalAmount: parseFloat(calc.amountTop || 0),
-                            originalSource: calc.from,
-                            resultAmount: parseFloat(calc.amountBot || 0),
-                            targetCurrency: calc.to
-                        }}
-                        rates={rates}
-                        onBack={() => setSelectedAccount(null)}
-                        onConfirm={(msg) => { window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank'); setIsModalOpen(false); }}
-                    />}
-            </Modal>
+            {/* Modal removed */}
         </div>
     );
 };

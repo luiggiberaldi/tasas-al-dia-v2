@@ -12,12 +12,33 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false); // [NEW] backup state
 
     // MARKET LOGIC (PDA v1.0) - REPOSITION PARITY
+    // MARKET LOGIC (PDA v1.0) - REPOSITION PARITY
     const [streetRate, setStreetRate] = useState(() => {
         const saved = localStorage.getItem('street_rate_bs');
         return saved ? parseFloat(saved) : 0;
     });
     const [isCalibrationOpen, setIsCalibrationOpen] = useState(false);
     const [streetPriceInput, setStreetPriceInput] = useState('');
+
+    // [NEW] MANUAL USDT RATE LOGIC
+    const [useAutoUsdt, setUseAutoUsdt] = useState(() => {
+        const saved = localStorage.getItem('catalog_use_auto_usdt');
+        return saved !== null ? JSON.parse(saved) : true;
+    });
+    const [customUsdtPrice, setCustomUsdtPrice] = useState(() => {
+        const saved = localStorage.getItem('catalog_custom_usdt_price');
+        // Usamos string para manejar mejor los inputs (decimales y borrado de 0)
+        return saved && parseFloat(saved) > 0 ? saved : '';
+    });
+    const [showCashPrice, setShowCashPrice] = useState(() => { // [NEW] Toggle for hiding Cash Price
+        const saved = localStorage.getItem('catalog_show_cash_price');
+        return saved !== null ? JSON.parse(saved) : true;
+    });
+    const [isConfigOpen, setIsConfigOpen] = useState(false); // Unified Toggle
+
+    // EFFECTIVE RATE (The heart of the feature)
+    // EFFECTIVE RATE (The heart of the feature)
+    const effectiveUsdtRate = useAutoUsdt ? rates.usdt.price : (parseFloat(customUsdtPrice) > 0 ? parseFloat(customUsdtPrice) : rates.usdt.price);
 
     // Share State
     const [shareProduct, setShareProduct] = useState(null);
@@ -59,6 +80,13 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
     useEffect(() => {
         if (streetRate > 0) localStorage.setItem('street_rate_bs', streetRate.toString());
     }, [streetRate]);
+
+    // [NEW] Persist Manual USDT Config
+    useEffect(() => {
+        localStorage.setItem('catalog_use_auto_usdt', JSON.stringify(useAutoUsdt));
+        localStorage.setItem('catalog_custom_usdt_price', customUsdtPrice.toString());
+        localStorage.setItem('catalog_show_cash_price', JSON.stringify(showCashPrice));
+    }, [useAutoUsdt, customUsdtPrice, showCashPrice]);
 
     // Función comprimir imagen (OPTIMIZADA PDA v1.0: 400x400 WebP 70%)
     const handleImageUpload = (e) => {
@@ -155,7 +183,7 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
 
         // Calculate Init Efectivo (Parity: what value in efectivo allows buying the product valBs at street rate?)
         if (streetRate > 0) {
-            const valBs = product.priceUsdt * rates.usdt.price;
+            const valBs = product.priceUsdt * effectiveUsdtRate; // [UPDATED] Use effective rate
             const parityEfectivo = valBs / streetRate;
             setPriceEfectivo(smartCashRounding(parityEfectivo).toString()); // Usamos nueva lógica <= 0.2 Down
         } else {
@@ -174,7 +202,7 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
         // Efectivo -> USDT (Parity Logic Reverse)
         // Efectivo * StreetRate = TotalBs -> TotalBs / USDT_Rate = USDT
         const totalBs = parseFloat(val) * streetRate;
-        const usdt = totalBs / rates.usdt.price;
+        const usdt = totalBs / effectiveUsdtRate; // [UPDATED] Use effective rate
         setPriceUsdt(usdt.toFixed(2));
     };
 
@@ -183,8 +211,9 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
         if (!val || parseFloat(val) <= 0 || streetRate <= 0) { setPriceEfectivo(''); return; }
 
         // USDT -> Efectivo (Parity Logic)
+        // USDT -> Efectivo (Parity Logic)
         // USDT * USDT_Rate = TotalBs -> TotalBs / StreetRate = Efectivo
-        const totalBs = parseFloat(val) * rates.usdt.price;
+        const totalBs = parseFloat(val) * effectiveUsdtRate; // [UPDATED] Use effective rate
         const efectivo = totalBs / streetRate;
         setPriceEfectivo(Math.round(efectivo).toFixed(2)); // Smart Rounding to Integer
     };
@@ -253,48 +282,92 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
                     </div>
                 </div>
 
-                {/* [NEW] Calibration Tool (Parity Logic) */}
+                {/* [NEW] UNIFIED RATE CONFIGURATION PANEL */}
                 <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                     <button
-                        onClick={() => setIsCalibrationOpen(!isCalibrationOpen)}
+                        onClick={() => setIsConfigOpen(!isConfigOpen)}
                         className="w-full flex items-center justify-between p-3 text-xs font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                     >
                         <span className="flex items-center gap-2">
-                            <Zap size={16} className={streetRate > rates.usdt.price ? "text-amber-500" : "text-slate-400"} />
-                            Calibrar Tasa Efectivo
+                            <Settings size={16} className={(!useAutoUsdt || !showCashPrice) ? "text-indigo-500" : "text-slate-400"} />
+                            Configuración de Tasas
                         </span>
-                        <span className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg text-slate-600 dark:text-slate-300">
-                            {streetRate > 0 ? `${streetRate} Bs/Efectivo` : 'Sin Calibrar'}
-                        </span>
+                        <div className="flex gap-2">
+                            {!useAutoUsdt && <span className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 px-2 py-1 rounded-lg text-[10px]">Manual: {formatBs(effectiveUsdtRate)}</span>}
+                            {showCashPrice && <span className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-1 rounded-lg text-[10px]">Efectivo: {streetRate} Bs</span>}
+                        </div>
                     </button>
 
-                    {isCalibrationOpen && (
-                        <div className="p-3 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 space-y-3 animate-in slide-in-from-top-2">
-                            <div className="flex gap-2 items-end">
-                                <div className="flex-1">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1 block">Precio en Calle (Bs)</label>
+                    {isConfigOpen && (
+                        <div className="p-3 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 space-y-4 animate-in slide-in-from-top-2">
+
+                            {/* SECTION 1: USDT RATE */}
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs font-bold text-slate-500 flex items-center gap-1"><Banknote size={12} /> Tasa USDT Base</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] text-slate-400">{useAutoUsdt ? 'Automática (API)' : 'Manual'}</span>
+                                        <button
+                                            onClick={() => { triggerHaptic && triggerHaptic(); setUseAutoUsdt(!useAutoUsdt); }}
+                                            className={`relative w-9 h-5 rounded-full transition-colors ${useAutoUsdt ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                                        >
+                                            <span className={`absolute top-1 left-1 bg-white w-3 h-3 rounded-full transition-transform ${useAutoUsdt ? 'translate-x-4' : 'translate-x-0'}`} />
+                                        </button>
+                                    </div>
+                                </div>
+                                {!useAutoUsdt && (
                                     <input
                                         type="number"
-                                        value={streetPriceInput}
-                                        onChange={(e) => handleCalibration(e.target.value)}
-                                        placeholder={streetRate || "0.00"}
-                                        className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-white outline-none focus:border-brand"
+                                        value={customUsdtPrice}
+                                        onChange={(e) => setCustomUsdtPrice(e.target.value)}
+                                        onFocus={(e) => e.target.value === '0' && setCustomUsdtPrice('')} // Clear 0 on focus
+                                        className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm font-bold text-indigo-600 dark:text-indigo-400 outline-none focus:border-indigo-500"
+                                        placeholder="Tasa Manual (Bs)"
                                     />
-                                </div>
+                                )}
                             </div>
 
-                            {/* Help Text for Parity Logic */}
-                            <p className="text-[10px] text-slate-400 leading-tight px-1">
-                                Calculando precio para que al vender tus dólares físicos a <strong className="text-slate-600 dark:text-slate-300">{streetPriceInput || streetRate || '...'} Bs</strong> obtengas el mismo valor que el USDT (Digital).
-                            </p>
+                            <div className="h-px bg-slate-200 dark:bg-slate-700" />
 
-                            <button
-                                onClick={applyCalibration}
-                                disabled={!streetPriceInput || parseFloat(streetPriceInput) <= 0}
-                                className="w-full py-2 bg-slate-800 dark:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-black uppercase tracking-wider disabled:opacity-50 hover:opacity-90 transition-opacity"
-                            >
-                                Aplicar Calibración
-                            </button>
+                            {/* SECTION 2: CASH PRICES (Toggle & Calibration) */}
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs font-bold text-slate-500 flex items-center gap-1"><Zap size={12} /> Precios en Efectivo</span>
+                                    <button
+                                        onClick={() => { triggerHaptic && triggerHaptic(); setShowCashPrice(!showCashPrice); }}
+                                        className={`relative w-9 h-5 rounded-full transition-colors ${showCashPrice ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                                    >
+                                        <span className={`absolute top-1 left-1 bg-white w-3 h-3 rounded-full transition-transform ${showCashPrice ? 'translate-x-4' : 'translate-x-0'}`} />
+                                    </button>
+                                </div>
+
+                                {showCashPrice && (
+                                    <>
+                                        <div className="flex gap-2 items-end">
+                                            <div className="flex-1">
+                                                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1 mb-1 block">Precio en Calle (Bs)</label>
+                                                <input
+                                                    type="number"
+                                                    value={streetPriceInput}
+                                                    onChange={(e) => handleCalibration(e.target.value)}
+                                                    placeholder={streetRate || "0.00"}
+                                                    className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-white outline-none focus:border-brand"
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={applyCalibration}
+                                                disabled={!streetPriceInput || parseFloat(streetPriceInput) <= 0}
+                                                className="px-4 py-2 bg-slate-800 dark:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-black uppercase tracking-wider disabled:opacity-50 hover:opacity-90 transition-opacity"
+                                            >
+                                                Aplicar
+                                            </button>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 leading-tight px-1">
+                                            Vender físico a <strong className="text-slate-600 dark:text-slate-300">{streetPriceInput || streetRate || '...'} Bs</strong> = Valor USDT (Digital).
+                                        </p>
+                                    </>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -329,7 +402,7 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
                         {paginatedProducts.map(p => {
                             // --- LÓGICA DE NEGOCIO (CORREGIDA) ---
                             // 1. Monto Real en Bolívares (Precio Base * Tasa USDT)
-                            const valBs = p.priceUsdt * rates.usdt.price;
+                            const valBs = p.priceUsdt * effectiveUsdtRate; // [UPDATED] Use effective rate
 
                             // 2. Referencias Oficiales (Monto Bs / Tasa Oficial)
                             const refBcv = valBs / rates.bcv.price;
@@ -357,20 +430,22 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
                                             <span className="text-xs font-bold text-slate-400">USDT (Digital)</span>
                                         </div>
 
-                                        {/* Costo Efectivo (Nuevo - Parity Logic) */}
-                                        <div className="flex items-center gap-1.5 mb-3 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-lg w-fit border border-emerald-100 dark:border-emerald-900/30">
-                                            <Banknote size={14} className="text-emerald-600 dark:text-emerald-400" />
-                                            <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
-                                                Efectivo: {(() => {
-                                                    if (streetRate <= 0) return `$${p.priceUsdt}`;
-                                                    // Parity Logic
-                                                    const valBs = p.priceUsdt * rates.usdt.price;
-                                                    const efectivo = valBs / streetRate;
-                                                    const final = smartCashRounding(efectivo); // Regla Smart: <=0.2 Down, >0.2 Up
-                                                    return `$${final}`;
-                                                })()}
-                                            </span>
-                                        </div>
+                                        {/* Costo Efectivo (Condicionado) */}
+                                        {showCashPrice && (
+                                            <div className="flex items-center gap-1.5 mb-3 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-lg w-fit border border-emerald-100 dark:border-emerald-900/30">
+                                                <Banknote size={14} className="text-emerald-600 dark:text-emerald-400" />
+                                                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                                                    Efectivo: {(() => {
+                                                        if (streetRate <= 0) return `$${p.priceUsdt}`;
+                                                        // Parity Logic
+                                                        const valBs = p.priceUsdt * effectiveUsdtRate; // [UPDATED] Use effective rate
+                                                        const efectivo = valBs / streetRate;
+                                                        const final = smartCashRounding(efectivo); // Regla Smart: <=0.2 Down, >0.2 Up
+                                                        return `$${final}`;
+                                                    })()}
+                                                </span>
+                                            </div>
+                                        )}
 
                                         {/* Conversiones (Lógica corregida) */}
                                         <div className="space-y-1">
@@ -488,20 +563,20 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
                                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Previsualización</p>
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-slate-500">Total Bs:</span>
-                                    <span className="font-black text-slate-700 dark:text-white">{formatBs(parseFloat(priceUsdt) * rates.usdt.price)} Bs</span>
+                                    <span className="font-black text-slate-700 dark:text-white">{formatBs(parseFloat(priceUsdt) * effectiveUsdtRate)} Bs</span>
                                 </div>
                                 <div className="flex justify-between items-center text-xs text-slate-400">
-                                    <span>Tasa USDT:</span>
-                                    <span className="font-mono">{formatBs(rates.usdt.price)}</span>
+                                    <span>Tasa USDT (Efectiva):</span>
+                                    <span className="font-mono">{formatBs(effectiveUsdtRate)}</span>
                                 </div>
                                 <div className="h-px bg-slate-200 dark:bg-slate-700 my-1" />
                                 <div className="flex justify-between items-center text-xs text-slate-400">
                                     <span>Ref. Dolar (BCV):</span>
-                                    <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">${formatUsd((parseFloat(priceUsdt) * rates.usdt.price) / rates.bcv.price).replace('$', '')}</span>
+                                    <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">${formatUsd((parseFloat(priceUsdt) * effectiveUsdtRate) / rates.bcv.price).replace('$', '')}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-xs text-slate-400">
                                     <span>Ref. Euro (BCV):</span>
-                                    <span className="font-mono">€{formatUsd((parseFloat(priceUsdt) * rates.usdt.price) / rates.euro.price).replace('$', '').replace('€', '')}</span>
+                                    <span className="font-mono">€{formatUsd((parseFloat(priceUsdt) * effectiveUsdtRate) / rates.euro.price).replace('$', '').replace('€', '')}</span>
                                 </div>
                             </div>
                         )}
@@ -513,13 +588,14 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
                 </div>
             </Modal>
 
-            {/* Modal COMPARTIR COTIZACIÓN (Nuevo) */}
+            {/* Share Modal */}
             <ProductShareModal
                 isOpen={!!shareProduct}
                 onClose={() => setShareProduct(null)}
                 product={shareProduct}
-                rates={rates}
                 accounts={accounts}
+                streetRate={streetRate}
+                rates={{ ...rates, usdt: { ...rates.usdt, price: effectiveUsdtRate } }}
             />
 
             {/* Modal ELIMINAR PRODCUCTO (Professional Custom) */}
@@ -556,9 +632,9 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
                 isOpen={!!shareProduct}
                 onClose={() => setShareProduct(null)}
                 product={shareProduct}
-                rates={rates}
                 accounts={accounts}
                 streetRate={streetRate}
+                rates={{ ...rates, usdt: { ...rates.usdt, price: effectiveUsdtRate } }}
             />
 
             {/* Settings Modal (Fixed) */}

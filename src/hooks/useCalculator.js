@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { auditor } from '../utils/SilentAuditor'; // [NEW]
+
+import { CurrencyService } from '../services/CurrencyService'; // [NEW]
 
 export function useCalculator(rates) {
   const [amountTop, setAmountTop] = useState('');
@@ -15,50 +16,25 @@ export function useCalculator(rates) {
     { id: 'EUR', label: 'Euro', icon: '💶', rate: rates.euro.price },
   ];
 
-  // Helpers de parseo seguros
-  const safeParse = (val) => (!val || val === '.') ? 0 : parseFloat(val.replace(/,/g, '.'));
-
   // --- LÓGICA DE CONVERSIÓN (Efecto Principal) ---
   useEffect(() => {
     const rateFrom = currencies.find(c => c.id === from)?.rate || 0;
     const rateTo = currencies.find(c => c.id === to)?.rate || 0;
     if (rateTo === 0 || rateFrom === 0) return;
 
-    // Función interna para aplicar reglas de redondeo (Bs = Techo, USD = 2 decimales)
-    const applyRounding = (value, currencyId) => {
-      if (currencyId === 'VES') return Math.ceil(value).toString();
-      return value.toFixed(2);
-    };
-
     if (lastEdited === 'top') {
       if (!amountTop) { setAmountBot(''); return; }
-      const res = (safeParse(amountTop) * rateFrom) / rateTo;
-      const finalVal = applyRounding(res, to);
-      setAmountBot(finalVal);
 
-      // [AUDITOR] Verify Integrity
-      auditor.audit({
-        input: safeParse(amountTop),
-        rate: rateFrom / rateTo,
-        output: parseFloat(finalVal),
-        context: 'CalculatorCore',
-        operation: `${from} -> ${to}`
-      });
+      const res = CurrencyService.calculateExchange(CurrencyService.safeParse(amountTop), rateFrom, rateTo);
+      const finalVal = CurrencyService.applyRoundingRule(res, to);
+      setAmountBot(finalVal);
 
     } else {
       if (!amountBot) { setAmountTop(''); return; }
-      const res = (safeParse(amountBot) * rateTo) / rateFrom;
-      const finalVal = applyRounding(res, from);
-      setAmountTop(finalVal);
 
-      // [AUDITOR] Verify Integrity
-      auditor.audit({
-        input: safeParse(amountBot),
-        rate: rateTo / rateFrom,
-        output: parseFloat(finalVal),
-        context: 'CalculatorCore',
-        operation: `${to} -> ${from}`
-      });
+      const res = CurrencyService.calculateExchange(CurrencyService.safeParse(amountBot), rateTo, rateFrom);
+      const finalVal = CurrencyService.applyRoundingRule(res, from);
+      setAmountTop(finalVal);
     }
   }, [amountTop, amountBot, from, to, rates, lastEdited]);
 
@@ -84,7 +60,7 @@ export function useCalculator(rates) {
   };
 
   const handleQuickAdd = (val) => {
-    const current = safeParse(amountTop);
+    const current = CurrencyService.safeParse(amountTop);
     const newVal = current + val;
     // Aplicar redondeo si la moneda origen es VES
     const finalVal = from === 'VES' ? Math.ceil(newVal).toString() : newVal.toFixed(0);
@@ -98,6 +74,6 @@ export function useCalculator(rates) {
     amountTop, amountBot, from, to, currencies,
     setFrom, setTo,
     handleAmountChange, handleSwap, handleQuickAdd, clear,
-    safeParse // Exportamos para usar en utilidades
+    safeParse: CurrencyService.safeParse // Exportamos para usar en utilidades
   };
 }
