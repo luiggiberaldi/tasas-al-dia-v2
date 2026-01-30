@@ -16,7 +16,6 @@ TasasAlDía es una aplicación web progresiva (PWA) que proporciona:
 
 - **Monitoreo de tasas de cambio** en Venezuela (USDT, Dólar BCV, Euro BCV)
 - **Calculadora financiera** para conversiones y cálculos
-- **Asistente de IA** para consultas relacionadas con tasas y conversiones profesionales
 - **Catálogo de productos** con cotizaciones personalizadas y envío de imágenes (función Premium)
 - **Gestión de cuentas bancarias** personales para facilitar transacciones
 
@@ -66,7 +65,6 @@ Las tasas mostradas en la Aplicación son obtenidas de fuentes públicas como:
 
 Algunas funciones avanzadas de TasasAlDía requieren una **Licencia Premium**, incluyendo:
 
-- Calculadora IA con consultas ilimitadas
 - Catálogo de productos y generación de cotizaciones
 - Soporte prioritario
 

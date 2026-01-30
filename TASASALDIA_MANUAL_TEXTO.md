@@ -126,58 +126,9 @@ Antes de enviar el monto a tu cliente, ahora puedes ajustar el estilo del mensaj
 
 ---
 
-## 🤖 Sección 3: Mister Cambio IA (Asistente Inteligente)
-
-El cerebro de la app. Aquí delegas tareas complejas.
-
-### 3.1 Activar el Asistente
-
-Desde la Calculadora, toca el botón **"Asistente"** en la parte superior derecha.
-
-### 3.2 Tipos de Consultas que Entiende
-
-**Conversiones en Lenguaje Natural:**
-- *"¿Cuánto es 50 dólares en bolívares?"*
-- *"Pásame 200 bolos a verdes"* (entiende jerga venezolana)
-- *"3 lucas en dólares"* (mil bolívares = 1 luca)
-
-**Cálculos con Operaciones:**
-- *"100 dólares más el 16%"*
-- *"Dame 45$ menos 10% de descuento"*
-- *"¿A cómo está el euro?"* (convierte desde otras divisas usando tasa referencial)
-
-**Productos de Tu Catálogo:**
-- *"Cuánto valen 3 harinas Pan y 2 aceites Primor en bolívares"*
-- La IA busca en tu inventario y calcula el total
-
-**Comparación de Tasas:**
-- *"Dame la diferencia entre BCV y paralelo"*
-- *"¿Conviene comprar oficial o efectivo?"*
-
-### 3.3 Usar el Micrófono 🎤
-
-1. Toca el ícono de micrófono en el campo de texto
-2. Habla claramente tu pregunta
-3. La IA transcribe y procesa automáticamente
-
-**Ventaja:** No escribes nada. Perfecto mientras atiendes clientes.
-
-### 3.4 Resultados en Tarjeta (Copyable)
-
-Cuando la IA responde con un cálculo, genera una **Tarjeta Visual**:
-- Monto destacado en grande
-- Botón **"Copiar"** dorado para compartir instantáneamente
-- Si tiene audio habilitado, **te lee la respuesta** en voz alta (función "Mister Cambio")
-
-### 3.5 Ajustar Configuración de Voz
-
-Si la voz te molesta o prefieres silencio:
-- Ve a **Configuración** (⚙️ en menú inferior)
-- Desactiva **"Voz del Asistente"**
-
 ---
 
-## 🏪 Sección 4: Catálogo "Blindado" (Tienda)
+## 🏪 Sección 3: Catálogo "Blindado" (Tienda)
 
 Olvídate de cambiar precios cada mañana. Esta es tu arma secreta.
 
@@ -229,7 +180,7 @@ Si tienes muchos productos:
 
 ---
 
-## ⚡ Sección 5: Cotizaciones Flash (Cierre Rápido de Ventas)
+## ⚡ Sección 4: Cotizaciones Flash (Cierre Rápido de Ventas)
 
 El arma definitiva para convertir más ventas por mensajería.
 
@@ -284,7 +235,7 @@ Solo falta que escribas el nombre del cliente, presiones enviar y ¡listo!
 
 ---
 
-## 💳 Sección 6: Cuentas Bancarias (Wallet)
+## 💳 Sección 5: Cuentas Bancarias (Wallet)
 
 Gestiona tus datos de cobro para compartirlos rápidamente.
 
@@ -315,7 +266,7 @@ Esta función permitirá generar un QR para pagos móviles directos. Mantente at
 
 ---
 
-## 🔧 Sección 7: Configuración Avanzada
+## 🔧 Sección 6: Configuración Avanzada
 
 Accede tocando el ícono de engranaje (⚙️).
 
@@ -380,7 +331,7 @@ Cambiar etiquetas de 50 productos → 1 hora de trabajo
 
 ---
 
-## 🆘 Sección 8: Soporte VIP
+## 🆘 Sección 7: Soporte VIP
 
 Como usuario Premium, tienes acceso directo al equipo de desarrollo.
 
@@ -410,8 +361,8 @@ Si la tienes como APK, recibirás notificación cuando haya nueva versión dispo
 
 ## 🏆 Consejos Pro
 
-1. **Usa el Asistente de Voz en Horas Pico**  
-   Cuando tengas muchos clientes, habla tus cálculos en lugar de escribir. Más rápido, menos errores.
+1. **Usa el Teclado Numérico con Confianza**  
+   Introduce tus montos rápidamente en la calculadora para obtener resultados al instante. No necesitas presionar "Enter".
 
 2. **Comparte tu Lista de Precios Cada Lunes**  
    Genera el hábito de enviar la lista actualizada a tus grupos de difusión. Aumentarás ventas.
