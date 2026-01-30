@@ -1,6 +1,6 @@
 # Términos y Condiciones de Uso - TasasAlDía
 
-**Última actualización:** Enero 2026
+**Última actualización:** 30 de Enero 2026
 
 ---
 
@@ -16,8 +16,8 @@ TasasAlDía es una aplicación web progresiva (PWA) que proporciona:
 
 - **Monitoreo de tasas de cambio** en Venezuela (USDT, Dólar BCV, Euro BCV)
 - **Calculadora financiera** para conversiones y cálculos
-- **Asistente de IA** para consultas relacionadas con tasas y conversiones
-- **Catálogo de productos** con cotizaciones automatizadas (función Premium)
+- **Asistente de IA** para consultas relacionadas con tasas y conversiones profesionales
+- **Catálogo de productos** con cotizaciones personalizadas y envío de imágenes (función Premium)
 - **Gestión de cuentas bancarias** personales para facilitar transacciones
 
 ---

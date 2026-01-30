@@ -112,6 +112,18 @@ Accede tocando el botón **"Calc"** en la barra inferior.
 
 Tu última operación queda guardada temporalmente. Si cierras y vuelves a abrir, el último monto sigue visible para referencia rápida.
 
+### 2.4 Personalización de Mensajes de WhatsApp (NUEVO)
+
+Antes de enviar el monto a tu cliente, ahora puedes ajustar el estilo del mensaje presionando **"Enviar"**:
+
+*   **Nombre del Cliente**: Escribe el nombre para un trato más cercano.
+*   **Estilo del Mensaje (Tonos)**:
+    *   **Casual**: "Hola [Nombre], el total es..."
+    *   **Formal**: "Estimado(a) [Nombre], por favor realice el pago de..."
+    *   **Directo**: Solo los datos técnicos, ideal para clientes que ya conocen el proceso.
+*   **Preferencia de Moneda**: Elige si el monto principal se muestra en **Bolívares**, **USDT** o **Euros**.
+*   **Referencia Inteligente**: Botón para mostrar u ocultar la referencia secundaria (ej: mostrar solo Bs sin Ref).
+
 ---
 
 ## 🤖 Sección 3: Mister Cambio IA (Asistente Inteligente)
@@ -208,12 +220,12 @@ Si tienes muchos productos:
 
 1. Toca el botón **"Compartir Lista"** (📤)
 2. Elige el formato:
-   - **Texto Plano:** Lista simple copy-paste
-   - **Imagen:** Genera una imagen elegante con todos los precios
+   *   **Texto Plano (Limpio)**: Formato profesional sin emojis distractores para máxima claridad.
+   *   **Imagen (NUEVO)**: Ahora puedes compartir la **foto del producto** directamente mediante el botón de WhatsApp (en dispositivos móviles compatibles).
 
 3. Envía directamente por WhatsApp, Telegram, etc.
 
-**Ventaja:** Tus clientes siempre ven precios del día sin que tengas que hacer nada manual.
+**Ventaja:** Tus clientes siempre ven precios del día y fotos reales en un solo mensaje profesional.
 
 ---
 
@@ -429,5 +441,5 @@ Versiones white-label disponibles bajo consulta.
 
 ---
 
-*Generado por TasasAlDía System | Última Actualización: Enero 2026*  
-*Versión del Manual: 2.0 | PDA Compliance: ✅*
+*Generado por TasasAlDía System | Última Actualización: 30 de Enero 2026*  
+*Versión del Manual: 2.5 | Keyboard UX Optimized: ✅ | Image Share: ✅*
