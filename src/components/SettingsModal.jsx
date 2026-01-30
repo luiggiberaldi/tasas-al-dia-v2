@@ -17,7 +17,13 @@ export default function SettingsModal({ isOpen, onClose }) {
                 data: {
                     my_products_v1: localStorage.getItem('my_products_v1'),
                     my_accounts_v2: localStorage.getItem('my_accounts_v2'),
-                    premium_token: localStorage.getItem('premium_token')
+                    premium_token: localStorage.getItem('premium_token'),
+                    // [NEW] Manual Rates & Config
+                    street_rate_bs: localStorage.getItem('street_rate_bs'),
+                    catalog_use_auto_usdt: localStorage.getItem('catalog_use_auto_usdt'),
+                    catalog_custom_usdt_price: localStorage.getItem('catalog_custom_usdt_price'),
+                    catalog_show_cash_price: localStorage.getItem('catalog_show_cash_price'),
+                    monitor_rates_v12: localStorage.getItem('monitor_rates_v12')
                 }
             };
 
@@ -64,6 +70,13 @@ export default function SettingsModal({ isOpen, onClose }) {
                 if (json.data.my_products_v1) localStorage.setItem('my_products_v1', json.data.my_products_v1);
                 if (json.data.my_accounts_v2) localStorage.setItem('my_accounts_v2', json.data.my_accounts_v2);
                 if (json.data.premium_token) localStorage.setItem('premium_token', json.data.premium_token);
+
+                // [NEW] Restaurar Tasas Manuales y Config
+                if (json.data.street_rate_bs) localStorage.setItem('street_rate_bs', json.data.street_rate_bs);
+                if (json.data.catalog_use_auto_usdt) localStorage.setItem('catalog_use_auto_usdt', json.data.catalog_use_auto_usdt);
+                if (json.data.catalog_custom_usdt_price) localStorage.setItem('catalog_custom_usdt_price', json.data.catalog_custom_usdt_price);
+                if (json.data.catalog_show_cash_price) localStorage.setItem('catalog_show_cash_price', json.data.catalog_show_cash_price);
+                if (json.data.monitor_rates_v12) localStorage.setItem('monitor_rates_v12', json.data.monitor_rates_v12);
 
                 setImportStatus('success');
                 setStatusMessage('Datos restaurados. Recargando...');
@@ -146,8 +159,8 @@ export default function SettingsModal({ isOpen, onClose }) {
                     {/* Status Feedback */}
                     {importStatus && (
                         <div className={`mt-2 p-2 rounded-lg text-xs font-bold text-center flex items-center justify-center gap-2 ${importStatus === 'success'
-                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                            : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                             }`}>
                             {importStatus === 'success' ? <Check size={14} /> : <AlertTriangle size={14} />}
                             {statusMessage}
