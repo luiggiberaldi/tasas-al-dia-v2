@@ -78,13 +78,13 @@ export const ManualMode = ({ rates, accounts, theme, triggerHaptic, isKeyboardOp
 
             {/* ÁREA SCROLLABLE (Inputs y Título) */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-hide">
-                <div className="space-y-8 pb-40">
+                <div className={`transition-all duration-300 ${isKeyboardOpen ? 'space-y-4 pb-6' : 'space-y-8 pb-40'}`}>
 
                     {/* Header */}
                     <div className="flex justify-between items-center">
                         <div>
                             <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">Conversión Rápida</h2>
-                            <p className="text-sm text-slate-400 font-medium">Calculadora de precisión</p>
+                            {!isKeyboardOpen && <p className="text-sm text-slate-400 font-medium">Calculadora de precisión</p>}
                         </div>
                     </div>
 
@@ -229,8 +229,8 @@ export const ManualMode = ({ rates, accounts, theme, triggerHaptic, isKeyboardOp
                                     key={t}
                                     onClick={() => setMessageTone(t)}
                                     className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase transition-all ${messageTone === t
-                                            ? 'bg-white dark:bg-slate-700 text-brand-dark shadow-sm'
-                                            : 'text-slate-400 hover:text-slate-600'
+                                        ? 'bg-white dark:bg-slate-700 text-brand-dark shadow-sm'
+                                        : 'text-slate-400 hover:text-slate-600'
                                         }`}
                                 >
                                     {t === 'direct' ? 'Directo' : t}
