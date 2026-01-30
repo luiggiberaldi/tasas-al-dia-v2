@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { LayoutDashboard, Calculator, Wallet, Store, Download, Search, Key } from 'lucide-react';
 
 import MonitorView from './views/MonitorView';
@@ -98,25 +98,32 @@ export default function App() {
 
   // Keyboard/Focus Detection for Mobile (Hides Nav & Actions)
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const baseHeight = useRef(window.innerHeight);
 
   useEffect(() => {
-    // Standard visualViewport approach for mobile
     if (!window.visualViewport) return;
 
-    const handleResize = () => {
+    const handleViewport = () => {
       const vh = window.visualViewport.height;
-      const wh = window.innerHeight;
-
-      // If viewport height shrinks by more than 15%, keyboard is likely open
-      setIsKeyboardOpen(vh < wh * 0.85);
+      // If the viewport is significantly smaller than the initial window height
+      // and smaller than the current window height, the keyboard is likely up.
+      const isUp = vh < baseHeight.current - 100;
+      setIsKeyboardOpen(isUp);
     };
 
-    window.visualViewport.addEventListener('resize', handleResize);
-    // Initial check
-    handleResize();
+    // Backup to handle cases where focus changes but resize doesn't fire immediately
+    const handleFocusBack = () => setTimeout(handleViewport, 300);
+
+    window.visualViewport.addEventListener('resize', handleViewport);
+    window.visualViewport.addEventListener('scroll', handleViewport);
+    window.addEventListener('focusin', handleFocusBack);
+    window.addEventListener('focusout', handleFocusBack);
 
     return () => {
-      window.visualViewport.removeEventListener('resize', handleResize);
+      window.visualViewport?.removeEventListener('resize', handleViewport);
+      window.visualViewport?.removeEventListener('scroll', handleViewport);
+      window.removeEventListener('focusin', handleFocusBack);
+      window.removeEventListener('focusout', handleFocusBack);
     };
   }, []);
 

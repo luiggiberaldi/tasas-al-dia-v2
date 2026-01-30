@@ -157,30 +157,29 @@ export const ManualMode = ({ rates, accounts, theme, triggerHaptic, isKeyboardOp
                         </div>
                     )}
 
-                    <div className="flex gap-3">
+                    {/* Botones de Acción (Hidden in Ultra-Compact Mode) */}
+                    {!isKeyboardOpen && (
+                        <div className="flex gap-3 px-1 mt-6">
+                            <button
+                                onClick={handleCopy}
+                                className="flex flex-col items-center justify-center gap-2 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl text-slate-400 hover:text-brand transition-all active:scale-95 shadow-sm"
+                            >
+                                <div className="p-2">
+                                    {copied ? <Check size={22} className="text-emerald-500" /> : <Copy size={22} strokeWidth={2.5} />}
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-widest leading-none">Copiar</span>
+                            </button>
 
-                        {/* Botón Copiar */}
-                        <button
-                            onClick={handleCopy}
-                            className="flex-shrink-0 w-24 h-20 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-500 dark:text-slate-400 hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95 flex flex-col items-center justify-center gap-1 shadow-sm"
-                        >
-                            {copied ? <Check size={20} className="text-emerald-500" /> : <Copy size={20} />}
-                            <span className="text-[9px] font-bold uppercase tracking-widest">Copiar</span>
-                        </button>
-
-                        {/* Botón ENVIAR WA (Restored Logic) */}
-                        <button
-                            onClick={() => {
-                                triggerHaptic && triggerHaptic();
-                                if (calc.amountBot) setIsSendModalOpen(true);
-                            }}
-                            disabled={!calc.amountTop}
-                            className="flex-1 h-20 bg-brand text-slate-900 rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg shadow-brand/20 hover:shadow-brand/40 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 flex items-center justify-center gap-2"
-                        >
-                            <Send size={22} strokeWidth={2.5} />
-                            <span>Enviar</span>
-                        </button>
-                    </div>
+                            <button
+                                onClick={() => { triggerHaptic && triggerHaptic(); if (calc.amountBot) setIsSendModalOpen(true); }}
+                                disabled={!calc.amountTop}
+                                className="flex-1 flex items-center justify-center gap-3 bg-brand text-slate-900 rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-brand/20 active:scale-95 transition-transform disabled:opacity-50 disabled:shadow-none"
+                            >
+                                <Send size={24} strokeWidth={3} />
+                                <span>Enviar</span>
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
 
