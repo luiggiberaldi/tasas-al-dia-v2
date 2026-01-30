@@ -1,7 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 
-export default function CalculatorInput({ label, amount, currency, currencies, onAmountChange, onCurrencyChange, onClear, onFocus, onBlur, children }) {
+export default function CalculatorInput({ label, amount, currency, currencies, onAmountChange, onCurrencyChange, onClear, onFocus, onBlur, compact, children }) {
 
   // LÓGICA DE FUENTE AGRESIVA (Escalado rápido para móviles)
   const getFontSize = (val) => {
@@ -27,10 +27,10 @@ export default function CalculatorInput({ label, amount, currency, currencies, o
   const displayCurrency = ['BCV', 'USD', '$ BCV', 'Dolar'].includes(currency) ? 'USD' : currency;
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-3xl border border-slate-200 dark:border-slate-700 relative transition-all focus-within:border-brand focus-within:ring-1 focus-within:ring-brand/20">
+    <div className={`${compact ? 'p-2' : 'p-4'} bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-200 dark:border-slate-700 relative transition-all focus-within:border-brand focus-within:ring-1 focus-within:ring-brand/20`}>
 
       {/* Etiqueta Superior */}
-      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">
+      <span className={`${compact ? 'text-[8px] mb-0.5' : 'text-[10px] mb-1'} font-black text-slate-400 uppercase tracking-widest block`}>
         {label}
       </span>
 

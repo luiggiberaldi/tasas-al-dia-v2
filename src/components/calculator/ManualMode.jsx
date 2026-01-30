@@ -77,16 +77,18 @@ export const ManualMode = ({ rates, accounts, theme, triggerHaptic, isKeyboardOp
         <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950/50">
 
             {/* ÁREA SCROLLABLE (Inputs y Título) */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-hide">
-                <div className={`transition-all duration-300 ${isKeyboardOpen ? 'space-y-4 pb-6' : 'space-y-8 pb-40'}`}>
+            <div className={`flex-1 overflow-y-auto ${isKeyboardOpen ? 'p-2' : 'p-4 sm:p-6'} scrollbar-hide`}>
+                <div className={`transition-all duration-300 ${isKeyboardOpen ? 'space-y-2 pb-2' : 'space-y-8 pb-40'}`}>
 
-                    {/* Header */}
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">Conversión Rápida</h2>
-                            {!isKeyboardOpen && <p className="text-sm text-slate-400 font-medium">Calculadora de precisión</p>}
+                    {/* Header (Hidden in Ultra-Compact Mode) */}
+                    {!isKeyboardOpen && (
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">Conversión Rápida</h2>
+                                <p className="text-sm text-slate-400 font-medium">Calculadora de precisión</p>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Inputs Stack */}
                     <div className="relative flex flex-col gap-3">
@@ -101,6 +103,7 @@ export const ManualMode = ({ rates, accounts, theme, triggerHaptic, isKeyboardOp
                                 onAmountChange={(v) => calc.handleAmountChange(v, 'top')}
                                 onCurrencyChange={calc.setFrom}
                                 onClear={calc.clear}
+                                compact={isKeyboardOpen}
                             />
                         </div>
 
@@ -124,6 +127,7 @@ export const ManualMode = ({ rates, accounts, theme, triggerHaptic, isKeyboardOp
                                 onAmountChange={(v) => calc.handleAmountChange(v, 'bot')}
                                 onCurrencyChange={calc.setTo}
                                 onClear={calc.clear}
+                                compact={isKeyboardOpen}
                             />
                         </div>
                     </div>
