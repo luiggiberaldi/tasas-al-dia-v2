@@ -94,11 +94,40 @@ export default function App() {
   };
 
 
+
+
+  // Keyboard/Focus Detection for Mobile (Hides Nav & Actions)
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const handleFocus = (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
+        setIsKeyboardOpen(true);
+      }
+    };
+    const handleBlur = (e) => {
+      // Small delay to allow focus transfer
+      setTimeout(() => {
+        if (!['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+          setIsKeyboardOpen(false);
+        }
+      }, 100);
+    };
+
+    window.addEventListener('focusin', handleFocus);
+    window.addEventListener('focusout', handleBlur);
+    return () => {
+      window.removeEventListener('focusin', handleFocus);
+      window.removeEventListener('focusout', handleBlur);
+    };
+  }, []);
+
   const currentViewProps = {
     triggerHaptic,
     rates,
     toggleTheme,
     theme,
+    isKeyboardOpen, // Pass down
     // Monitor Props
     loading, isOffline, onRefresh: updateData, lastLog: logs[logs.length - 1], notificationsEnabled, enableNotifications,
     // Products Props
@@ -134,7 +163,13 @@ export default function App() {
 
         {activeTab === 'calc' && (
           <ErrorBoundary>
-            <CalculatorView rates={rates} toggleTheme={toggleTheme} theme={theme} triggerHaptic={triggerHaptic} />
+            <CalculatorView
+              rates={rates}
+              toggleTheme={toggleTheme}
+              theme={theme}
+              triggerHaptic={triggerHaptic}
+              isKeyboardOpen={isKeyboardOpen} // [NEW] Prop passed
+            />
           </ErrorBoundary>
         )}
 
@@ -149,22 +184,24 @@ export default function App() {
         )}
       </main>
 
-      {/* Navegación Inferior */}
-      <div className="fixed bottom-0 left-0 right-0 px-6 pb-[env(safe-area-inset-bottom)] pt-0 mb-6 max-w-md mx-auto z-30 pointer-events-none">
-        <div className="bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-xl rounded-3xl p-1.5 flex justify-between items-center shadow-2xl shadow-slate-900/30 border border-white/10 ring-1 ring-black/5 pointer-events-auto">
-          <TabButton icon={<LayoutDashboard size={20} strokeWidth={activeTab === 'monitor' ? 3 : 2} />} label="Inicio" isActive={activeTab === 'monitor'} onClick={() => { triggerHaptic(); setActiveTab('monitor'); }} />
-          <TabButton icon={<Calculator size={20} strokeWidth={activeTab === 'calc' ? 3 : 2} />} label="Calc" isActive={activeTab === 'calc'} onClick={() => { triggerHaptic(); setActiveTab('calc'); }} />
-          <TabButton icon={<Wallet size={20} strokeWidth={activeTab === 'wallet' ? 3 : 2} />} label="Cuentas" isActive={activeTab === 'wallet'} onClick={() => { triggerHaptic(); setActiveTab('wallet'); }} />
+      {/* Navegación Inferior (Hidden when keyboard is open) */}
+      {!isKeyboardOpen && (
+        <div className="fixed bottom-0 left-0 right-0 px-6 pb-[env(safe-area-inset-bottom)] pt-0 mb-6 max-w-md mx-auto z-30 pointer-events-none animate-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-xl rounded-3xl p-1.5 flex justify-between items-center shadow-2xl shadow-slate-900/30 border border-white/10 ring-1 ring-black/5 pointer-events-auto">
+            <TabButton icon={<LayoutDashboard size={20} strokeWidth={activeTab === 'monitor' ? 3 : 2} />} label="Inicio" isActive={activeTab === 'monitor'} onClick={() => { triggerHaptic(); setActiveTab('monitor'); }} />
+            <TabButton icon={<Calculator size={20} strokeWidth={activeTab === 'calc' ? 3 : 2} />} label="Calc" isActive={activeTab === 'calc'} onClick={() => { triggerHaptic(); setActiveTab('calc'); }} />
+            <TabButton icon={<Wallet size={20} strokeWidth={activeTab === 'wallet' ? 3 : 2} />} label="Cuentas" isActive={activeTab === 'wallet'} onClick={() => { triggerHaptic(); setActiveTab('wallet'); }} />
 
-          {installPrompt && activeTab === 'monitor' && (
-            <button onClick={() => { triggerHaptic(); handleInstall(); }} className="flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all duration-300 bg-emerald-500 text-white shadow-md animate-pulse">
-              <Download size={20} strokeWidth={3} />
-            </button>
-          )}
+            {installPrompt && activeTab === 'monitor' && (
+              <button onClick={() => { triggerHaptic(); handleInstall(); }} className="flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all duration-300 bg-emerald-500 text-white shadow-md animate-pulse">
+                <Download size={20} strokeWidth={3} />
+              </button>
+            )}
 
-          <TabButton icon={<Store size={20} strokeWidth={activeTab === 'info' ? 3 : 2} />} label="Tienda" isActive={activeTab === 'info'} onClick={() => { triggerHaptic(); setActiveTab('info'); }} />
+            <TabButton icon={<Store size={20} strokeWidth={activeTab === 'info' ? 3 : 2} />} label="Tienda" isActive={activeTab === 'info'} onClick={() => { triggerHaptic(); setActiveTab('info'); }} />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Admin Panel Modal */}
       {showAdminPanel && (

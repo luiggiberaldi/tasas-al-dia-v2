@@ -3,7 +3,7 @@ import { ManualMode } from '../components/calculator/ManualMode';
 
 const SAFE_RATES = { usdt: { price: 0 }, bcv: { price: 0 }, euro: { price: 0 } };
 
-export default function CalculatorView({ rates, theme, triggerHaptic }) {
+export default function CalculatorView({ rates, theme, triggerHaptic, isKeyboardOpen }) {
   const currentRates = rates || SAFE_RATES;
   const [accounts, setAccounts] = useState([]);
 
@@ -31,12 +31,14 @@ export default function CalculatorView({ rates, theme, triggerHaptic }) {
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 relative ring-4 ring-slate-100 dark:ring-slate-900/50 animate-in fade-in duration-500">
-
-      {/* Header Simplificado (Solo Título si es necesario, o eliminado si ManualMode ya tiene header) */}
-      {/* ManualMode suele ocupar todo el espacio, así que lo dejamos directo */}
-
       <div className="flex-1 overflow-hidden relative bg-slate-50/50 dark:bg-slate-900/50">
-        <ManualMode rates={currentRates} accounts={accounts} theme={theme} triggerHaptic={triggerHaptic} />
+        <ManualMode
+          rates={currentRates}
+          accounts={accounts}
+          theme={theme}
+          triggerHaptic={triggerHaptic}
+          isKeyboardOpen={isKeyboardOpen}
+        />
       </div>
     </div>
   );

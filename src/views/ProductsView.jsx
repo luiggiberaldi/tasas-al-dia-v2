@@ -533,18 +533,20 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
                         </div>
 
                         {/* Inputs de Precio (Efectivo vs USDT) */}
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="relative">
-                                <label className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 ml-1 mb-1 block uppercase flex items-center gap-1">
-                                    <Banknote size={12} /> Efectivo
-                                </label>
-                                <input
-                                    type="number"
-                                    value={priceEfectivo} onChange={e => handleEfectivoChange(e.target.value)}
-                                    placeholder="42.00"
-                                    className="w-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30 p-4 rounded-xl font-black text-emerald-800 dark:text-emerald-400 outline-none focus:ring-2 focus:ring-emerald-500/50"
-                                />
-                            </div>
+                        <div className={`grid gap-3 ${showCashPrice ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                            {showCashPrice && (
+                                <div className="relative">
+                                    <label className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 ml-1 mb-1 block uppercase flex items-center gap-1">
+                                        <Banknote size={12} /> Efectivo
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={priceEfectivo} onChange={e => handleEfectivoChange(e.target.value)}
+                                        placeholder="42.00"
+                                        className="w-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30 p-4 rounded-xl font-black text-emerald-800 dark:text-emerald-400 outline-none focus:ring-2 focus:ring-emerald-500/50"
+                                    />
+                                </div>
+                            )}
 
                             <div>
                                 <label className="text-[10px] font-bold text-slate-400 ml-1 mb-1 block uppercase">Base USDT</label>

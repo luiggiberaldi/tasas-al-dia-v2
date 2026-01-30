@@ -49,22 +49,22 @@ export const ProductShareModal = ({ isOpen, onClose, product, rates, accounts, s
 
     const generateMessage = () => {
         const lines = [];
-        lines.push(`📦 *${product.name}*`);
+        lines.push(`*${product.name.toUpperCase()}*`); // Uppercase for better visibility
         lines.push('');
 
-        lines.push('*Precios:*');
-        if (config.showUsdt) lines.push(`🇺🇸 USDT: ${formatUsd(product.priceUsdt)}`);
-        if (config.showEfectivo) lines.push(`💵 Efectivo: $${valEfectivo}`);
-        if (config.showBs) lines.push(`🇻🇪 Bs: ${formatBs(valBs)}`);
+        lines.push('PRECIO:'); // Plain text header
+        if (config.showUsdt) lines.push(`USDT: ${formatUsd(product.priceUsdt)}`);
+        if (config.showEfectivo) lines.push(`Efectivo: $${valEfectivo}`);
+        if (config.showBs) lines.push(`Bs: ${formatBs(valBs)}`);
 
-        // Referencias explícitas con símbolo forzado
+        // Referencias explícitas
         if (config.showRefBcv) {
             const refBcv = valBs / rates.bcv.price;
-            lines.push(`🏛️ Ref. Dolar (BCV): $${formatUsd(refBcv).replace('$', '')}`);
+            lines.push(`Ref. BCV: $${formatUsd(refBcv).replace('$', '')}`);
         }
         if (config.showRefEuro) {
             const refEur = valBs / rates.euro.price;
-            lines.push(`🇪🇺 Ref. Euro (BCV): €${formatUsd(refEur).replace('$', '').replace('€', '')}`);
+            lines.push(`Ref. Euro: €${formatUsd(refEur).replace('$', '').replace('€', '')}`);
         }
 
         lines.push('');
@@ -72,31 +72,61 @@ export const ProductShareModal = ({ isOpen, onClose, product, rates, accounts, s
         if (selectedAccountId) {
             const acc = accounts.find(a => a.id === selectedAccountId);
             if (acc) {
-                lines.push(`💳 *Datos de Pago:*`);
-                lines.push(`*${acc.alias}*`);
+                // Support both structures just in case
+                const d = acc.data || acc;
+
+                lines.push(`DATOS DE PAGO:`);
+                lines.push(`*${acc.alias || 'Cuenta'}*`);
+
                 if (acc.type === 'pago_movil') {
-                    lines.push(`Banco: ${acc.data.bankCode} - ${acc.data.bankName}`);
-                    lines.push(`Tel: ${acc.data.phone}`);
-                    lines.push(`CI: ${acc.data.docId}`);
-                } else if (acc.type === 'transfer') {
-                    lines.push(`Banco: ${acc.data.bankName}`);
-                    lines.push(`Cuenta: ${acc.data.accountNumber}`);
-                    lines.push(`Titular: ${acc.data.holder}`);
-                    lines.push(`CI/RIF: ${acc.data.docId}`);
+                    lines.push(`Banco: ${d.bankName || d.bank || 'Banco'}`);
+                    lines.push(`Tel: ${d.phone}`);
+                    lines.push(`CI: ${d.docId || d.id}`);
+                } else if (acc.type === 'transfer' || acc.type === 'transferencia') {
+                    lines.push(`Banco: ${d.bankName || d.bank || ''}`);
+                    lines.push(`Cuenta: ${d.accountNumber}`);
+                    lines.push(`Titular: ${d.holder}`);
+                    lines.push(`CI/RIF: ${d.docId || d.id}`);
                 } else if (acc.type === 'binance') {
-                    lines.push(`Email: ${acc.data.email}`);
-                    if (acc.data.payId) lines.push(`ID: ${acc.data.payId}`);
+                    lines.push(`Email: ${d.email}`);
+                    if (d.payId) lines.push(`ID: ${d.payId}`);
                 }
             }
         }
 
-        lines.push('');
-        lines.push('_Generado con TasasAlDía_');
         return lines.join('\n');
     };
 
-    const handleShare = () => {
+    const handleShare = async () => {
         const text = generateMessage();
+
+        // Helper: Convert DataURL to File
+        const dataURLtoFile = (dataurl, filename) => {
+            let arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+                bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+            while (n--) u8arr[n] = bstr.charCodeAt(n);
+            return new File([u8arr], filename, { type: mime });
+        };
+
+        try {
+            // Check if Web Share API is available and supports files
+            if (navigator.share && product.image) {
+                const imageFile = dataURLtoFile(product.image, `${product.name.replace(/\s+/g, '_')}.webp`);
+
+                if (navigator.canShare && navigator.canShare({ files: [imageFile] })) {
+                    await navigator.share({
+                        text: text,
+                        files: [imageFile],
+                    });
+                    return; // Succesfully shared
+                }
+            }
+        } catch (error) {
+            console.error("Error sharing with image:", error);
+            // Fallback will execute below
+        }
+
+        // Standard Fallback (WhatsApp Text Only)
         const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
         window.open(url, '_blank');
     };

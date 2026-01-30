@@ -1,7 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 
-export default function CalculatorInput({ label, amount, currency, currencies, onAmountChange, onCurrencyChange, onClear, children }) {
+export default function CalculatorInput({ label, amount, currency, currencies, onAmountChange, onCurrencyChange, onClear, onFocus, onBlur, children }) {
 
   // LÓGICA DE FUENTE AGRESIVA (Escalado rápido para móviles)
   const getFontSize = (val) => {
@@ -60,8 +60,10 @@ export default function CalculatorInput({ label, amount, currency, currencies, o
             inputMode="decimal"
             value={amount || ''}
             onChange={(e) => onAmountChange(e.target.value.replace(/[^0-9.]/g, ''))}
+            onFocus={onFocus}
+            onBlur={onBlur}
             placeholder="0"
-            className={`w-full bg-transparent text-right font-black text-slate-800 dark:text-white outline-none placeholder-slate-200 dark:placeholder-slate-700 tracking-tighter transition-all pl-2 pr-7 ${getFontSize(amount)}`}
+            className={`w-full bg-transparent text-right font-black text-slate-800 dark:text-white outline-none placeholder-slate-200 dark:placeholder-slate-700 tracking-tighter transition-all pl-2 pr-2 py-2 leading-relaxed ${getFontSize(amount)}`}
           />
         </div>
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const STORAGE_KEY = 'wallet_data_v2';
+const STORAGE_KEY = 'my_accounts_v2';
 
 export function useWallet() {
   // 1. Cargar datos iniciales
@@ -41,7 +41,7 @@ export function useWallet() {
       currency,  // VES o USDT
       data       // Objeto flexible con los datos
     };
-    
+
     setAccounts(prev => [...prev, newAccount]);
     return newAccount;
   }, []);
@@ -51,7 +51,7 @@ export function useWallet() {
   }, []);
 
   const updateAccount = useCallback((id, updatedFields) => {
-    setAccounts(prev => prev.map(acc => 
+    setAccounts(prev => prev.map(acc =>
       acc.id === id ? { ...acc, ...updatedFields } : acc
     ));
   }, []);
