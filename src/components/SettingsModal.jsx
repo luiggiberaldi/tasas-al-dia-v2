@@ -69,7 +69,9 @@ export default function SettingsModal({ isOpen, onClose }) {
                 // Restaurar datos
                 if (json.data.my_products_v1) localStorage.setItem('my_products_v1', json.data.my_products_v1);
                 if (json.data.my_accounts_v2) localStorage.setItem('my_accounts_v2', json.data.my_accounts_v2);
-                if (json.data.premium_token) localStorage.setItem('premium_token', json.data.premium_token);
+                // NOTA: premium_token y device_id NO se restauran desde el backup.
+                // El token de licencia está criptográficamente ligado al device_id de ESTE dispositivo.
+                // Sobreescribirlos invalidaría la licencia activa en este equipo.
 
                 // [NEW] Restaurar Tasas Manuales y Config
                 if (json.data.street_rate_bs) localStorage.setItem('street_rate_bs', json.data.street_rate_bs);
