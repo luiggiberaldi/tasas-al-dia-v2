@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Upload, Download, AlertTriangle, Check, X, Database } from 'lucide-react';
+import { storageService } from '../utils/storageService';
 
 export default function SettingsModal({ isOpen, onClose }) {
     const [importStatus, setImportStatus] = useState(null); // 'success', 'error', 'loading'
@@ -9,14 +10,20 @@ export default function SettingsModal({ isOpen, onClose }) {
     if (!isOpen) return null;
 
     // --- EXPORTAR BACKUP ---
-    const handleExport = () => {
+    const handleExport = async () => {
         try {
+            setImportStatus('loading');
+            setStatusMessage('Generando backup (puede tomar unos segundos)...');
+
+            const products = await storageService.getItem('my_products_v1', []);
+            const accounts = await storageService.getItem('my_accounts_v2', []);
+
             const backupData = {
                 timestamp: new Date().toISOString(),
                 version: '1.0',
                 data: {
-                    my_products_v1: localStorage.getItem('my_products_v1'),
-                    my_accounts_v2: localStorage.getItem('my_accounts_v2'),
+                    my_products_v1: JSON.stringify(products), // Lo stringificamos para mantener formato legacy
+                    my_accounts_v2: JSON.stringify(accounts),
                     premium_token: localStorage.getItem('premium_token'),
                     // [NEW] Manual Rates & Config
                     street_rate_bs: localStorage.getItem('street_rate_bs'),
@@ -57,8 +64,10 @@ export default function SettingsModal({ isOpen, onClose }) {
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             try {
+                setImportStatus('loading');
+                setStatusMessage('Restaurando datos...');
                 const json = JSON.parse(e.target.result);
 
                 // Validación simple
@@ -66,9 +75,13 @@ export default function SettingsModal({ isOpen, onClose }) {
                     throw new Error('Formato de archivo inválido.');
                 }
 
-                // Restaurar datos
-                if (json.data.my_products_v1) localStorage.setItem('my_products_v1', json.data.my_products_v1);
-                if (json.data.my_accounts_v2) localStorage.setItem('my_accounts_v2', json.data.my_accounts_v2);
+                // Restaurar datos pesados en IndexedDB
+                if (json.data.my_products_v1) {
+                    await storageService.setItem('my_products_v1', typeof json.data.my_products_v1 === 'string' ? JSON.parse(json.data.my_products_v1) : json.data.my_products_v1);
+                }
+                if (json.data.my_accounts_v2) {
+                    await storageService.setItem('my_accounts_v2', typeof json.data.my_accounts_v2 === 'string' ? JSON.parse(json.data.my_accounts_v2) : json.data.my_accounts_v2);
+                }
                 // NOTA: premium_token y device_id NO se restauran desde el backup.
                 // El token de licencia está criptográficamente ligado al device_id de ESTE dispositivo.
                 // Sobreescribirlos invalidaría la licencia activa en este equipo.

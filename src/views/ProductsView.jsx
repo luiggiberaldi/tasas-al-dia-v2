@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { storageService } from '../utils/storageService';
 import { Package, Plus, Trash2, Camera, X, Store, Tag, Pencil, Banknote, Search, ChevronLeft, ChevronRight, Share2, Settings, Zap, ArrowLeftRight } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import { ProductShareModal } from '../components/ProductShareModal';
@@ -9,6 +10,7 @@ import { useWallet } from '../hooks/useWallet';
 
 export const ProductsView = ({ rates, triggerHaptic }) => {
     const [products, setProducts] = useState([]);
+    const [isLoadingProducts, setIsLoadingProducts] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isShareOpen, setIsShareOpen] = useState(false);
@@ -59,10 +61,18 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
     const [image, setImage] = useState(null);
     const fileInputRef = useRef(null);
 
-    // Initial Load
+    // Initial Load (Asynchronous with localforage)
     useEffect(() => {
-        const saved = localStorage.getItem('my_products_v1');
-        if (saved) setProducts(JSON.parse(saved));
+        let isMounted = true;
+        const loadProducts = async () => {
+            const saved = await storageService.getItem('my_products_v1', []);
+            if (isMounted) {
+                setProducts(saved);
+                setIsLoadingProducts(false);
+            }
+        };
+        loadProducts();
+        return () => { isMounted = false; };
     }, []);
 
     // Set Initial Street Rate if not set (Safe default: USDT Rate)
@@ -73,11 +83,16 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
         }
     }, [rates.usdt.price, streetRate]);
 
-    // Guardar al cambiar
+    // Guardar al cambiar (Asíncrono)
     useEffect(() => {
-        if (products.length > 0) localStorage.setItem('my_products_v1', JSON.stringify(products));
-        else localStorage.removeItem('my_products_v1');
-    }, [products]);
+        if (!isLoadingProducts) {
+            if (products.length > 0) {
+                storageService.setItem('my_products_v1', products);
+            } else {
+                storageService.removeItem('my_products_v1');
+            }
+        }
+    }, [products, isLoadingProducts]);
 
     useEffect(() => {
         if (streetRate > 0) localStorage.setItem('street_rate_bs', streetRate.toString());
@@ -395,7 +410,12 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
             </div>
 
             {/* Grid Productos */}
-            {products.length === 0 ? (
+            {isLoadingProducts ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-300 dark:text-slate-700 space-y-4">
+                    <div className="w-8 h-8 rounded-full border-4 border-slate-200 dark:border-slate-800 border-t-brand animate-spin" />
+                    <p className="text-sm font-medium">Cargando catálogo...</p>
+                </div>
+            ) : products.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-slate-300 dark:text-slate-700 space-y-4">
                     <Package size={64} strokeWidth={1} />
                     <p className="text-sm font-medium">No has agregado productos</p>
@@ -619,7 +639,9 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
                 products={products}
                 onImport={(imported) => {
                     setProducts(imported);
-                    localStorage.setItem('my_products_v1', JSON.stringify(imported));
+                    // El auto-guardado en el useEffect ya se encarga de guardar en storageService,
+                    // pero para mayor seguridad lo forzamos aquí también.
+                    storageService.setItem('my_products_v1', imported);
                 }}
             />
         </div>

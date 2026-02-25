@@ -1,28 +1,40 @@
 import { useState, useEffect, useCallback } from 'react';
+import { storageService } from '../utils/storageService';
 
 const STORAGE_KEY = 'my_accounts_v2';
 
 export function useWallet() {
-  // 1. Cargar datos iniciales
-  const [accounts, setAccounts] = useState(() => {
-    if (typeof window === 'undefined') return [];
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      console.error("Error cargando billetera:", e);
-      return [];
-    }
-  });
+  const [accounts, setAccounts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // 2. Guardar automáticamente cada vez que cambien
+  // 1. Cargar datos iniciales asíncronamente
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
-    } catch (e) {
-      console.error("Error guardando billetera:", e);
+    let isMounted = true;
+    const loadData = async () => {
+      try {
+        const saved = await storageService.getItem(STORAGE_KEY, []);
+        if (isMounted) {
+          setAccounts(saved);
+        }
+      } catch (error) {
+        console.error("Error cargando billetera:", error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadData();
+    return () => { isMounted = false; };
+  }, []);
+
+  // 2. Guardar automáticamente cada vez que cambien (sólo si ya cargó)
+  useEffect(() => {
+    if (!isLoading) {
+      storageService.setItem(STORAGE_KEY, accounts);
     }
-  }, [accounts]);
+  }, [accounts, isLoading]);
 
   // --- ACCIONES ---
 
@@ -30,6 +42,7 @@ export function useWallet() {
    * Agrega una nueva cuenta.
    * @param {string} type - 'pago_movil' | 'transfer' | 'binance'
    * @param {string} alias - Nombre corto (Ej: "Mercantil Tienda")
+   * @param {string} currency - VES o USDT
    * @param {object} data - Datos específicos (banco, telefono, email, etc)
    */
   const addAccount = useCallback((type, alias, currency, data) => {
@@ -58,6 +71,7 @@ export function useWallet() {
 
   return {
     accounts,
+    isLoading,
     addAccount,
     removeAccount,
     updateAccount
