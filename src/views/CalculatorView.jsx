@@ -1,21 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { ManualMode } from '../components/calculator/ManualMode';
+import { useWallet } from '../hooks/useWallet';
 
 const SAFE_RATES = { usdt: { price: 0 }, bcv: { price: 0 }, euro: { price: 0 } };
 
 export default function CalculatorView({ rates, theme, triggerHaptic, isKeyboardOpen }) {
   const currentRates = rates || SAFE_RATES;
-  const [accounts, setAccounts] = useState([]);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem('my_accounts_v2');
-      setAccounts(raw ? JSON.parse(raw) : []);
-    } catch (e) {
-      console.warn('⚠️ localStorage bloqueado o corrupto en CalculatorView:', e);
-      setAccounts([]); // Fallback seguro
-    }
-  }, []);
+  const { accounts } = useWallet();
 
   // State for initial loading skeleton
   const isInitialLoading = !rates?.bcv?.price;

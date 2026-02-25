@@ -162,7 +162,7 @@ export const ProductShareModal = ({ isOpen, onClose, product, rates, accounts, s
                                 : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-400'
                                 }`}
                         >
-                            {key.replace('show', '')}
+                            {key.replace('show', '').replace('RefBcv', 'DolarBcv').replace('RefEuro', 'EuroBcv')}
                         </button>
                     ))}
                 </div>

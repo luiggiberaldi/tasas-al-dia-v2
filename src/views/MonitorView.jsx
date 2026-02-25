@@ -69,7 +69,7 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
                 useCORS: true,
                 scale: window.devicePixelRatio, // Usa la calidad nativa del teléfono
                 backgroundColor: '#020617',     // Fondo oscuro forzado
-                ignoreElements: (element) => element.id === 'hide-on-capture',
+                ignoreElements: (element) => element.hasAttribute('data-hide-on-capture'),
             });
 
             // 2. Generamos la imagen JPEG (Más ligera y compatible)
@@ -106,7 +106,7 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
             >
                 {/* Botón Salir (ID especial para ocultarlo en la foto) */}
                 <button
-                    id="hide-on-capture"
+                    data-hide-on-capture
                     onClick={() => { triggerHaptic && triggerHaptic(); setKioskMode(false); }}
                     className="absolute top-6 right-6 p-3 bg-white/10 rounded-full text-white/50 hover:text-white transition-colors z-20"
                 >
@@ -155,7 +155,7 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
                     {/* BOTÓN FLOTANTE PARA CAPTURAR (Se oculta al tomar la foto) */}
                     {!isCapturing && (
                         <button
-                            id="hide-on-capture"
+                            data-hide-on-capture
                             onClick={handleCaptureKiosk}
                             className="flex items-center gap-2 bg-brand text-slate-900 px-6 py-3 rounded-full font-bold shadow-lg shadow-brand/20 active:scale-95 transition-transform"
                         >

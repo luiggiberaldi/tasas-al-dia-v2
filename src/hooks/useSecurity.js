@@ -8,8 +8,9 @@ export function useSecurity() {
     const [deviceId, setDeviceId] = useState('');
     const [isPremium, setIsPremium] = useState(false);
     const [loading, setLoading] = useState(true);
-    const [isDemo, setIsDemo] = useState(false); // [NEW]
-    const [demoExpires, setDemoExpires] = useState(null); // [NEW]
+    const [isDemo, setIsDemo] = useState(false);
+    const [demoExpires, setDemoExpires] = useState(null);
+    const [demoExpiredMsg, setDemoExpiredMsg] = useState('');
 
     useEffect(() => {
         // 1. Obtener o Generar Device ID
@@ -79,15 +80,10 @@ export function useSecurity() {
                     } else {
                         // Expiró
                         console.warn("Licencia Demo Expirada");
-
-                        // [NEW] Mensaje de Expiración (Solo si acabamos de detectar que expiró)
-                        if (isPremium) { // Evitar spam si ya estaba expirado
-                            alert("⏳ Tu periodo de demostración de 24 horas ha finalizado.\n\nEsperamos que hayas disfrutado la experiencia VIP. Para continuar operando sin límites y blindar tu negocio, adquiere tu licencia oficial hoy mismo.");
-                        }
-
                         localStorage.removeItem('premium_token');
                         setIsPremium(false);
                         setIsDemo(false);
+                        setDemoExpiredMsg("⏳ Tu periodo de demostración de 24 horas ha finalizado. Para continuar operando sin límites, adquiere tu licencia oficial.");
                     }
                 } else {
                     setIsPremium(false);
@@ -160,6 +156,8 @@ export function useSecurity() {
         unlockApp,
         generateCodeForClient,
         isDemo,
-        demoExpires
+        demoExpires,
+        demoExpiredMsg,
+        dismissExpiredMsg: () => setDemoExpiredMsg('')
     };
 }

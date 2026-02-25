@@ -18,7 +18,7 @@ export const MessageService = {
      * @param {Array} params.currencies
      * @param {string} params.tone - 'formal' | 'casual' | 'direct'
      * @param {string} params.clientName
-     * @param {string} params.mainCurrency - 'auto' | 'BS' | 'USD' | 'EUR'
+     * @param {string} params.mainCurrency - 'auto' | 'BS' | 'USDT' | 'BCV' | 'EUR'
      * @returns {string}
      */
     buildPaymentMessage: ({ amountTop, amountBot, from, to, selectedAccount, showReference = true, rates, currencies, tone = 'casual', clientName = '', mainCurrency = 'auto' }) => {
@@ -56,18 +56,32 @@ export const MessageService = {
         else if (mainCurrency === 'BS') showAsBs = true;
         // else USD/EUR
 
+        // Detectar si "from" ya es una moneda dólar/foránea o Bs
+        const fromIsDollar = ['USD', 'USDT', 'BCV'].includes(from);
+        const fromIsBs = from === 'VES' || from === 'Bs';
+
         if (showAsBs) {
             amountStr = `*${strBs} Bs*`;
-            if (showReference) amountStr += ` (Ref: ${strUsd} $)`;
+            // Solo mostrar ref en $ si TENGO no es ya dólares
+            if (showReference && !fromIsDollar) amountStr += ` (Ref: ${strUsd} $)`;
         } else {
             // Foreign Currency Display
-            const symbol = mainCurrency === 'EUR' ? 'EUR' : 'USDT'; // Default to USDT for foreign
-            const valToShow = mainCurrency === 'EUR' ? strEur : strUsd;
+            let symbol, valToShow;
+            if (mainCurrency === 'EUR') {
+                symbol = 'EUR';
+                valToShow = strEur;
+            } else if (mainCurrency === 'BCV') {
+                symbol = '$';
+                valToShow = formatUsd(totalBsRaw / rates.bcv.price);
+            } else {
+                symbol = 'USDT';
+                valToShow = strUsd;
+            }
 
             amountStr = `*${valToShow} ${symbol}*`;
 
-            // Ref in Bs logic
-            if (showReference) {
+            // Solo mostrar ref en Bs si TENGO no es ya Bs
+            if (showReference && !fromIsBs) {
                 const refBs = formatBs(totalUsdRaw * automaticRefRate);
                 amountStr += ` (Ref: ${refBs} Bs)`;
             }

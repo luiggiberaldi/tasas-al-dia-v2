@@ -4,6 +4,7 @@
 const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
 const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 const TTL_SECONDS = 86400; // 24 horas
+const MAX_PAYLOAD_BYTES = 5 * 1024 * 1024; // 5MB máximo
 
 // Helper: ejecutar comando Redis via REST
 async function redis(command, ...args) {
@@ -27,8 +28,10 @@ function generateCode() {
 }
 
 export default async function handler(req, res) {
-    // CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // CORS — permitir dominio de producción + localhost dev
+    const origin = req.headers?.origin || '';
+    const allowed = origin.includes('localhost') || origin.includes('vercel.app') || origin.includes('tasasaldia');
+    res.setHeader('Access-Control-Allow-Origin', allowed ? origin : '');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -46,6 +49,12 @@ export default async function handler(req, res) {
 
             if (!products || !Array.isArray(products) || products.length === 0) {
                 return res.status(400).json({ error: 'No hay productos para compartir.' });
+            }
+
+            // Validar tamaño del payload
+            const payloadSize = JSON.stringify(products).length;
+            if (payloadSize > MAX_PAYLOAD_BYTES) {
+                return res.status(413).json({ error: `Payload demasiado grande (${(payloadSize / 1024 / 1024).toFixed(1)}MB). Máximo: 5MB.` });
             }
 
             // Generar código único (reintentar si existe)
