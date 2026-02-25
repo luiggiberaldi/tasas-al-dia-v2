@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Package, Plus, Trash2, Camera, X, Store, Tag, Pencil, Banknote, Search, ChevronLeft, ChevronRight, Share2, Settings, Zap } from 'lucide-react';
+import { Package, Plus, Trash2, Camera, X, Store, Tag, Pencil, Banknote, Search, ChevronLeft, ChevronRight, Share2, Settings, Zap, ArrowLeftRight } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import { ProductShareModal } from '../components/ProductShareModal';
 import SettingsModal from '../components/SettingsModal';
+import ShareInventoryModal from '../components/ShareInventoryModal';
 import { formatBs, formatUsd, smartCashRounding } from '../utils/calculatorUtils';
 import { useWallet } from '../hooks/useWallet';
 
 export const ProductsView = ({ rates, triggerHaptic }) => {
     const [products, setProducts] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false); // [NEW] backup state
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isShareOpen, setIsShareOpen] = useState(false);
 
     // MARKET LOGIC (PDA v1.0) - REPOSITION PARITY
     // MARKET LOGIC (PDA v1.0) - REPOSITION PARITY
@@ -266,6 +268,13 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
                         <p className="text-sm text-slate-400 font-medium ml-1">Mis Productos</p>
                     </div>
                     <div className="flex gap-2">
+                        <button
+                            onClick={() => { triggerHaptic && triggerHaptic(); setIsShareOpen(true); }}
+                            className="p-3 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-2xl shadow-sm hover:scale-105 transition-transform"
+                            title="Compartir / Importar Catálogo"
+                        >
+                            <ArrowLeftRight size={24} strokeWidth={2.5} />
+                        </button>
                         <button
                             onClick={() => { triggerHaptic && triggerHaptic(); setIsSettingsOpen(true); }}
                             className="p-3 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl shadow-sm hover:scale-105 transition-transform"
@@ -602,6 +611,17 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
             {/* Settings Modal (Fixed) */}
 
             <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+
+            {/* Share Inventory Modal */}
+            <ShareInventoryModal
+                isOpen={isShareOpen}
+                onClose={() => setIsShareOpen(false)}
+                products={products}
+                onImport={(imported) => {
+                    setProducts(imported);
+                    localStorage.setItem('my_products_v1', JSON.stringify(imported));
+                }}
+            />
         </div>
     );
 };
