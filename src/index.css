@@ -41,8 +41,8 @@ input[type=number] {
   -moz-appearance: textfield;
 }
 
-/* --- LANDSCAPE BLOCKER --- */
-@media (orientation: landscape) and (max-width: 1024px) {
+/* --- LANDSCAPE BLOCKER (Solo móviles, no tablets) --- */
+@media (orientation: landscape) and (max-width: 768px) {
   #root {
     display: none;
   }

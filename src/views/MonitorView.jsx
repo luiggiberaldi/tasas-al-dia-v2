@@ -193,7 +193,7 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
         <div className="flex flex-col h-[calc(100dvh-150px)] overflow-hidden justify-between py-2 animate-in fade-in slide-in-from-bottom-2 duration-500 relative">
 
             {/* HEADER */}
-            <header className="flex items-center justify-between pt-2 pb-2 px-3 sm:px-4 shrink-0">
+            <header className="flex items-center justify-between pt-[env(safe-area-inset-top)] pb-2 px-3 sm:px-4 shrink-0" style={{ paddingTop: 'max(env(safe-area-inset-top), 8px)' }}>
                 <div className="flex flex-col items-start gap-1">
                     <button onClick={handleSecretDebug} className="active:scale-95 transition-transform outline-none">
                         <img src={theme === 'dark' ? '/logodark.png' : '/logoprincipal.png'} alt="TasasAlDía" className="h-10 sm:h-12 w-auto object-contain animate-in fade-in slide-in-from-left-2 duration-500 drop-shadow-sm" />

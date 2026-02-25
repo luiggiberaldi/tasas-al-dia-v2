@@ -423,7 +423,7 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
 
                                     {/* Info */}
                                     <div className="flex-1 min-w-0">
-                                        <h3 className="font-bold text-slate-800 dark:text-white mb-1 leading-tight line-clamp-2 pr-28 h-10">{p.name}</h3>
+                                        <h3 className="font-bold text-slate-800 dark:text-white mb-1 leading-tight line-clamp-2 pr-28 min-h-[2.5rem]">{p.name}</h3>
 
                                         <div className="flex items-baseline gap-1 mb-2">
                                             <span className="text-xl font-black text-brand-dark">{formatUsd(p.priceUsdt)}</span>
@@ -464,8 +464,8 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
                                         </div>
                                     </div>
 
-                                    {/* Botones de Acción (Edit y Delete) */}
-                                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {/* Botones de Acción (Edit y Delete) — siempre visibles en touch */}
+                                    <div className="absolute top-2 right-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                         <button onClick={() => setShareProduct(p)} className="p-2 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl transition-all" title="Compartir Cotización">
                                             <Share2 size={16} />
                                         </button>
@@ -629,17 +629,8 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
                 </div>
             </Modal>
 
-            {/* Share Modal */}
-            <ProductShareModal
-                isOpen={!!shareProduct}
-                onClose={() => setShareProduct(null)}
-                product={shareProduct}
-                accounts={accounts}
-                streetRate={streetRate}
-                rates={{ ...rates, usdt: { ...rates.usdt, price: effectiveUsdtRate } }}
-            />
-
             {/* Settings Modal (Fixed) */}
+
             <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
         </div>
     );

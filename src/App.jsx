@@ -98,10 +98,15 @@ export default function App() {
 
   // Keyboard/Focus Detection for Mobile (Hides Nav & Actions)
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
-  const baseHeight = useRef(window.innerHeight);
+  const baseHeight = useRef(0);
 
   useEffect(() => {
     if (!window.visualViewport) return;
+
+    // Capturar la altura base en el momento del montaje (evita leer window en el módulo)
+    if (!baseHeight.current) {
+      baseHeight.current = window.visualViewport.height;
+    }
 
     const handleViewport = () => {
       const vh = window.visualViewport.height;
