@@ -26,7 +26,7 @@ export const useSpeech = () => {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
 
-        // Estrategia: MISTER CAMBIO (Voz Masculina)
+        // Estrategia: TASAS AL DÍA (Voz Masculina)
         // 1. Microsoft Raul (Windows - La mejor)
         // 2. Google Español (Suele ser mujer, pero bajaremos el pitch)
         let selectedVoice =

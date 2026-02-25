@@ -66,7 +66,7 @@ export const standardTests = [
         premium: true,
         validator: (aiResult) => {
             const text = aiResult.textResponse?.toLowerCase() || "";
-            if (text.includes('mister cambio') && text.includes('socio') && text.includes('dinero')) {
+            if (text.includes('tasas') && text.includes('socio') && text.includes('dinero')) {
                 return { ok: true, msg: 'Identidad VIP confirmada.' };
             }
             return { ok: false, msg: 'ERROR: Respuesta genérica, sin personalidad VIP.' };
@@ -167,7 +167,7 @@ export const runAudit = async (rates, logCallback) => {
     logCallback(`📊 Score Final: ${finalScore.toFixed(0)}% (${passed}/${standardTests.length})`);
 
     if (finalScore === 100) {
-        logCallback('🏆 SISTEMA CERTIFICADO: Mister Cambio es apto para despliegue.');
+        logCallback('🏆 SISTEMA CERTIFICADO: TasasAlDía es apto para despliegue.');
     } else {
         logCallback('⚠️ ATENCIÓN: Se requieren ajustes en el prompt o lógica del sistema.');
     }

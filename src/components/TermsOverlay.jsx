@@ -62,7 +62,7 @@ export default function TermsOverlay() {
                     style={{ scrollbarWidth: 'thin' }}
                 >
                     <h1 className="text-2xl font-black text-slate-900 mb-4">Términos y Condiciones de Uso - TasasAlDía</h1>
-                    <p className="text-xs text-slate-500 font-bold mb-6">Última actualización: Enero 2026</p>
+                    <p className="text-xs text-slate-500 font-bold mb-6">Última actualización: Febrero 2026</p>
 
                     <hr className="my-6" />
 
@@ -75,10 +75,10 @@ export default function TermsOverlay() {
                     <p className="text-sm text-slate-700 leading-relaxed mb-2">TasasAlDía es una aplicación web progresiva (PWA) que proporciona:</p>
                     <ul className="text-sm text-slate-700 space-y-1 mb-4">
                         <li><strong>Monitoreo de tasas de cambio</strong> en Venezuela (USDT, Dólar BCV, Euro BCV)</li>
-                        <li><strong>Calculadora financiera</strong> para conversiones y cálculos</li>
-                        <li><strong>Asistente de IA</strong> para consultas relacionadas con tasas y conversiones</li>
-                        <li><strong>Catálogo de productos</strong> con cotizaciones automatizadas (función Premium)</li>
-                        <li><strong>Gestión de cuentas bancarias</strong> personales para facilitar transacciones</li>
+                        <li><strong>Calculadora financiera</strong> para conversiones entre monedas</li>
+                        <li><strong>Gestión de cuentas de pago</strong> (Pago Móvil, Transferencia, Binance)</li>
+                        <li><strong>Envío de cotizaciones</strong> por WhatsApp con datos de pago incluidos (función Premium)</li>
+                        <li><strong>Catálogo de productos</strong> con precios multi-moneda y compartir con código (función Premium)</li>
                     </ul>
 
                     <h2 className="text-lg font-bold text-slate-900 mt-6 mb-3">3. Descargo de Responsabilidad</h2>
@@ -109,8 +109,13 @@ export default function TermsOverlay() {
                     </p>
 
                     <h2 className="text-lg font-bold text-slate-900 mt-6 mb-3">4. Funcionalidades Premium</h2>
+                    <p className="text-sm text-slate-700 leading-relaxed mb-2">TasasAlDía ofrece funciones gratuitas y funciones exclusivas para usuarios con <strong>Licencia Premium (TasasAlDía Business)</strong>:</p>
+                    <ul className="text-sm text-slate-700 space-y-1 mb-2">
+                        <li><strong>Gratuito:</strong> Monitoreo de tasas, calculadora de conversiones, hasta 2 cuentas de pago, modo kiosco con captura de imagen.</li>
+                        <li><strong>Premium:</strong> Envío de cotizaciones por WhatsApp, cuentas de pago ilimitadas, catálogo de productos con precios, compartir catálogo mediante código temporal.</li>
+                    </ul>
                     <p className="text-sm text-slate-700 leading-relaxed mb-4">
-                        Algunas funciones avanzadas de TasasAlDía requieren una <strong>Licencia Premium</strong>. El acceso Premium se otorga mediante código de activación único vinculado al dispositivo del usuario. La licencia es personal, intransferible y no reembolsable.
+                        El acceso Premium se otorga mediante código de activación único vinculado al dispositivo del usuario. La licencia es personal, intransferible y no reembolsable. Se ofrece un periodo de demostración de 24 horas por dispositivo.
                     </p>
 
                     <h2 className="text-lg font-bold text-slate-900 mt-6 mb-3">5. Privacidad y Datos Personales</h2>
@@ -163,8 +168,8 @@ export default function TermsOverlay() {
                         onClick={handleAccept}
                         disabled={!canAccept}
                         className={`w-full py-4 rounded-xl font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2 ${canAccept
-                                ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20 active:scale-95'
-                                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                            ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20 active:scale-95'
+                            : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                             }`}
                     >
                         <Check size={20} strokeWidth={2.5} />

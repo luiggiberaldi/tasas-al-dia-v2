@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Send, CreditCard, Landmark, DollarSign, X, Bitcoin, Smartphone, QrCode, Pencil } from 'lucide-react';
+import { Plus, Trash2, Send, CreditCard, Landmark, DollarSign, X, Bitcoin, Smartphone, QrCode, Pencil, Crown } from 'lucide-react';
+import { useSecurity } from '../hooks/useSecurity';
 
 // ✅ LISTA OFICIAL DE BANCOS VENEZOLANOS (2025)
 const VENEZUELA_BANKS = [
@@ -32,6 +33,8 @@ const VENEZUELA_BANKS = [
 ];
 
 export default function WalletView({ rates }) {
+    const { isPremium } = useSecurity();
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     // Estado de Cuentas
     const [accounts, setAccounts] = useState(() => {
         try { return JSON.parse(localStorage.getItem('my_accounts_v2')) || []; }
@@ -74,6 +77,10 @@ export default function WalletView({ rates }) {
 
     // --- LÓGICA CRUD ---
     const openCreateModal = () => {
+        if (!isPremium && accounts.length >= 2) {
+            setShowUpgradeModal(true);
+            return;
+        }
         setEditingId(null);
         setNewAccount(initialFormState);
         setShowForm(true);
@@ -460,6 +467,38 @@ export default function WalletView({ rates }) {
         .dark .input-std { background-color: rgb(2 6 23); border: 1px solid rgb(30 41 59); color: white; }
         .input-std:focus { border-color: #FACC15; ring: 2px; }
       `}</style>
+
+            {/* Modal Upgrade Premium */}
+            {showUpgradeModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl rounded-2xl p-6 max-w-xs text-center animate-in zoom-in-95 duration-200">
+                        <div className="mx-auto w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-3">
+                            <Crown size={24} className="text-amber-500" />
+                        </div>
+                        <h3 className="text-lg font-black text-slate-800 dark:text-white mb-2">Límite Alcanzado</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 leading-relaxed">
+                            La versión gratuita permite <strong>2 cuentas</strong>. Con <strong>TasasAlDía Business</strong> puedes agregar cuentas ilimitadas.
+                        </p>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setShowUpgradeModal(false)}
+                                className="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            >
+                                Cerrar
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const msg = `Hola! Me interesa la licencia Premium de TasasAlDía para agregar más cuentas de pago.`;
+                                    window.open(`https://wa.me/584124051793?text=${encodeURIComponent(msg)}`, '_blank');
+                                }}
+                                className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white bg-[#10B981] shadow-lg shadow-emerald-500/20 active:scale-95 transition-transform"
+                            >
+                                Solicitar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

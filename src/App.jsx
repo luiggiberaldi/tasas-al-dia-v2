@@ -12,6 +12,7 @@ import { useRates } from './hooks/useRates';
 import { useSecurity } from './hooks/useSecurity';
 import PremiumGuard from './components/security/PremiumGuard';
 import TermsOverlay from './components/TermsOverlay';
+import OnboardingOverlay from './components/OnboardingOverlay';
 import ErrorBoundary from './components/ErrorBoundary';
 
 export default function App() {
@@ -27,7 +28,7 @@ export default function App() {
   const [generatedCode, setGeneratedCode] = useState('');
 
   const { rates, loading, isOffline, logs, updateData, notificationsEnabled, enableNotifications } = useRates();
-  const { generateCodeForClient } = useSecurity();
+  const { generateCodeForClient, isPremium, isDemo, demoTimeLeft, demoExpiredMsg, dismissExpiredMsg } = useSecurity();
 
   useEffect(() => {
     const handler = (e) => { e.preventDefault(); setInstallPrompt(e); };
@@ -149,6 +150,50 @@ export default function App() {
 
       {/* Terms and Conditions Overlay (First Use) */}
       <TermsOverlay />
+
+      {/* Tutorial Onboarding (First Use, after Terms) */}
+      <OnboardingOverlay isPremium={isPremium} />
+
+      {/* Demo Banner (discreto) */}
+      {isDemo && demoTimeLeft && (
+        <div className="fixed top-1 right-2 z-[100]">
+          <div className="px-2 py-0.5 bg-amber-500/80 backdrop-blur-sm rounded-full">
+            <p className="text-[9px] font-bold text-slate-900">
+              ⏱ {demoTimeLeft}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Demo Expired Modal */}
+      {demoExpiredMsg && (
+        <div className="fixed inset-0 z-[9999] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-5 animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-8 max-w-sm shadow-2xl border border-slate-100 dark:border-slate-800 text-center animate-in zoom-in-95 duration-300">
+            <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">⏳</span>
+            </div>
+            <h2 className="text-xl font-black text-slate-900 dark:text-white mb-2">Prueba finalizada</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-5 leading-relaxed">
+              {demoExpiredMsg}
+            </p>
+            <button
+              onClick={() => {
+                const msg = `Hola! Quiero adquirir la licencia Premium de TasasAlDía. Acabo de terminar mi prueba gratuita.`;
+                window.open(`https://wa.me/584124051793?text=${encodeURIComponent(msg)}`, '_blank');
+              }}
+              className="w-full py-3 bg-[#10B981] text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-transform text-sm mb-2"
+            >
+              Solicitar Licencia
+            </button>
+            <button
+              onClick={dismissExpiredMsg}
+              className="w-full py-2.5 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              Continuar con versión gratuita
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Golden Tester View Overlay */}
       {showTester && (

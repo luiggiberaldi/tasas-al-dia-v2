@@ -1,54 +1,53 @@
 import React, { useState } from 'react';
-import { Lock, Copy, Check, Star, Sparkles, Send, Bot, Store, MessageCircle, Database, Calculator, Clock, XCircle, Crown } from 'lucide-react';
+import { Lock, Copy, Check, Star, Sparkles, Send, Bot, Store, MessageCircle, Database, Crown, CreditCard, Gift } from 'lucide-react';
 import { useSecurity } from '../../hooks/useSecurity';
-import { Modal } from '../Modal'; // Importar Modal Genérico
+import { Modal } from '../Modal';
 
-export default function PremiumGuard({ children, featureName = "Esta función", isAI = false, isShop = false }) { // [UPDATED]
-    const { deviceId, isPremium, loading, unlockApp } = useSecurity();
+export default function PremiumGuard({ children, featureName = "Esta función", isAI = false, isShop = false }) {
+    const { deviceId, isPremium, loading, unlockApp, activateDemo, demoUsed } = useSecurity();
     const [inputCode, setInputCode] = useState('');
     const [error, setError] = useState(false);
     const [success, setSuccess] = useState(false);
     const [copied, setCopied] = useState(false);
-    const [showConfirmation, setShowConfirmation] = useState(false);
+    const [demoLoading, setDemoLoading] = useState(false);
 
-    // [NEW] Estado para Modales de Mensaje (Alert Replacement)
+    // Estado para Modales
     const [messageModal, setMessageModal] = useState({ open: false, title: '', content: '' });
 
-    // Mientras carga el estado de seguridad, mostramos un loader simple o nada
     if (loading) return <div className="p-10 text-center text-slate-400">Verificando licencia...</div>;
-
-    // Si es Premium, renderizamos el contenido protegido
     if (isPremium) return children;
 
-    // Si NO es Premium, mostramos el Paywall
+    // --- Handlers ---
     const handleUnlock = async (e) => {
         e.preventDefault();
         const result = await unlockApp(inputCode);
-
         if (result.success) {
             setSuccess(true);
             setError(false);
-
-            if (result.status === 'DEMO_ACTIVATED') {
-                setMessageModal({
-                    open: true,
-                    title: '🎉 ¡Modo Demo Activado!',
-                    content: 'Disfruta de todas las funciones VIP por 24 horas. Aprovecha al máximo la herramienta para potenciar tu negocio.'
-                });
-            }
         } else {
             setError(true);
             if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
-
-            if (result.status === 'DEMO_USED') {
-                setMessageModal({
-                    open: true,
-                    title: '🚫 Demo Ya Utilizado',
-                    content: 'El periodo de prueba ya fue utilizado en este dispositivo. Por favor, contacta a soporte para adquirir una licencia ilimitada.'
-                });
-            }
-
             setTimeout(() => setError(false), 2000);
+        }
+    };
+
+    const handleActivateDemo = async () => {
+        setDemoLoading(true);
+        const result = await activateDemo();
+        setDemoLoading(false);
+
+        if (result.success) {
+            setMessageModal({
+                open: true,
+                title: '🎉 ¡Demo Activada!',
+                content: 'Disfruta de todas las funciones premium durante 3 días. Aprovecha al máximo la herramienta.'
+            });
+        } else if (result.status === 'DEMO_USED') {
+            setMessageModal({
+                open: true,
+                title: '🚫 Demo ya utilizada',
+                content: 'El periodo de prueba ya fue utilizado en este dispositivo. Contacta soporte para adquirir tu licencia.'
+            });
         }
     };
 
@@ -61,35 +60,32 @@ export default function PremiumGuard({ children, featureName = "Esta función", 
     };
 
     const openWhatsApp = () => {
-        const message = `Hola! Quiero adquirir una licencia Premium para Mister Cambio. Mi ID de instalación es: ${deviceId}`;
+        const message = `Hola! Quiero adquirir una licencia Premium para TasasAlDía. Mi ID de instalación es: ${deviceId}`;
         const url = `https://wa.me/584124051793?text=${encodeURIComponent(message)}`;
         window.open(url, '_blank');
     };
 
-    // [NEW] Configuration Logic
+    // --- Config por variante ---
     let title, message, Icon, iconColor, benefits;
-
-    // ESTILO "LIGHT & CLEAN" (Unificado para todas las variantes para evitar peso visual)
-    const bgContainer = "bg-white/95 dark:bg-slate-900/95";
-    const containerClasses = "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none";
 
     if (isShop) {
         title = <span>TasasAlDía <span className="text-amber-500">Business</span> 👑</span>;
-        message = "Gestiona productos y genera cotizaciones profesionales al instante.";
+        message = "Desbloquea el potencial completo para tu negocio.";
         Icon = Store;
-        iconColor = "text-indigo-600 dark:text-indigo-400 animate-pulse"; // Indigo para Shop
+        iconColor = "text-indigo-600 dark:text-indigo-400 animate-pulse";
         benefits = (
             <>
-                <BenefitItem icon={<MessageCircle size={15} className="text-green-500" />} text="Cotizaciones para WhatsApp." />
-                <BenefitItem icon={<Calculator size={15} className="text-amber-500" />} text="Cálculo Precio Efectivo (+5%)." />
-                <BenefitItem icon={<Database size={15} className="text-blue-500" />} text="Catálogo Offline (Sin Internet)." />
+                <BenefitItem icon={<MessageCircle size={15} className="text-green-500" />} text="Envío de cotizaciones por WhatsApp." />
+                <BenefitItem icon={<CreditCard size={15} className="text-blue-500" />} text="Cuentas de pago ilimitadas." />
+                <BenefitItem icon={<Store size={15} className="text-indigo-500" />} text="Catálogo de productos con precios." />
+                <BenefitItem icon={<Database size={15} className="text-amber-500" />} text="Compartir catálogo con código." />
             </>
         );
     } else if (isAI) {
         title = "Asesoría VIP Agotada ⚡";
         message = "Para continuar con análisis precisos y visión ilimitada, activa tu licencia.";
         Icon = Bot;
-        iconColor = "text-violet-600 dark:text-violet-400 animate-pulse"; // Violeta para AI
+        iconColor = "text-violet-600 dark:text-violet-400 animate-pulse";
         benefits = (
             <>
                 <BenefitItem icon={<Sparkles size={15} className="text-violet-600 dark:text-violet-400" />} text="Análisis de brecha real" />
@@ -98,13 +94,13 @@ export default function PremiumGuard({ children, featureName = "Esta función", 
             </>
         );
     } else {
-        title = <span>Mister Cambio <span className="text-amber-500">Premium</span> 👑</span>;
+        title = <span>TasasAlDía <span className="text-amber-500">Premium</span> 👑</span>;
         message = <span>Acceso exclusivo a <strong>{featureName}</strong> para miembros.</span>;
         Icon = Lock;
         iconColor = "text-amber-500";
         benefits = (
             <>
-                <BenefitItem icon={<Sparkles size={15} className="text-purple-600 dark:text-purple-400" />} text="Calculadora IA Ilimitada" />
+                <BenefitItem icon={<Sparkles size={15} className="text-purple-600 dark:text-purple-400" />} text="Envío de cotizaciones por WhatsApp" />
                 <BenefitItem icon={<Star size={15} className="text-amber-500" />} text="Catálogo de Productos" />
                 <BenefitItem icon={<Check size={15} className="text-green-600 dark:text-green-500" />} text="Soporte Prioritario" />
             </>
@@ -112,19 +108,18 @@ export default function PremiumGuard({ children, featureName = "Esta función", 
     }
 
     return (
-        <div className={`flex flex-col items-center justify-center h-full p-2 text-center overflow-hidden px-4`}>
-            {/* Added styles for medial query */}
+        <div className="flex flex-col items-center justify-center h-full p-2 text-center overflow-hidden px-4">
             <style>{`
                 @media (max-height: 600px) {
                     .benefits-list { display: none; }
                 }
             `}</style>
 
-            <div className={`w-full max-w-[320px] sm:max-w-sm max-h-[95%] overflow-hidden rounded-[2rem] p-4 relative ${containerClasses}`}>
+            <div className="w-full max-w-[320px] sm:max-w-sm max-h-[95%] overflow-hidden rounded-[2rem] p-4 relative bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none">
 
-                {/* Decorative Background Elements (Light & Subtle) */}
-                <div className="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-                <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                {/* Decorative Background */}
+                <div className="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
 
                 {/* Icon & Title */}
                 <div className="mb-2 relative z-10">
@@ -144,7 +139,30 @@ export default function PremiumGuard({ children, featureName = "Esta función", 
                     {benefits}
                 </div>
 
-                {/* Device ID Section */}
+                {/* CTA: Solicitar Licencia */}
+                <button
+                    onClick={openWhatsApp}
+                    className="w-full bg-[#10B981] hover:bg-[#059669] text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 mb-2 transition-all shadow-lg shadow-emerald-500/20 hover:-translate-y-0.5 active:scale-95 text-sm"
+                >
+                    <Send size={16} fill="white" />
+                    <span>Solicitar Licencia</span>
+                </button>
+
+                {/* CTA: Probar gratis 3 días */}
+                <button
+                    onClick={handleActivateDemo}
+                    disabled={demoUsed || demoLoading}
+                    className={`w-full py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 mb-3 text-sm font-bold transition-all active:scale-95
+                        ${demoUsed
+                            ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+                            : 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/30'
+                        }`}
+                >
+                    <Gift size={16} />
+                    <span>{demoUsed ? 'Demo ya utilizada' : demoLoading ? 'Activando...' : 'Probar gratis 3 días'}</span>
+                </button>
+
+                {/* Device ID */}
                 <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-2 mb-3 border border-slate-100 dark:border-slate-700/50">
                     <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-0.5 font-bold leading-tight">Tu ID de Instalación</p>
                     <div className="flex items-center justify-between gap-2">
@@ -161,15 +179,6 @@ export default function PremiumGuard({ children, featureName = "Esta función", 
                     </div>
                 </div>
 
-                {/* CTA Button */}
-                <button
-                    onClick={openWhatsApp}
-                    className="w-full bg-[#10B981] hover:bg-[#059669] text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 mb-3 transition-all shadow-lg shadow-emerald-500/20 hover:-translate-y-0.5 active:scale-95 text-sm"
-                >
-                    <Send size={16} fill="white" />
-                    <span>Solicitar Licencia</span>
-                </button>
-
                 {/* Activation Form */}
                 <form onSubmit={handleUnlock} className="border-t border-slate-100 dark:border-slate-800 pt-2">
                     <p className="text-[10px] text-slate-400 dark:text-slate-500 mb-1.5 font-bold uppercase tracking-wide leading-tight">Código de Activación</p>
@@ -178,7 +187,7 @@ export default function PremiumGuard({ children, featureName = "Esta función", 
                             type="text"
                             value={inputCode}
                             onChange={(e) => setInputCode(e.target.value.toUpperCase())}
-                            placeholder="XP-CODE"
+                            placeholder="ACTIV-XXXX-XXXX"
                             className={`flex-1 bg-white dark:bg-slate-950 border ${error ? 'border-red-500' : 'border-slate-200 dark:border-slate-700'} rounded-xl px-2 py-2 text-center font-mono text-xs font-bold tracking-widest text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all uppercase placeholder:text-slate-300 dark:placeholder:text-slate-600 shadow-sm`}
                         />
                         <button
@@ -192,70 +201,7 @@ export default function PremiumGuard({ children, featureName = "Esta función", 
                     {success && <p className="text-[10px] text-green-500 mt-1 font-bold">¡Activado!</p>}
                 </form>
 
-                {/* Demo Button (Portafolio) */}
-                <button
-                    onClick={() => setShowConfirmation(true)}
-                    className="w-full mt-2 py-2 text-[10px] text-slate-400 dark:text-slate-500 hover:text-brand-dark dark:hover:text-white font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 opacity-60 hover:opacity-100"
-                >
-                    {deviceId === 'TASAS-DEMO' ? (
-                        <>
-                            <XCircle size={11} />
-                            <span>Salir de Demo</span>
-                        </>
-                    ) : (
-                        <>
-                            <Clock size={11} />
-                            <span>Solicitar Demo (24h)</span>
-                        </>
-                    )}
-                </button>
-
-                {/* MODAL DE CONFIRMACIÓN CUSTOM */}
-                {showConfirmation && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl rounded-2xl p-6 max-w-xs text-center transform scale-100 animate-in zoom-in-95 duration-200">
-
-                            <div className="mx-auto w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-3">
-                                <Crown size={24} className="text-amber-500" />
-                            </div>
-
-                            <h3 className="text-lg font-black text-slate-800 dark:text-white mb-2 leading-tight">
-                                {deviceId === 'TASAS-DEMO' ? '¿Finalizar Sesión Demo?' : '¿Activar Entorno Demo?'}
-                            </h3>
-
-                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-5 leading-relaxed">
-                                {deviceId === 'TASAS-DEMO'
-                                    ? 'Se borrará la licencia temporal y se restaurará la configuración original del dispositivo.'
-                                    : 'Esta acción configurará el dispositivo para pruebas de evaluación técnica durante 24 horas.'}
-                            </p>
-
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => setShowConfirmation(false)}
-                                    className="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        if (deviceId === 'TASAS-DEMO') {
-                                            localStorage.removeItem('device_id');
-                                            localStorage.removeItem('premium_token');
-                                        } else {
-                                            localStorage.setItem('device_id', 'TASAS-DEMO');
-                                        }
-                                        window.location.reload();
-                                    }}
-                                    className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white bg-slate-900 dark:bg-brand-dark hover:opacity-90 transition-opacity shadow-lg shadow-slate-500/20"
-                                >
-                                    {deviceId === 'TASAS-DEMO' ? 'Restaurar' : 'Activar Demo'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* MODAL DE MENSAJES (Reemplazo de Alert) */}
+                {/* Modal de Mensajes */}
                 <Modal
                     isOpen={messageModal.open}
                     onClose={() => setMessageModal({ ...messageModal, open: false })}
@@ -266,7 +212,10 @@ export default function PremiumGuard({ children, featureName = "Esta función", 
                             {messageModal.content}
                         </p>
                         <button
-                            onClick={() => setMessageModal({ ...messageModal, open: false })}
+                            onClick={() => {
+                                setMessageModal({ ...messageModal, open: false });
+                                if (messageModal.title.includes('Activada')) window.location.reload();
+                            }}
                             className="w-full py-3 bg-brand text-slate-900 font-bold rounded-xl shadow-lg shadow-brand/20 active:scale-95 transition-transform"
                         >
                             Entendido

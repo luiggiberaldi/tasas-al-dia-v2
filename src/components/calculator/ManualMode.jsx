@@ -3,6 +3,7 @@ import { Check, Copy, ArrowRightLeft, History, Send } from 'lucide-react'; // [U
 
 // Hooks
 import { useCalculator } from '../../hooks/useCalculator';
+import { useSecurity } from '../../hooks/useSecurity';
 
 // Components
 import CalculatorInput from '../../components/CalculatorInput';
@@ -13,7 +14,9 @@ import { MessageService } from '../../services/MessageService';
 
 export const ManualMode = ({ rates, accounts, theme, triggerHaptic, isKeyboardOpen }) => {
     const calc = useCalculator(rates);
+    const { isPremium } = useSecurity();
     const [copied, setCopied] = useState(false);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     // Modal state removed as PaymentSummaryChat is gone
 
     // [NEW] History State
@@ -171,7 +174,12 @@ export const ManualMode = ({ rates, accounts, theme, triggerHaptic, isKeyboardOp
                             </button>
 
                             <button
-                                onClick={() => { triggerHaptic && triggerHaptic(); if (calc.amountBot) setIsSendModalOpen(true); }}
+                                onClick={() => {
+                                    triggerHaptic && triggerHaptic();
+                                    if (!calc.amountBot) return;
+                                    if (!isPremium) { setShowUpgradeModal(true); return; }
+                                    setIsSendModalOpen(true);
+                                }}
                                 disabled={!calc.amountTop}
                                 className="flex-1 flex items-center justify-center gap-3 bg-brand text-slate-900 rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-brand/20 active:scale-95 transition-transform disabled:opacity-50 disabled:shadow-none"
                             >
@@ -305,6 +313,27 @@ export const ManualMode = ({ rates, accounts, theme, triggerHaptic, isKeyboardOp
                             }}
                         />
                     </div>
+                </div>
+            </Modal>
+
+            {/* Modal Upgrade Premium */}
+            <Modal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} title="👑 Función Premium">
+                <div className="text-center py-2">
+                    <p className="text-sm text-slate-600 dark:text-slate-300 mb-4 leading-relaxed">
+                        El envío directo a WhatsApp es una función exclusiva de <strong>TasasAlDía Business</strong>.
+                    </p>
+                    <p className="text-xs text-slate-400 mb-5">
+                        Puedes seguir usando <strong>Copiar</strong> para pegar manualmente en cualquier chat.
+                    </p>
+                    <button
+                        onClick={() => {
+                            const msg = `Hola! Me interesa la licencia Premium de TasasAlDía para enviar cotizaciones por WhatsApp.`;
+                            window.open(`https://wa.me/584124051793?text=${encodeURIComponent(msg)}`, '_blank');
+                        }}
+                        className="w-full py-3 bg-[#10B981] text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-transform text-sm"
+                    >
+                        Solicitar Licencia
+                    </button>
                 </div>
             </Modal>
         </div>
