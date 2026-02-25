@@ -306,7 +306,7 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
                                 <div className="flex items-center justify-between">
                                     <span className="text-xs font-bold text-slate-500 flex items-center gap-1"><Banknote size={12} /> Tasa USDT Base</span>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-[10px] text-slate-400">{useAutoUsdt ? 'Automática (API)' : 'Manual'}</span>
+                                        <span className="text-[10px] text-slate-400">{useAutoUsdt ? <span>Automática · <strong className="text-emerald-600 dark:text-emerald-400">{formatBs(rates.usdt.price)} Bs</strong></span> : <span>Manual · <span className="text-slate-500">Ref: <strong className="text-indigo-500">{formatBs(rates.usdt.price)} Bs</strong></span></span>}</span>
                                         <button
                                             onClick={() => { triggerHaptic && triggerHaptic(); setUseAutoUsdt(!useAutoUsdt); }}
                                             className={`relative w-9 h-5 rounded-full transition-colors ${useAutoUsdt ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}
@@ -398,88 +398,81 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
                 </div>
             ) : (
                 <>
-                    <div className="flex-1 overflow-y-auto pb-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 scrollbar-hide content-start items-start">
-                        {paginatedProducts.map(p => {
-                            const valBs = p.priceUsdt * effectiveUsdtRate;
-                            const refBcv = valBs / rates.bcv.price;
-                            const refEur = valBs / rates.euro.price;
-                            const efectivoPrecio = (() => {
-                                if (!showCashPrice || streetRate <= 0) return null;
-                                const ef = valBs / streetRate;
-                                return `$${smartCashRounding(ef)}`;
-                            })();
+                    <div className="flex-1 overflow-y-auto pb-4 scrollbar-hide">
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3" style={{ gridAutoRows: 'auto' }}>
+                            {paginatedProducts.map(p => {
+                                const valBs = p.priceUsdt * effectiveUsdtRate;
+                                const refBcv = valBs / rates.bcv.price;
+                                const refEur = valBs / rates.euro.price;
+                                const efectivoPrecio = (() => {
+                                    if (!showCashPrice || streetRate <= 0) return null;
+                                    const ef = valBs / streetRate;
+                                    return `$${smartCashRounding(ef)}`;
+                                })();
 
-                            return (
-                                <div key={p.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col overflow-hidden relative group active:scale-[0.97] transition-transform">
+                                return (
+                                    <div key={p.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col overflow-hidden group">
 
-                                    {/* Imagen cuadrada arriba */}
-                                    <div className="w-full aspect-square bg-slate-100 dark:bg-slate-800 overflow-hidden relative">
-                                        {p.image ? (
-                                            <img src={p.image} className="w-full h-full object-cover" alt={p.name} />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-slate-600">
-                                                <Tag size={32} />
-                                            </div>
-                                        )}
-                                        {/* Precio efectivo flotante sobre imagen */}
-                                        {efectivoPrecio && (
-                                            <div className="absolute bottom-1.5 left-1.5 bg-emerald-500/90 backdrop-blur-sm text-white text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1">
-                                                <Banknote size={10} />
-                                                {efectivoPrecio}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Info compacta */}
-                                    <div className="p-2.5 flex flex-col gap-1 flex-1">
-                                        <h3 className="font-bold text-slate-800 dark:text-white text-xs leading-tight line-clamp-2">{p.name}</h3>
-                                        <div className="flex items-baseline gap-0.5 mt-auto">
-                                            <span className="text-sm font-black text-brand-dark">{formatUsd(p.priceUsdt)}</span>
-                                            <span className="text-[9px] font-bold text-slate-400 ml-0.5">USDT</span>
+                                        {/* Imagen compacta */}
+                                        <div className="w-full h-24 bg-slate-100 dark:bg-slate-800 overflow-hidden relative shrink-0">
+                                            {p.image ? (
+                                                <img src={p.image} className="w-full h-full object-contain p-1" alt={p.name} loading="lazy" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-slate-600">
+                                                    <Tag size={24} />
+                                                </div>
+                                            )}
+                                            {efectivoPrecio && (
+                                                <div className="absolute bottom-1 left-1 bg-emerald-500/90 backdrop-blur-sm text-white text-[9px] font-black px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                                    <Banknote size={9} />
+                                                    {efectivoPrecio}
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className="text-[9px] text-slate-400 font-medium">{formatBs(valBs)} Bs</div>
+
+                                        {/* Info — nombre y precio siempre visibles */}
+                                        <div className="p-2 flex flex-col flex-1">
+                                            <h3 className="font-semibold text-slate-700 dark:text-slate-200 text-[11px] leading-snug line-clamp-2 mb-1">{p.name}</h3>
+                                            <p className="text-base font-black text-brand-dark leading-none">{formatUsd(p.priceUsdt)} <span className="text-[9px] font-bold text-slate-400">USDT</span></p>
+                                            <p className="text-[10px] text-slate-400 mt-0.5">{formatBs(valBs)} Bs</p>
+                                            <p className="text-[9px] text-slate-400">Ref BCV: <span className="font-semibold text-slate-500 dark:text-slate-300">${formatUsd(refBcv).replace('$', '')}</span></p>
+                                        </div>
+
+                                        {/* Acciones */}
+                                        <div className="flex border-t border-slate-100 dark:border-slate-800">
+                                            <button onClick={() => setShareProduct(p)} className="flex-1 py-1.5 flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-indigo-500 transition-colors"><Share2 size={12} /></button>
+                                            <button onClick={() => handleEdit(p)} className="flex-1 py-1.5 flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-amber-500 transition-colors"><Pencil size={12} /></button>
+                                            <button onClick={() => handleDelete(p.id)} className="flex-1 py-1.5 flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-rose-500 transition-colors"><Trash2 size={12} /></button>
+                                        </div>
                                     </div>
-
-                                    {/* Botones de acción — barra inferior siempre visible en touch */}
-                                    <div className="flex border-t border-slate-50 dark:border-slate-800 divide-x divide-slate-50 dark:divide-slate-800 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                                        <button onClick={() => setShareProduct(p)} className="flex-1 py-2 flex items-center justify-center text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all" title="Compartir">
-                                            <Share2 size={13} />
-                                        </button>
-                                        <button onClick={() => handleEdit(p)} className="flex-1 py-2 flex items-center justify-center text-slate-400 hover:text-brand hover:bg-brand/10 transition-all">
-                                            <Pencil size={13} />
-                                        </button>
-                                        <button onClick={() => handleDelete(p.id)} className="flex-1 py-2 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all">
-                                            <Trash2 size={13} />
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-
-                    {/* Paginación */}
-                    {totalPages > 1 && (
-                        <div className="flex justify-center items-center gap-4 py-4 shrink-0">
-                            <button
-                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                                disabled={currentPage === 1}
-                                className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                            >
-                                <ChevronLeft size={20} className="text-slate-600 dark:text-slate-400" />
-                            </button>
-                            <span className="text-sm font-bold text-slate-500 dark:text-slate-400">
-                                Página {currentPage} de {totalPages}
-                            </span>
-                            <button
-                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                                disabled={currentPage === totalPages}
-                                className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                            >
-                                <ChevronRight size={20} className="text-slate-600 dark:text-slate-400" />
-                            </button>
+                                );
+                            })}
                         </div>
-                    )}
+
+
+                        {/* Paginación */}
+                        {totalPages > 1 && (
+                            <div className="flex justify-center items-center gap-4 py-4 shrink-0">
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                    disabled={currentPage === 1}
+                                    className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                >
+                                    <ChevronLeft size={20} className="text-slate-600 dark:text-slate-400" />
+                                </button>
+                                <span className="text-sm font-bold text-slate-500 dark:text-slate-400">
+                                    Página {currentPage} de {totalPages}
+                                </span>
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                    disabled={currentPage === totalPages}
+                                    className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                >
+                                    <ChevronRight size={20} className="text-slate-600 dark:text-slate-400" />
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </>
             )}
 
