@@ -9,7 +9,7 @@ const STEPS = [
     {
         icon: LayoutDashboard,
         color: 'text-amber-500',
-        bg: 'bg-amber-100 dark:bg-amber-900/30',
+        bg: 'bg-amber-100',
         title: 'Inicio',
         headline: 'Ve las tasas del día al instante',
         description: 'Aquí ves la tasa USDT, Dólar BCV y Euro actualizadas automáticamente cada 30 segundos.',
@@ -18,7 +18,7 @@ const STEPS = [
     {
         icon: Calculator,
         color: 'text-blue-500',
-        bg: 'bg-blue-100 dark:bg-blue-900/30',
+        bg: 'bg-blue-100',
         title: 'Calculadora',
         headline: 'Convierte entre monedas al toque',
         description: 'Escribe el monto arriba, elige la moneda y la conversión aparece abajo. Funciona con USDT, Dólar BCV, Euro y Bolívares.',
@@ -27,7 +27,7 @@ const STEPS = [
     {
         icon: Wallet,
         color: 'text-emerald-500',
-        bg: 'bg-emerald-100 dark:bg-emerald-900/30',
+        bg: 'bg-emerald-100',
         title: 'Cuentas',
         headline: 'Guarda tus datos de pago',
         description: 'Agrega tus cuentas de Pago Móvil, Transferencia o Binance. Al enviar un monto por WhatsApp, tus datos de pago se incluyen automáticamente.',
@@ -36,7 +36,7 @@ const STEPS = [
     {
         icon: Store,
         color: 'text-indigo-500',
-        bg: 'bg-indigo-100 dark:bg-indigo-900/30',
+        bg: 'bg-indigo-100',
         title: 'Tienda',
         headline: 'Tu catálogo de productos',
         descriptionPremium: 'Agrega tus productos con foto y precio en dólares. La app calcula automáticamente el precio en Bolívares, efectivo y todas las tasas.',
@@ -96,7 +96,7 @@ export default function OnboardingOverlay({ isPremium = false }) {
 
                 {/* Card */}
                 <div
-                    className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden"
+                    className="bg-white rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden"
                     key={step}
                     style={{
                         animation: `${direction > 0 ? 'slideInRight' : 'slideInLeft'} 0.3s ease-out`,
@@ -122,14 +122,14 @@ export default function OnboardingOverlay({ isPremium = false }) {
                                 Tu aliado financiero
                             </p>
 
-                            <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-6 max-w-[260px] mx-auto">
+                            <p className="text-sm text-slate-500 leading-relaxed mb-6 max-w-[260px] mx-auto">
                                 Tasas en tiempo real, conversiones y herramientas diseñadas para el comerciante venezolano.
                             </p>
 
                             {/* Feature pills */}
                             <div className="flex flex-wrap justify-center gap-2 mb-2">
                                 {['Tasas al instante', 'Calculadora', 'Cuentas', 'Catálogo'].map(label => (
-                                    <span key={label} className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-3 py-1.5 rounded-full">
+                                    <span key={label} className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500 px-3 py-1.5 rounded-full">
                                         {label}
                                     </span>
                                 ))}
@@ -149,20 +149,20 @@ export default function OnboardingOverlay({ isPremium = false }) {
                             </p>
 
                             {/* Headline */}
-                            <h2 className="text-xl font-black text-slate-900 dark:text-white text-center mb-3 leading-tight">
+                            <h2 className="text-xl font-black text-slate-900 text-center mb-3 leading-tight">
                                 {current.headline}
                             </h2>
 
                             {/* Description */}
-                            <p className="text-sm text-slate-500 dark:text-slate-400 text-center leading-relaxed mb-4">
+                            <p className="text-sm text-slate-500 text-center leading-relaxed mb-4">
                                 {isLast
                                     ? (isPremium ? current.descriptionPremium : current.descriptionFree)
                                     : current.description}
                             </p>
 
                             {/* Tip */}
-                            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-3 border border-slate-100 dark:border-slate-700/50">
-                                <p className="text-xs text-slate-600 dark:text-slate-300 font-medium text-center">
+                            <div className="bg-slate-50 rounded-xl px-4 py-3 border border-slate-100">
+                                <p className="text-xs text-slate-600 font-medium text-center">
                                     {isLast
                                         ? (isPremium ? current.tipPremium : current.tipFree)
                                         : current.tip}
