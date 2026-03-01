@@ -55,12 +55,12 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
         : (parseFloat(customUsdtPrice) || (rates?.usdt?.price ?? 0));
 
     // TASA DISPLAY — para badge y campo configuración
-    // Cambia según moneda de trabajo
-    const activeBaseRate = {
+    // Cambia según moneda de trabajo y paridad
+    const activeBaseRate = parityMode ? computedUsdtRate : ({
         USDT: computedUsdtRate,
         USD_BCV: rates?.bcv?.price ?? 0,
         EUR_BCV: rates?.euro?.price ?? 0,
-    }[mainCurrency] ?? rates?.usdt?.price ?? 0;
+    }[mainCurrency] ?? rates?.usdt?.price ?? 0);
 
     // TASA EFECTIVO — para cálculo de precio en calle
     // NUNCA cambia. Siempre USDT.

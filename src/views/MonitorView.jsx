@@ -189,6 +189,28 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
     }
 
     // --- VISTA NORMAL (GRID PRINCIPAL) ---
+    // Añadimos las constantes de íconos aquí
+    const ICON_USDT = (
+        <svg viewBox="0 0 32 32" className="w-8 h-8" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="16" cy="16" r="15" fill="#26A17B" />
+            <path d="M17.9 17.2v-.01c-.1.01-1.02.07-1.9.07-.74 0-1.73-.05-1.9-.07v.01c-3.4-.15-5.95-.75-5.95-1.47s2.55-1.32 5.95-1.47v2.35c.18.01 1.17.07 1.91.07.89 0 1.72-.06 1.89-.07v-2.35c3.39.15 5.93.75 5.93 1.47s-2.54 1.32-5.93 1.47zM17.9 13.4v-2.1H22V8.5H10v2.8h4.1v2.1c-3.83.18-6.7.94-6.7 1.85s2.87 1.67 6.7 1.85v6.6h3.8v-6.6c3.82-.18 6.68-.94 6.68-1.85s-2.86-1.67-6.68-1.85z" fill="white" />
+        </svg>
+    );
+
+    const ICON_BCV = (
+        <svg viewBox="0 0 32 32" className="w-7 h-7" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="16" cy="16" r="15" fill="#2563EB" />
+            <text x="16" y="21" textAnchor="middle" fontSize="16" fontWeight="bold" fontFamily="Georgia, serif" fill="white">$</text>
+        </svg>
+    );
+
+    const ICON_EURO = (
+        <svg viewBox="0 0 32 32" className="w-7 h-7" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="16" cy="16" r="15" fill="#4F46E5" />
+            <text x="16" y="21" textAnchor="middle" fontSize="16" fontWeight="bold" fontFamily="Georgia, serif" fill="white">€</text>
+        </svg>
+    );
+
     return (
         <div className="flex flex-col h-[calc(100dvh-150px)] overflow-hidden justify-between py-2 animate-in fade-in slide-in-from-bottom-2 duration-500 relative">
 
@@ -251,8 +273,8 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
 
                         <div className="flex justify-between items-start mb-4">
                             <div className="flex flex-col gap-1">
-                                <span className="text-sm font-medium text-slate-400 dark:text-slate-500">Promedio P2P</span>
-                                <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight flex items-center gap-2">
+                                <span className="text-sm font-medium text-slate-400 dark:text-slate-500 flex items-center gap-1.5">{ICON_USDT} Promedio P2P</span>
+                                <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight flex items-center gap-2 mt-1">
                                     Tasa USDT {rates.usdt.type === 'p2p' && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>}
                                 </h2>
                             </div>
@@ -279,8 +301,8 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
 
                 {/* Tarjetas Secundarias (BCV / Euro) */}
                 <div className="grid grid-cols-2 gap-4 shrink-0">
-                    <RateCardMini title="Dolar BCV Oficial" price={rates.bcv.price} change={rates.bcv.change} icon="🏛️" formatVES={formatExactRate} renderChange={renderChange} symbol="Bs / $" />
-                    <RateCardMini title="Euro BCV Oficial" price={rates.euro.price} change={rates.euro.change} icon="🇪🇺" formatVES={formatExactRate} renderChange={renderChange} symbol="Bs / €" />
+                    <RateCardMini title="Dolar BCV Oficial" price={rates.bcv.price} change={rates.bcv.change} icon={ICON_BCV} formatVES={formatExactRate} renderChange={renderChange} symbol="Bs / $" />
+                    <RateCardMini title="Euro BCV Oficial" price={rates.euro.price} change={rates.euro.change} icon={ICON_EURO} formatVES={formatExactRate} renderChange={renderChange} symbol="Bs / €" />
                 </div>
             </div>
 
@@ -302,7 +324,7 @@ function RateCardMini({ title, price, change, icon, formatVES, renderChange, sym
     return (
         <div className="bg-white dark:bg-slate-900 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 duration-300">
             <div className="flex justify-between items-start mb-4">
-                <span className="text-xl filter grayscale opacity-80">{icon}</span>
+                <span className="block mb-1">{icon}</span>
                 {change !== 0 ? renderChange(change) : <div className="h-5"></div>}
             </div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">{title}</span>
