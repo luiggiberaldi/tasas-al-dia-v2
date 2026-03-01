@@ -115,7 +115,7 @@ export default function TermsOverlay() {
                         <li><strong>Premium:</strong> Envío de cotizaciones por WhatsApp, cuentas de pago ilimitadas, catálogo de productos con precios, compartir catálogo mediante código temporal.</li>
                     </ul>
                     <p className="text-sm text-slate-700 leading-relaxed mb-4">
-                        El acceso Premium se otorga mediante código de activación único vinculado al dispositivo del usuario. La licencia es personal, intransferible y no reembolsable. Se ofrece un periodo de demostración de 24 horas por dispositivo.
+                        El acceso Premium se otorga mediante código de activación único vinculado al dispositivo del usuario. La licencia es personal, intransferible y no reembolsable. Se ofrece un periodo de demostración de 7 días por dispositivo.
                     </p>
 
                     <h2 className="text-lg font-bold text-slate-900 mt-6 mb-3">5. Privacidad y Datos Personales</h2>
