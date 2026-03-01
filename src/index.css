@@ -4,11 +4,11 @@
 
 /* --- CAPA BASE: Comportamiento Global --- */
 @layer base {
-  body {
+  html, body {
     /* Aquí definimos el comportamiento reactivo al modo oscuro.
       React solo pone la clase 'dark' en el HTML, y CSS hace el resto.
     */
-    @apply bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300 min-h-screen selection:bg-brand/30;
+    @apply bg-slate-50 text-slate-800 dark:bg-black dark:text-slate-100 transition-colors duration-300 min-h-screen selection:bg-brand/30;
   }
 
   /* Scrollbar moderna y adaptativa */
