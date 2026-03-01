@@ -204,7 +204,7 @@ export default function App() {
       )}
 
       {/* Viewport: Flex-1 para ocupar el espacio restante automáticamente */}
-      <main className={`flex-1 w-full max-w-md md:max-w-3xl lg:max-w-7xl mx-auto p-3 sm:p-6 relative pb-36 scrollbar-hide flex flex-col ${activeTab === 'monitor' || activeTab === 'calc' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+      <main className={`flex-1 w-full max-w-md md:max-w-3xl lg:max-w-7xl mx-auto p-3 sm:p-6 relative ${isKeyboardOpen ? 'pb-4' : 'pb-36'} scrollbar-hide flex flex-col ${activeTab === 'monitor' || activeTab === 'calc' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
 
         {/* Hidden Admin Trigger Area (Top Left, invisible) */}
         <div
