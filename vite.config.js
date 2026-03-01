@@ -37,15 +37,7 @@ export default defineConfig({
             purpose: 'any maskable' // Importante para iconos adaptables en Android
           }
         ],
-        shortcuts: [
-          {
-            name: "🎙️ Asistente IA",
-            short_name: "Asistente",
-            description: "Habla con Mister Cambio",
-            url: "/",
-            icons: [{ src: "pwa-192x192.png", sizes: "192x192" }]
-          }
-        ]
+
       }
     })
   ],
