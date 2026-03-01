@@ -9,6 +9,19 @@ const PRODUCT_ID = 'tasas';
 const MASTER_SECRET_KEY = "VENEZUELA_PRO_2026_GLOBAL";
 const DEMO_DURATION_MS = 168 * 60 * 60 * 1000; // 168 horas (7 días)
 
+
+let supabaseClient = null;
+function getSupa() {
+    if (!supabaseClient && import.meta.env.VITE_SUPABASE_URL) {
+        supabaseClient = createClient(
+            import.meta.env.VITE_SUPABASE_URL,
+            import.meta.env.VITE_SUPABASE_ANON_KEY
+        );
+    }
+    if (!supabaseClient) throw new Error("No supabase");
+    return supabaseClient;
+}
+
 export function useSecurity() {
     const [deviceId, setDeviceId] = useState('');
     const [isPremium, setIsPremium] = useState(false);
@@ -90,10 +103,7 @@ export function useSecurity() {
         // Función de chequeo rápido de estado
         const verifyStatus = async () => {
             try {
-                const supa = createClient(
-                    import.meta.env.VITE_SUPABASE_URL,
-                    import.meta.env.VITE_SUPABASE_ANON_KEY
-                )
+                const supa = getSupa();
 
                 const { data: license } = await supa
                     .from('licenses')
@@ -118,10 +128,7 @@ export function useSecurity() {
         const sendHeartbeat = async () => {
             verifyStatus(); // Chequeo constante
             try {
-                const supa = createClient(
-                    import.meta.env.VITE_SUPABASE_URL,
-                    import.meta.env.VITE_SUPABASE_ANON_KEY
-                )
+                const supa = getSupa();
                 // Actualizar last_seen
                 await supa.from('licenses')
                     .update({ last_seen_at: new Date().toISOString() })
@@ -151,10 +158,7 @@ export function useSecurity() {
         // 4. Supabase Realtime (Si está habilitado en la tabla)
         let subscription = null;
         try {
-            const supa = createClient(
-                import.meta.env.VITE_SUPABASE_URL,
-                import.meta.env.VITE_SUPABASE_ANON_KEY
-            )
+            const supa = getSupa();
             subscription = supa.channel(`licenses_sync_${deviceId}`)
                 .on(
                     'postgres_changes',
@@ -221,10 +225,7 @@ export function useSecurity() {
         if (!storedToken) {
             // Fallback: verificar si existe licencia activa en Supabase (ej: reactivada remotamente)
             try {
-                const supa = createClient(
-                    import.meta.env.VITE_SUPABASE_URL,
-                    import.meta.env.VITE_SUPABASE_ANON_KEY
-                );
+                const supa = getSupa();
                 const { data: remoteLicense } = await supa
                     .from('licenses')
                     .select('type, active, expires_at, code')
@@ -309,10 +310,7 @@ export function useSecurity() {
         if (confirmedPremium) {
             const migrateToSupabase = async () => {
                 try {
-                    const supa = createClient(
-                        import.meta.env.VITE_SUPABASE_URL,
-                        import.meta.env.VITE_SUPABASE_ANON_KEY
-                    )
+                    const supa = getSupa();
 
                     // Verificar si ya existe en Supabase
                     const { data: existing } = await supa
@@ -365,10 +363,7 @@ export function useSecurity() {
 
         // Verificar en servidor (por si se borró localStorage)
         try {
-            const supa = createClient(
-                import.meta.env.VITE_SUPABASE_URL,
-                import.meta.env.VITE_SUPABASE_ANON_KEY
-            );
+            const supa = getSupa();
             const { data: existingDemo } = await supa
                 .from('demos')
                 .select('id')
@@ -401,10 +396,7 @@ export function useSecurity() {
 
         // Reportar demo a Supabase (silencioso)
         try {
-            const supa = createClient(
-                import.meta.env.VITE_SUPABASE_URL,
-                import.meta.env.VITE_SUPABASE_ANON_KEY
-            )
+            const supa = getSupa();
             const expiresAt = new Date(expires).toISOString()
 
             await supa.from('demos').upsert({
@@ -434,10 +426,7 @@ export function useSecurity() {
         let licenseType = 'permanent';
         let expiresAt = null;
         try {
-            const supa = createClient(
-                import.meta.env.VITE_SUPABASE_URL,
-                import.meta.env.VITE_SUPABASE_ANON_KEY
-            );
+            const supa = getSupa();
             const { data } = await supa
                 .from('licenses')
                 .select('type, expires_at')
