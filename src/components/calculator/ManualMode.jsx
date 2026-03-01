@@ -4,6 +4,8 @@ import { Check, Copy, ArrowRightLeft, History, Send } from 'lucide-react'; // [U
 // Hooks
 import { useCalculator } from '../../hooks/useCalculator';
 import { useSecurity } from '../../hooks/useSecurity';
+import { useBusinessCurrency } from '../../hooks/useBusinessCurrency';
+import { toMessageCurrency } from '../../utils/currencyUtils';
 
 // Components
 import CalculatorInput from '../../components/CalculatorInput';
@@ -26,7 +28,8 @@ export const ManualMode = ({ rates, accounts, theme, triggerHaptic, isKeyboardOp
     const [isSendModalOpen, setIsSendModalOpen] = useState(false);
     const [messageTone, setMessageTone] = useState('casual'); // 'casual', 'formal', 'direct'
     const [clientName, setClientName] = useState('');
-    const [mainCurrency, setMainCurrency] = useState('auto'); // 'auto', 'BS', 'USD', 'EUR'
+    const { mainCurrency: businessCurrency } = useBusinessCurrency();
+    const [mainCurrency, setMainCurrency] = useState(() => toMessageCurrency(businessCurrency));
     const [showReference, setShowReference] = useState(true);
 
     useEffect(() => {
@@ -218,7 +221,7 @@ export const ManualMode = ({ rates, accounts, theme, triggerHaptic, isKeyboardOp
                                 <option value="auto">Automático</option>
                                 <option value="BS">Bolívares (Bs)</option>
                                 <option value="USDT">USDT</option>
-                                <option value="BCV">Dólar BCV ($)</option>
+                                <option value="BCV">Dólar ($)</option>
                                 <option value="EUR">Euros (€)</option>
                             </select>
                         </div>

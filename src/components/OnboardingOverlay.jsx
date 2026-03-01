@@ -12,7 +12,7 @@ const STEPS = [
         bg: 'bg-amber-100',
         title: 'Inicio',
         headline: 'Ve las tasas del día al instante',
-        description: 'Aquí ves la tasa USDT, Dólar BCV y Euro actualizadas automáticamente cada 30 segundos.',
+        description: 'Aquí ves la tasa USDT, Dólar y Euro actualizadas automáticamente cada 30 segundos.',
         tip: '💡 Toca ⛶ para ver en pantalla completa y guardar una foto de las tasas.',
     },
     {
@@ -21,7 +21,7 @@ const STEPS = [
         bg: 'bg-blue-100',
         title: 'Calculadora',
         headline: 'Convierte entre monedas al toque',
-        description: 'Escribe el monto arriba, elige la moneda y la conversión aparece abajo. Funciona con USDT, Dólar BCV, Euro y Bolívares.',
+        description: 'Escribe el monto arriba, elige la moneda y la conversión aparece abajo. Funciona con USDT, Dólar, Euro y Bolívares.',
         tip: '💡 Toca ⇅ para invertir la conversión.',
     },
     {

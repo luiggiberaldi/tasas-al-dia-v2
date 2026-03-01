@@ -3,7 +3,7 @@ import { Modal } from './Modal';
 import { Copy, Share2, Check, Smartphone, Building2, Wallet } from 'lucide-react';
 import { formatBs, formatUsd, smartCashRounding } from '../utils/calculatorUtils';
 
-export const ProductShareModal = ({ isOpen, onClose, product, rates, accounts, streetRate }) => {
+export const ProductShareModal = ({ isOpen, onClose, product, rates, accounts, streetRate, mainCurrency }) => {
     const [selectedAccountId, setSelectedAccountId] = useState('');
     const [config, setConfig] = useState({
         showUsdt: true,
@@ -22,7 +22,6 @@ export const ProductShareModal = ({ isOpen, onClose, product, rates, accounts, s
 
     if (!product) return null;
 
-    // Cálculos
     const valBs = product.priceUsdt * rates.usdt.price;
 
     // Lógica Street Rate (Calibrada)

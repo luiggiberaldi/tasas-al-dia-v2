@@ -18,7 +18,12 @@ export const VENEZUELA_BANKS = [
     { code: '0168', name: 'Bancrecer', short: 'Bancrecer' },
     { code: '0169', name: 'Mi Banco', short: 'Mi Banco' },
     { code: '0171', name: 'Banco Activo', short: 'Activo' },
+    { code: '0173', name: 'Banco Internacional de Desarrollo', short: 'BID' },
     { code: '0174', name: 'Banplus', short: 'Banplus' },
     { code: '0177', name: 'Banfanb', short: 'Banfanb' },
-    { code: '0137', name: 'Sofitasa', short: 'Sofitasa' }
+    { code: '0178', name: 'N58 Banco Digital', short: 'N58' },
+    { code: '0137', name: 'Sofitasa', short: 'Sofitasa' },
+    { code: '0146', name: 'Bangente', short: 'Bangente' },
+    { code: '0196', name: 'CitiBank', short: 'CitiBank' },
+    { code: '0104', name: 'Banco Venezolano de Crédito', short: 'BVC' },
 ].sort((a, b) => a.name.localeCompare(b.name)); // Ordenados alfabéticamente

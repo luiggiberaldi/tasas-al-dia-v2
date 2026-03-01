@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { LayoutDashboard, Calculator, Wallet, Store, Download, Search, Key } from 'lucide-react';
+import { LayoutDashboard, Calculator, Wallet, Store, Download, Search, Key, TrendingUp } from 'lucide-react';
 
 import MonitorView from './views/MonitorView';
 import CalculatorView from './views/CalculatorView';
 import { ProductsView } from './views/ProductsView';
 import WalletView from './views/WalletView';
+import SalesView from './views/SalesView';
 import { TesterView } from './views/TesterView';
 
 import { useRates } from './hooks/useRates';
@@ -237,6 +238,10 @@ export default function App() {
             <ProductsView rates={rates} triggerHaptic={triggerHaptic} />
           </PremiumGuard>
         )}
+
+        {activeTab === 'sales' && (
+          <SalesView theme={theme} triggerHaptic={triggerHaptic} rates={rates} />
+        )}
       </main>
 
       {/* Navegación Inferior (Hidden when keyboard is open) */}
@@ -246,6 +251,10 @@ export default function App() {
             <TabButton icon={<LayoutDashboard size={20} strokeWidth={activeTab === 'monitor' ? 3 : 2} />} label="Inicio" isActive={activeTab === 'monitor'} onClick={() => { triggerHaptic(); setActiveTab('monitor'); }} />
             <TabButton icon={<Calculator size={20} strokeWidth={activeTab === 'calc' ? 3 : 2} />} label="Calc" isActive={activeTab === 'calc'} onClick={() => { triggerHaptic(); setActiveTab('calc'); }} />
             <TabButton icon={<Wallet size={20} strokeWidth={activeTab === 'wallet' ? 3 : 2} />} label="Cuentas" isActive={activeTab === 'wallet'} onClick={() => { triggerHaptic(); setActiveTab('wallet'); }} />
+
+            {isPremium && (
+              <TabButton icon={<TrendingUp size={20} strokeWidth={activeTab === 'sales' ? 3 : 2} />} label="Ventas" isActive={activeTab === 'sales'} onClick={() => { triggerHaptic(); setActiveTab('sales'); }} />
+            )}
 
             {installPrompt && activeTab === 'monitor' && (
               <button onClick={() => { triggerHaptic(); handleInstall(); }} className="flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all duration-300 bg-emerald-500 text-white shadow-md animate-pulse">

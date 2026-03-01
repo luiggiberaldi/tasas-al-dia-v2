@@ -1,11 +1,18 @@
 import React, { useState, useRef } from 'react';
-import { Upload, Download, AlertTriangle, Check, X, Database } from 'lucide-react';
+import { Upload, Download, AlertTriangle, Check, X, Database, Globe, Fingerprint, Copy } from 'lucide-react';
 import { storageService } from '../utils/storageService';
+import { useBusinessCurrency } from '../hooks/useBusinessCurrency';
+import { CURRENCIES } from '../utils/currencyUtils';
+
+import { useSecurity } from '../hooks/useSecurity';
 
 export default function SettingsModal({ isOpen, onClose }) {
     const [importStatus, setImportStatus] = useState(null); // 'success', 'error', 'loading'
     const [statusMessage, setStatusMessage] = useState('');
     const fileInputRef = useRef(null);
+    const { mainCurrency, updateMainCurrency, parityMode, updateParityMode } = useBusinessCurrency();
+    const { deviceId } = useSecurity();
+    const [idCopied, setIdCopied] = useState(false);
 
     if (!isOpen) return null;
 
@@ -30,7 +37,8 @@ export default function SettingsModal({ isOpen, onClose }) {
                     catalog_use_auto_usdt: localStorage.getItem('catalog_use_auto_usdt'),
                     catalog_custom_usdt_price: localStorage.getItem('catalog_custom_usdt_price'),
                     catalog_show_cash_price: localStorage.getItem('catalog_show_cash_price'),
-                    monitor_rates_v12: localStorage.getItem('monitor_rates_v12')
+                    monitor_rates_v12: localStorage.getItem('monitor_rates_v12'),
+                    business_main_currency: localStorage.getItem('business_main_currency')
                 }
             };
 
@@ -92,6 +100,10 @@ export default function SettingsModal({ isOpen, onClose }) {
                 if (json.data.catalog_custom_usdt_price) localStorage.setItem('catalog_custom_usdt_price', json.data.catalog_custom_usdt_price);
                 if (json.data.catalog_show_cash_price) localStorage.setItem('catalog_show_cash_price', json.data.catalog_show_cash_price);
                 if (json.data.monitor_rates_v12) localStorage.setItem('monitor_rates_v12', json.data.monitor_rates_v12);
+                if (json.data.business_main_currency) {
+                    localStorage.setItem('business_main_currency', json.data.business_main_currency);
+                    updateMainCurrency(json.data.business_main_currency);
+                }
 
                 setImportStatus('success');
                 setStatusMessage('Datos restaurados. Recargando...');
@@ -170,6 +182,101 @@ export default function SettingsModal({ isOpen, onClose }) {
                         accept=".json"
                         className="hidden"
                     />
+
+                    {/* Moneda de negocio */}
+                    <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <Globe size={14} className="text-amber-500" />
+                            Moneda de trabajo
+                        </label>
+                        <p className="text-[10px] text-slate-400 leading-relaxed">
+                            Define si piensas tus precios y ganancias en USDT, Dólar o Euro. Los equivalentes en Bolívares se calculan automáticamente.
+                        </p>
+                        <div className="flex gap-2">
+                            {[
+                                {
+                                    id: 'USDT',
+                                    label: 'USDT',
+                                    icon: (
+                                        <svg viewBox="0 0 32 32" className="w-6 h-6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <circle cx="16" cy="16" r="15" fill="#26A17B" />
+                                            <path d="M17.9 17.2v-.01c-.1.01-1.02.07-1.9.07-.74 0-1.73-.05-1.9-.07v.01c-3.4-.15-5.95-.75-5.95-1.47s2.55-1.32 5.95-1.47v2.35c.18.01 1.17.07 1.91.07.89 0 1.72-.06 1.89-.07v-2.35c3.39.15 5.93.75 5.93 1.47s-2.54 1.32-5.93 1.47zM17.9 13.4v-2.1H22V8.5H10v2.8h4.1v2.1c-3.83.18-6.7.94-6.7 1.85s2.87 1.67 6.7 1.85v6.6h3.8v-6.6c3.82-.18 6.68-.94 6.68-1.85s-2.86-1.67-6.68-1.85z" fill="white" />
+                                        </svg>
+                                    ),
+                                },
+                                {
+                                    id: 'USD_BCV',
+                                    label: 'Dólar',
+                                    icon: (
+                                        <svg viewBox="0 0 32 32" className="w-6 h-6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <circle cx="16" cy="16" r="15" fill="#2563EB" />
+                                            <text x="16" y="21" textAnchor="middle" fontSize="16" fontWeight="bold" fontFamily="Georgia, serif" fill="white">$</text>
+                                        </svg>
+                                    ),
+                                },
+                                {
+                                    id: 'EUR_BCV',
+                                    label: 'Euro',
+                                    icon: (
+                                        <svg viewBox="0 0 32 32" className="w-6 h-6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <circle cx="16" cy="16" r="15" fill="#4F46E5" />
+                                            <text x="16" y="21" textAnchor="middle" fontSize="16" fontWeight="bold" fontFamily="Georgia, serif" fill="white">€</text>
+                                        </svg>
+                                    ),
+                                }
+                            ].map(opt => (
+                                <button
+                                    key={opt.id}
+                                    onClick={() => updateMainCurrency(opt.id)}
+                                    className={`flex-1 py-3 rounded-xl border transition-all active:scale-[0.97] flex flex-col items-center justify-center gap-1 ${mainCurrency === opt.id
+                                        ? 'bg-amber-500 text-slate-900 border-amber-500 shadow-md shadow-amber-500/20'
+                                        : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-amber-500/40'
+                                        }`}
+                                >
+                                    <span className="block mb-1 flex justify-center">{opt.icon}</span>
+                                    <span className="text-[11px] font-bold">{opt.label}</span>
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Paridad Toggle */}
+                        {mainCurrency !== 'USDT' && (
+                            <div className="mt-4 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between animate-in slide-in-from-top-2">
+                                <div>
+                                    <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200">Paridad con USDT (1:1)</p>
+                                    <p className="text-[9px] text-slate-400 mt-0.5">Muestra el símbolo, pero calcula con la tasa USDT.</p>
+                                </div>
+                                <button
+                                    onClick={() => updateParityMode(!parityMode)}
+                                    className={`relative w-9 h-5 rounded-full transition-colors ${parityMode ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                                >
+                                    <span className={`absolute top-1 left-1 bg-white w-3 h-3 rounded-full transition-transform ${parityMode ? 'translate-x-4' : 'translate-x-0'}`} />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Device ID para soporte */}
+                    <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-xl">
+                        <p className="text-[9px] uppercase tracking-wider font-bold text-slate-400 mb-1 flex items-center gap-1">
+                            <Fingerprint size={10} /> ID de Instalación
+                        </p>
+                        <div className="flex items-center justify-between gap-2">
+                            <p className="font-mono text-xs font-black text-slate-600 dark:text-slate-300 select-all">{deviceId || '...'}</p>
+                            <button
+                                onClick={() => {
+                                    navigator.clipboard.writeText(deviceId).then(() => {
+                                        setIdCopied(true);
+                                        setTimeout(() => setIdCopied(false), 2000);
+                                    });
+                                }}
+                                className="text-slate-400 hover:text-amber-500 transition-colors p-1 rounded"
+                            >
+                                {idCopied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                            </button>
+                        </div>
+                        <p className="text-[8px] text-slate-400 mt-1">Comparte este ID si necesitas soporte técnico.</p>
+                    </div>
 
                     {/* Status Feedback */}
                     {importStatus && (
