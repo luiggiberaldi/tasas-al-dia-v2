@@ -104,6 +104,34 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
         return () => { isMounted = false; };
     }, []);
 
+    // FIX: Detectar teclado y hacer scroll al input activo (Mobile Safari/Chrome)
+    useEffect(() => {
+        const handleResize = () => {
+            // Si el viewport se reduce más de 150px asumimos que el teclado subió
+            const isKeyboardOpen = window.visualViewport
+                ? window.visualViewport.height < window.innerHeight - 150
+                : false;
+
+            if (isKeyboardOpen && document.activeElement) {
+                // Esperar un frame para que el DOM se estabilice
+                setTimeout(() => {
+                    document.activeElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center',
+                    });
+                }, 100);
+            }
+        };
+
+        // Usar visualViewport API — más precisa que resize event normal
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', handleResize);
+            return () => {
+                window.visualViewport.removeEventListener('resize', handleResize);
+            };
+        }
+    }, []);
+
     // Set Initial Street Rate if not set
     useEffect(() => {
         if (!streetRate && rates.usdt.price > 0 && !localStorage.getItem('street_rate_bs')) {
@@ -260,7 +288,7 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
                 </div>
             ) : (
                 <>
-                    <div className="flex-1 overflow-y-auto pb-4 scrollbar-hide">
+                    <div className="flex-1 overflow-y-auto pb-4 scrollbar-hide catalog-scroll-container">
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3" style={{ gridAutoRows: 'auto' }}>
                             {paginatedProducts.map(p => {
                                 // valBs para Bs y para efectivo = SIEMPRE USDT base

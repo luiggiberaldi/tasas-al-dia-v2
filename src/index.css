@@ -66,3 +66,32 @@ input[type=number] {
     z-index: 99999;
   }
 }
+
+/* --- MOBILE KEYBOARD FIXES --- */
+
+/* Evitar que iOS Safari haga zoom al enfocar inputs (causa desplazamiento extraño) */
+input, textarea, select {
+  font-size: 16px !important;
+}
+
+/* Eliminar el bounce del scroll en iOS */
+body {
+  overscroll-behavior-y: none;
+  position: fixed;
+  width: 100%;
+}
+
+/* Contenedor principal con scroll (altura dinámica) */
+.catalog-scroll-container {
+  height: 100vh;
+  height: 100dvh; /* dvh = dynamic viewport height, se ajusta al teclado */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+@supports (height: 100dvh) {
+  .catalog-scroll-container {
+    height: 100dvh;
+  }
+}
