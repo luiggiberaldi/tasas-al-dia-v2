@@ -107,7 +107,7 @@ export function useSecurity() {
 
                 const { data: license } = await supa
                     .from('licenses')
-                    .select('active')
+                    .select('active, type')
                     .eq('device_id', deviceId)
                     .eq('product_id', PRODUCT_ID)
                     .maybeSingle()
@@ -118,9 +118,15 @@ export function useSecurity() {
                     setIsPremium(false);
                     setIsDemo(false);
                     setDemoExpiredMsg("Tu licencia ha sido desactivada. Contacta al administrador.");
-                } else if (license && license.active === true && !isPremium) {
-                    // Reactivado remotamente -> Recargar para restaurar
-                    window.location.reload();
+                } else if (license && license.active === true) {
+                    // Si pasó a permanente en backend pero el estado local es demo -> recargar
+                    if (license.type === 'permanent' && isDemo) {
+                        localStorage.removeItem('premium_token');
+                        window.location.reload();
+                    } else if (!isPremium) {
+                        // Reactivado remotamente -> Recargar para restaurar
+                        window.location.reload();
+                    }
                 }
             } catch (e) { }
         }
