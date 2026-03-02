@@ -11,9 +11,9 @@ export function useCalculator(rates) {
 
   const currencies = [
     { id: 'VES', label: 'Bs.', icon: '🇻🇪', rate: 1 },
-    { id: 'USDT', label: 'USDT', icon: '💵', rate: rates.usdt.price },
-    { id: 'BCV', label: '$ BCV', icon: '🏛️', rate: rates.bcv.price },
-    { id: 'EUR', label: 'Euro', icon: '💶', rate: rates.euro.price },
+    { id: 'USDT', label: 'USDT', icon: '💵', rate: rates?.usdt?.price || 0 },
+    { id: 'BCV', label: '$ BCV', icon: '🏛️', rate: rates?.bcv?.price || 0 },
+    { id: 'EUR', label: 'Euro', icon: '💶', rate: rates?.euro?.price || 0 },
   ];
 
   // --- LÓGICA DE CONVERSIÓN (Efecto Principal) ---

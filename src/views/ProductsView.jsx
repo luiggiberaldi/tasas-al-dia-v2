@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Search, Plus, Settings, Package, Trash2, ArrowLeftRight, ChevronLeft, ChevronRight, Globe } from 'lucide-react';
 import { storageService } from '../utils/storageService';
 import { smartCashRounding } from '../utils/calculatorUtils';
 import { useWallet } from '../hooks/useWallet';
@@ -7,6 +8,13 @@ import { CURRENCIES } from '../utils/currencyUtils';
 
 // Extracted components & hook
 import { useProductForm } from '../hooks/useProductForm';
+import { Modal } from '../components/Modal';
+import { ProductCard } from '../components/products/ProductCard';
+import { ProductFormModal } from '../components/products/ProductFormModal';
+import { RateConfigPanel } from '../components/products/RateConfigPanel';
+import { ProductShareModal } from '../components/ProductShareModal';
+import SettingsModal from '../components/SettingsModal';
+import ShareInventoryModal from '../components/ShareInventoryModal';
 
 export const ProductsView = ({ rates, triggerHaptic }) => {
     const [products, setProducts] = useState([]);

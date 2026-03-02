@@ -226,12 +226,12 @@ export function useSecurity() {
             try {
                 const { data: remoteLicense, error } = await supabase
                     .from('licenses')
-                    .select('type, status, expires_at, special_features, updated_at')
+                    .select('type, active, expires_at')
                     .eq('device_id', currentDeviceId)
                     .eq('product_id', PRODUCT_ID)
                     .maybeSingle();
 
-                if (remoteLicense && remoteLicense.status === 'active') {
+                if (remoteLicense && remoteLicense.active === true) {
                     const validCode = await generateActivationCode(currentDeviceId);
                     const isTimeLimited = (remoteLicense.type === 'demo7');
                     const expiresAt = remoteLicense.expires_at ? new Date(remoteLicense.expires_at).getTime() : null;
