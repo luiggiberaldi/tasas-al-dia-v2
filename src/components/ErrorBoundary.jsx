@@ -26,9 +26,14 @@ class ErrorBoundary extends React.Component {
             </p>
             <button
               onClick={() => {
-                localStorage.removeItem('calc_history');
-                localStorage.removeItem('my_accounts_v2');
-                localStorage.removeItem('monitor_rates_v12');
+                // Purga extensiva de todas las claves potencialmente corruptas
+                const keysToPurge = [
+                  'calc_history', 'my_accounts_v2', 'monitor_rates_v12',
+                  'premium_token', 'device_id', 'demo_used_history',
+                  'catalog_use_auto_usdt', 'catalog_custom_usdt_price',
+                  'business_parity_mode', 'business_main_currency',
+                ];
+                keysToPurge.forEach(k => localStorage.removeItem(k));
                 window.location.reload();
               }}
               className="px-6 py-3 bg-brand text-slate-900 rounded-xl font-bold hover:brightness-110 transition-all shadow-lg"
