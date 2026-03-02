@@ -1,20 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { storageService } from '../utils/storageService';
-import { Package, Plus, Trash2, Search, ChevronLeft, ChevronRight, Settings, ArrowLeftRight, Globe } from 'lucide-react';
-import { Modal } from '../components/Modal';
-import { ProductShareModal } from '../components/ProductShareModal';
-import SettingsModal from '../components/SettingsModal';
-import ShareInventoryModal from '../components/ShareInventoryModal';
-import { formatBs, smartCashRounding } from '../utils/calculatorUtils';
+import { smartCashRounding } from '../utils/calculatorUtils';
 import { useWallet } from '../hooks/useWallet';
 import { useBusinessCurrency } from '../hooks/useBusinessCurrency';
-import { CURRENCIES, getEffectiveUsdtRate } from '../utils/currencyUtils';
+import { CURRENCIES } from '../utils/currencyUtils';
 
 // Extracted components & hook
 import { useProductForm } from '../hooks/useProductForm';
-import { RateConfigPanel } from '../components/products/RateConfigPanel';
-import { ProductCard } from '../components/products/ProductCard';
-import { ProductFormModal } from '../components/products/ProductFormModal';
 
 export const ProductsView = ({ rates, triggerHaptic }) => {
     const [products, setProducts] = useState([]);
@@ -133,12 +125,16 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
     }, []);
 
     // Set Initial Street Rate if not set
+    const initStreetRateCheck = useRef(false);
     useEffect(() => {
-        if (!streetRate && rates.usdt.price > 0 && !localStorage.getItem('street_rate_bs')) {
-            setStreetRate(rates.usdt.price);
+        if (!initStreetRateCheck.current && rates.usdt?.price > 0) {
+            initStreetRateCheck.current = true;
+            if (!localStorage.getItem('street_rate_bs')) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
+                setStreetRate(prev => prev ? prev : rates.usdt.price);
+            }
         }
-    }, [rates.usdt.price, streetRate]);
-
+    }, [rates.usdt]);
     // Guardar al cambiar (Asíncrono)
     useEffect(() => {
         if (!isLoadingProducts) {
@@ -161,8 +157,7 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
         localStorage.setItem('catalog_show_cash_price', JSON.stringify(showCashPrice));
     }, [useAutoUsdt, customUsdtPrice, showCashPrice]);
 
-    // Resetear página al buscar
-    useEffect(() => { setCurrentPage(1); }, [searchTerm]);
+
 
     // --- COMPUTED ---
 
@@ -264,7 +259,10 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
                         type="text"
                         placeholder="Buscar producto..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setCurrentPage(1);
+                        }}
                         className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl py-3 pl-12 pr-4 text-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-brand/50 shadow-sm"
                     />
                 </div>

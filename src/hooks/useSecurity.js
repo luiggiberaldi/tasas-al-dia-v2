@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../core/supabaseClient';
 
 const APP_VERSION = '2.0.0';  // actualizar con cada release
 const PRODUCT_ID = 'tasas';
@@ -9,18 +9,6 @@ const PRODUCT_ID = 'tasas';
 const MASTER_SECRET_KEY = "VENEZUELA_PRO_2026_GLOBAL";
 const DEMO_DURATION_MS = 168 * 60 * 60 * 1000; // 168 horas (7 días)
 
-
-let supabaseClient = null;
-function getSupa() {
-    if (!supabaseClient && import.meta.env.VITE_SUPABASE_URL) {
-        supabaseClient = createClient(
-            import.meta.env.VITE_SUPABASE_URL,
-            import.meta.env.VITE_SUPABASE_ANON_KEY
-        );
-    }
-    if (!supabaseClient) throw new Error("No supabase");
-    return supabaseClient;
-}
 
 export function useSecurity() {
     const [deviceId, setDeviceId] = useState('');
@@ -103,22 +91,20 @@ export function useSecurity() {
         // Función de chequeo rápido de estado
         const verifyStatus = async () => {
             try {
-                const supa = getSupa();
-
-                const { data: license } = await supa
+                const { data: license, error } = await supabase
                     .from('licenses')
-                    .select('active, type')
+                    .select('type, status, expires_at')
                     .eq('device_id', deviceId)
                     .eq('product_id', PRODUCT_ID)
-                    .maybeSingle()
+                    .maybeSingle();
 
-                if (license && license.active === false && isPremium) {
+                if (license && license.status === 'revoked' && isPremium) {
                     // Revocado
                     localStorage.removeItem('premium_token');
                     setIsPremium(false);
                     setIsDemo(false);
                     setDemoExpiredMsg("Tu licencia ha sido desactivada. Contacta al administrador.");
-                } else if (license && license.active === true) {
+                } else if (license && license.status === 'active') {
                     // Si el backend difiere del estado local -> recargar
                     const isDemoLocal = localStorage.getItem('premium_token')?.includes('"isDemo":true');
                     const isMismatch = (license.type === 'permanent' && isDemoLocal) ||
@@ -138,19 +124,23 @@ export function useSecurity() {
         const sendHeartbeat = async () => {
             verifyStatus(); // Chequeo constante
             try {
-                const supa = getSupa();
                 // Actualizar last_seen
-                await supa.from('licenses')
+                await supabase.from('licenses')
                     .update({ last_seen_at: new Date().toISOString() })
                     .eq('device_id', deviceId)
                     .eq('product_id', PRODUCT_ID)
 
                 // Registrar heartbeat record
-                await supa.from('heartbeats').insert({
+                const payload = {
                     device_id: deviceId,
                     product_id: PRODUCT_ID,
                     app_version: APP_VERSION,
-                })
+                    last_active: new Date().toISOString()
+                };
+
+                const { error } = await supabase
+                    .from('heartbeats')
+                    .upsert(payload, { onConflict: 'device_id,product_id' });
             } catch (e) { }
         }
 
@@ -168,8 +158,7 @@ export function useSecurity() {
         // 4. Supabase Realtime (Si está habilitado en la tabla)
         let subscription = null;
         try {
-            const supa = getSupa();
-            subscription = supa.channel(`licenses_sync_${deviceId}`)
+            subscription = supabase.channel(`licenses_sync_${deviceId}`)
                 .on(
                     'postgres_changes',
                     { event: 'UPDATE', schema: 'public', table: 'licenses', filter: `device_id=eq.${deviceId}` },
@@ -235,15 +224,14 @@ export function useSecurity() {
         if (!storedToken) {
             // Fallback: verificar si existe licencia activa en Supabase (ej: reactivada remotamente)
             try {
-                const supa = getSupa();
-                const { data: remoteLicense } = await supa
+                const { data: remoteLicense, error } = await supabase
                     .from('licenses')
-                    .select('type, active, expires_at, code')
+                    .select('type, status, expires_at, special_features, updated_at')
                     .eq('device_id', currentDeviceId)
                     .eq('product_id', PRODUCT_ID)
                     .maybeSingle();
 
-                if (remoteLicense && remoteLicense.active === true) {
+                if (remoteLicense && remoteLicense.status === 'active') {
                     const validCode = await generateActivationCode(currentDeviceId);
                     const isTimeLimited = (remoteLicense.type === 'demo7');
                     const expiresAt = remoteLicense.expires_at ? new Date(remoteLicense.expires_at).getTime() : null;
@@ -320,10 +308,8 @@ export function useSecurity() {
         if (confirmedPremium) {
             const migrateToSupabase = async () => {
                 try {
-                    const supa = getSupa();
-
                     // Verificar si ya existe en Supabase
-                    const { data: existing } = await supa
+                    const { data: existing } = await supabase
                         .from('licenses')
                         .select('id')
                         .eq('device_id', currentDeviceId)
@@ -332,11 +318,11 @@ export function useSecurity() {
 
                     // Si NO existe, registrarla ahora
                     if (!existing) {
-                        await supa.from('licenses').insert({
+                        await supabase.from('licenses').insert({
                             device_id: currentDeviceId,
                             product_id: PRODUCT_ID,
                             type: confirmedDemo ? 'demo7' : 'permanent',
-                            active: true,
+                            status: 'active', // Default status for migrated licenses
                             expires_at: confirmedExpires
                                 ? new Date(confirmedExpires).toISOString()
                                 : null,
@@ -345,7 +331,7 @@ export function useSecurity() {
                         })
                     } else {
                         // Si ya existe, solo actualizar last_seen
-                        await supa.from('licenses')
+                        await supabase.from('licenses')
                             .update({ last_seen_at: new Date().toISOString() })
                             .eq('device_id', currentDeviceId)
                             .eq('product_id', PRODUCT_ID)
@@ -373,8 +359,7 @@ export function useSecurity() {
 
         // Verificar en servidor (por si se borró localStorage)
         try {
-            const supa = getSupa();
-            const { data: existingDemo } = await supa
+            const { data: existingDemo } = await supabase
                 .from('demos')
                 .select('id')
                 .eq('device_id', deviceId)
@@ -406,10 +391,9 @@ export function useSecurity() {
 
         // Reportar demo a Supabase (silencioso)
         try {
-            const supa = getSupa();
             const expiresAt = new Date(expires).toISOString()
 
-            await supa.from('demos').upsert({
+            await supabase.from('demos').upsert({
                 device_id: deviceId,
                 product_id: PRODUCT_ID,
                 expires_at: expiresAt,
@@ -437,8 +421,7 @@ export function useSecurity() {
         let expiresAt = null;
         let lastSeenAt = null;
         try {
-            const supa = getSupa();
-            const { data } = await supa
+            const { data, error } = await supabase
                 .from('licenses')
                 .select('type, expires_at, last_seen_at')
                 .eq('device_id', deviceId)
@@ -460,9 +443,9 @@ export function useSecurity() {
             if (!lastSeenAt) {
                 finalExpiresAt = Date.now() + 168 * 60 * 60 * 1000;
                 try {
-                    getSupa().from('licenses').update({ expires_at: new Date(finalExpiresAt).toISOString() })
+                    supabase.from('licenses').update({ expires_at: new Date(finalExpiresAt).toISOString() })
                         .eq('device_id', deviceId).eq('product_id', PRODUCT_ID).then();
-                } catch (e) { }
+                } catch (e) { console.warn('PWA: Error updating time limited license exp', e); }
             }
             if (finalExpiresAt) {
                 expiresAt = finalExpiresAt;
