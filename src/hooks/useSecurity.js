@@ -131,16 +131,13 @@ export function useSecurity() {
                     .eq('product_id', PRODUCT_ID)
 
                 // Registrar heartbeat record
-                const payload = {
-                    device_id: deviceId,
-                    product_id: PRODUCT_ID,
-                    app_version: APP_VERSION,
-                    last_active: new Date().toISOString()
-                };
-
-                const { error } = await supabase
+                await supabase
                     .from('heartbeats')
-                    .upsert(payload, { onConflict: 'device_id,product_id' });
+                    .insert({
+                        device_id: deviceId,
+                        product_id: PRODUCT_ID,
+                        app_version: APP_VERSION,
+                    });
             } catch (e) { }
         }
 
