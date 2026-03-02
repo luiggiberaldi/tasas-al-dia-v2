@@ -9,6 +9,11 @@ export default defineConfig({
       registerType: 'autoUpdate',
       // Archivos estáticos que deben estar disponibles offline
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
+      workbox: {
+        cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
+      },
       manifest: {
         name: 'TasasAlDía - Monitor Financiero',
         short_name: 'TasasAlDía',
