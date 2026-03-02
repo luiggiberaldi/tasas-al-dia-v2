@@ -93,18 +93,18 @@ export function useSecurity() {
             try {
                 const { data: license, error } = await supabase
                     .from('licenses')
-                    .select('type, status, expires_at')
+                    .select('type, active, expires_at')
                     .eq('device_id', deviceId)
                     .eq('product_id', PRODUCT_ID)
                     .maybeSingle();
 
-                if (license && license.status === 'revoked' && isPremium) {
-                    // Revocado
+                if (license && license.active === false && isPremium) {
+                    // Revocado desde Estación Maestra
                     localStorage.removeItem('premium_token');
                     setIsPremium(false);
                     setIsDemo(false);
                     setDemoExpiredMsg("Tu licencia ha sido desactivada. Contacta al administrador.");
-                } else if (license && license.status === 'active') {
+                } else if (license && license.active === true) {
                     // Si el backend difiere del estado local -> recargar
                     const isDemoLocal = localStorage.getItem('premium_token')?.includes('"isDemo":true');
                     const isMismatch = (license.type === 'permanent' && isDemoLocal) ||
