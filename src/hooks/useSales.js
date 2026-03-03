@@ -57,6 +57,30 @@ export function useSales() {
         return newSale;
     }, []);
 
+    // Registra múltiples items como una sola transacción
+    const addBatchSale = useCallback((items) => {
+        const batchId = crypto.randomUUID();
+        const createdAt = new Date().toISOString();
+
+        const newSales = items.map(item => {
+            const total = item.qty * item.sellPrice;
+            const profitUnit = item.sellPrice - item.buyPrice;
+            const profitTotal = profitUnit * item.qty;
+            return {
+                id: crypto.randomUUID(),
+                batchId,
+                createdAt,
+                ...item,
+                total,
+                profitUnit,
+                profitTotal,
+            };
+        });
+
+        setSales(prev => [...newSales, ...prev]);
+        return newSales;
+    }, []);
+
     const removeSale = useCallback((id) => {
         setSales(prev => prev.filter(s => s.id !== id));
     }, []);
@@ -96,6 +120,7 @@ export function useSales() {
         sales,
         isLoading,
         addSale,
+        addBatchSale,
         removeSale,
         clearAll,
         getTotals,

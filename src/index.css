@@ -4,7 +4,9 @@
 
 /* --- CAPA BASE: Comportamiento Global --- */
 @layer base {
-  html, body {
+
+  html,
+  body {
     /* Aquí definimos el comportamiento reactivo al modo oscuro.
       React solo pone la clase 'dark' en el HTML, y CSS hace el resto.
     */
@@ -16,12 +18,15 @@
     width: 8px;
     height: 8px;
   }
+
   ::-webkit-scrollbar-track {
     @apply bg-transparent;
   }
+
   ::-webkit-scrollbar-thumb {
     @apply bg-slate-300 dark:bg-slate-700 rounded-full;
   }
+
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-slate-400 dark:bg-slate-600;
   }
@@ -30,10 +35,10 @@
 /* --- UTILIDADES --- */
 
 /* Ocultar flechas en inputs numéricos (Chrome, Safari, Edge, Opera) */
-input[type=number]::-webkit-inner-spin-button, 
-input[type=number]::-webkit-outer-spin-button { 
-  -webkit-appearance: none; 
-  margin: 0; 
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 /* Ocultar flechas en Firefox */
@@ -46,7 +51,7 @@ input[type=number] {
   #root {
     display: none;
   }
-  
+
   body::before {
     content: '🔄 Por favor, usa la aplicación en modo vertical para una mejor experiencia.';
     position: fixed;
@@ -54,7 +59,8 @@ input[type=number] {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background-color: #020617; /* Slate 950 */
+    background-color: #020617;
+    /* Slate 950 */
     color: white;
     display: flex;
     align-items: center;
@@ -70,7 +76,9 @@ input[type=number] {
 /* --- MOBILE KEYBOARD FIXES --- */
 
 /* Evitar que iOS Safari haga zoom al enfocar inputs (causa desplazamiento extraño) */
-input, textarea, select {
+input,
+textarea,
+select {
   font-size: 16px !important;
 }
 
@@ -84,7 +92,8 @@ body {
 /* Contenedor principal con scroll (altura dinámica) */
 .catalog-scroll-container {
   height: 100vh;
-  height: 100dvh; /* dvh = dynamic viewport height, se ajusta al teclado */
+  height: 100dvh;
+  /* dvh = dynamic viewport height, se ajusta al teclado */
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
@@ -94,4 +103,37 @@ body {
   .catalog-scroll-container {
     height: 100dvh;
   }
+}
+
+/* --- Skeleton Loading --- */
+.skeleton {
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 0.75rem;
+}
+
+.dark .skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* --- Scrollbar Hide --- */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

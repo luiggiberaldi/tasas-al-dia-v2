@@ -1,130 +1,136 @@
-import React, { useState } from 'react';
-import { TrendingUp, Trash2, Globe } from 'lucide-react';
+import React, { useState, useMemo, useCallback } from 'react';
+import { TrendingUp, Trash2, Globe, ShoppingCart } from 'lucide-react';
 import { useSales } from '../hooks/useSales';
 import { useProductsLite } from '../hooks/useProductsLite';
 import { useBusinessCurrency } from '../hooks/useBusinessCurrency';
 import { CURRENCIES, currencySymbol, fromBaseUsd, toBaseUsd } from '../utils/currencyUtils';
 import { formatBs } from '../utils/calculatorUtils';
 
-// Extracted components
-import { SaleFormSection } from '../components/sales/SaleFormSection';
+import ProductGrid from '../components/sales/ProductGrid';
+import ResellerCart from '../components/sales/ResellerCart';
 import { SalesHistoryList } from '../components/sales/SalesHistoryList';
 
 const fmtUsd = (v) => v.toFixed(2);
 
 export default function SalesView({ theme, triggerHaptic, rates }) {
-    const { sales, isLoading, addSale, removeSale, clearAll, getTotals } = useSales();
+    const { sales, isLoading, addBatchSale, removeSale, clearAll, getTotals } = useSales();
     const { products, isLoading: productsLoading } = useProductsLite();
     const { mainCurrency, parityMode } = useBusinessCurrency();
     const sym = currencySymbol(mainCurrency);
     const label = CURRENCIES[mainCurrency];
     const ratesReady = rates?.usdt?.price > 0;
 
-    const [productName, setProductName] = useState('');
-    const [qty, setQty] = useState('');
-    const [buyPrice, setBuyPrice] = useState('');
-    const [sellPrice, setSellPrice] = useState('');
-    const [selectedProductId, setSelectedProductId] = useState(null);
-    const [showCatalog, setShowCatalog] = useState(false);
-    const [catalogSearch, setCatalogSearch] = useState('');
-    const [error, setError] = useState('');
+    // Cart state
+    const [cart, setCart] = useState([]);
+    const [showMobileCart, setShowMobileCart] = useState(false);
     const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
     const todayTotals = getTotals('today');
     const todayStr = new Date().toLocaleDateString('es-VE');
-    const todaySales = sales.filter(s =>
-        new Date(s.createdAt).toLocaleDateString('es-VE') === todayStr
+    const todaySales = useMemo(() =>
+        sales.filter(s => new Date(s.createdAt).toLocaleDateString('es-VE') === todayStr),
+        [sales, todayStr]
     );
 
-    const handleSelectProduct = (p) => {
-        triggerHaptic?.();
-        setSelectedProductId(p.id);
-        setProductName(p.name);
-        setSellPrice(
-            ratesReady
-                ? fromBaseUsd(p.priceUsdt, mainCurrency, rates).toFixed(2)
-                : p.priceUsdt
-        );
-        setBuyPrice(
-            p.costUsdt > 0 && ratesReady
-                ? fromBaseUsd(p.costUsdt, mainCurrency, rates).toFixed(2)
-                : (p.costUsdt || p.priceUsdt || '')
-        );
-        setShowCatalog(false);
-    };
+    const cartItemCount = cart.reduce((sum, item) => sum + item.qty, 0);
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        triggerHaptic?.();
+    // ── Cart Actions ──
+    const handleAddToCart = useCallback((product) => {
+        setCart(prev => {
+            const existing = prev.find(item => item.productId === product.id);
+            if (existing) {
+                return prev.map(item =>
+                    item.productId === product.id ? { ...item, qty: item.qty + 1 } : item
+                );
+            }
+            const sellPrice = ratesReady ? fromBaseUsd(product.priceUsdt, mainCurrency, rates) : product.priceUsdt;
+            const buyPrice = product.costUsdt && ratesReady ? fromBaseUsd(product.costUsdt, mainCurrency, rates) : (product.costUsdt || 0);
+            return [...prev, {
+                productId: product.id,
+                productName: product.name,
+                name: product.name,
+                qty: 1,
+                buyPrice: parseFloat(buyPrice) || 0,
+                sellPrice: parseFloat(sellPrice) || 0,
+            }];
+        });
+    }, [mainCurrency, rates, ratesReady]);
 
-        if (!selectedProductId || !qty || !buyPrice || !sellPrice) {
-            setError('Selecciona un producto y completa los campos');
-            setTimeout(() => setError(''), 2500);
-            return;
+    const handleUpdateQty = useCallback((productId, newQty) => {
+        if (newQty <= 0) {
+            setCart(prev => prev.filter(item => item.productId !== productId));
+        } else {
+            setCart(prev => prev.map(item =>
+                item.productId === productId ? { ...item, qty: newQty } : item
+            ));
         }
+    }, []);
 
-        const q = parseFloat(qty) || 1;
-        const bp = parseFloat(buyPrice) || 0;
-        const sp = parseFloat(sellPrice) || 0;
+    const handleRemoveItem = useCallback((productId) => {
+        setCart(prev => prev.filter(item => item.productId !== productId));
+    }, []);
 
-        if (q <= 0 || bp < 0 || sp <= 0) {
-            setError('Los valores deben ser mayores a 0');
-            setTimeout(() => setError(''), 2500);
-            return;
-        }
+    const handleClearCart = useCallback(() => {
+        setCart([]);
+    }, []);
 
-        const buyUsd = ratesReady ? toBaseUsd(bp, mainCurrency, rates) : bp;
-        const sellUsd = ratesReady ? toBaseUsd(sp, mainCurrency, rates) : sp;
+    const handleCheckout = useCallback(() => {
+        if (cart.length === 0) return;
 
-        const profitUnitUsd = sellUsd - buyUsd;
-        const profitTotalUsd = profitUnitUsd * q;
-
-        addSale({
-            productId: selectedProductId,
-            productName: productName,
-            qty: q,
-            buyPrice: bp,
-            sellPrice: sp,
-            buyUsd,
-            sellUsd,
-            profitUnitUsd,
-            profitTotalUsd,
-            displayCurrency: mainCurrency,
-            displayBuy: bp,
-            displaySell: sp,
+        // Convert cart items to sale data with USD base prices
+        const saleItems = cart.map(item => {
+            const buyUsd = ratesReady ? toBaseUsd(item.buyPrice, mainCurrency, rates) : item.buyPrice;
+            const sellUsd = ratesReady ? toBaseUsd(item.sellPrice, mainCurrency, rates) : item.sellPrice;
+            return {
+                productId: item.productId,
+                productName: item.name,
+                qty: item.qty,
+                buyPrice: item.buyPrice,
+                sellPrice: item.sellPrice,
+                buyUsd,
+                sellUsd,
+                profitUnitUsd: sellUsd - buyUsd,
+                profitTotalUsd: (sellUsd - buyUsd) * item.qty,
+                totalUsd: sellUsd * item.qty,
+                displayCurrency: mainCurrency,
+                displayBuy: item.buyPrice,
+                displaySell: item.sellPrice,
+            };
         });
 
-        setProductName('');
-        setQty('');
-        setBuyPrice('');
-        setSellPrice('');
-        setSelectedProductId(null);
-    };
+        addBatchSale(saleItems);
+        setCart([]);
+        setShowMobileCart(false);
+        triggerHaptic?.();
+    }, [cart, ratesReady, mainCurrency, rates, addBatchSale, triggerHaptic]);
 
-    const handleClearAll = () => {
-        setDeleteConfirmId({ type: 'all' });
-    };
-
+    // ── Delete Handlers ──
+    const handleClearAll = () => setDeleteConfirmId({ type: 'all' });
     const confirmDelete = () => {
         if (!deleteConfirmId) return;
         triggerHaptic?.();
-        if (deleteConfirmId.type === 'single') {
-            removeSale(deleteConfirmId.id);
-        } else if (deleteConfirmId.type === 'all') {
-            clearAll();
-        }
+        if (deleteConfirmId.type === 'single') removeSale(deleteConfirmId.id);
+        else if (deleteConfirmId.type === 'all') clearAll();
         setDeleteConfirmId(null);
     };
 
-    const getProductNameById = (id) => {
+    const getProductNameById = useCallback((id) => {
         const p = products.find(x => x.id === id);
         return p ? p.name : null;
-    };
+    }, [products]);
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center h-40">
-                <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+            <div className="space-y-3 p-4">
+                <div className="skeleton h-8 w-48 rounded-xl" />
+                <div className="grid grid-cols-3 gap-2">
+                    <div className="skeleton h-20 rounded-xl" />
+                    <div className="skeleton h-20 rounded-xl" />
+                    <div className="skeleton h-20 rounded-xl" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                    {[...Array(4)].map((_, i) => <div key={i} className="skeleton h-24 rounded-xl" />)}
+                </div>
             </div>
         );
     }
@@ -133,22 +139,37 @@ export default function SalesView({ theme, triggerHaptic, rates }) {
         <div className="space-y-4 animate-in fade-in duration-300">
 
             {/* Header */}
-            <div>
-                <h1 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                    <TrendingUp size={22} className="text-amber-500" />
-                    Zona Revendedor
-                </h1>
-                {(!parityMode && mainCurrency !== 'USDT') && (
-                    <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full w-fit mt-1">
-                        <Globe size={12} className="text-amber-500" />
-                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                            Trabajando en {label} · Bs como referencia
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <TrendingUp size={22} className="text-amber-500" />
+                        Zona Revendedor
+                    </h1>
+                    {(!parityMode && mainCurrency !== 'USDT') && (
+                        <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full w-fit mt-1">
+                            <Globe size={12} className="text-amber-500" />
+                            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                                Trabajando en {label} · Bs como referencia
+                            </span>
+                        </div>
+                    )}
+                </div>
+
+                {/* Mobile Cart Button (FAB) */}
+                <button
+                    onClick={() => setShowMobileCart(true)}
+                    className="lg:hidden relative p-3 bg-amber-500 rounded-2xl text-slate-900 shadow-lg shadow-amber-500/20 active:scale-95 transition-all"
+                >
+                    <ShoppingCart size={20} />
+                    {cartItemCount > 0 && (
+                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">
+                            {cartItemCount}
                         </span>
-                    </div>
-                )}
+                    )}
+                </button>
             </div>
 
-            {/* Resumen del día */}
+            {/* Daily Summary */}
             <div className="grid grid-cols-3 gap-2">
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 text-center">
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Vendido</p>
@@ -175,21 +196,61 @@ export default function SalesView({ theme, triggerHaptic, rates }) {
                 </div>
             </div>
 
-            {/* Sale Form + Catalog Modal */}
-            <SaleFormSection
-                selectedProductId={selectedProductId}
-                productName={productName}
-                qty={qty} setQty={setQty}
-                buyPrice={buyPrice} setBuyPrice={setBuyPrice}
-                sellPrice={sellPrice} setSellPrice={setSellPrice}
-                error={error}
-                showCatalog={showCatalog} setShowCatalog={setShowCatalog}
-                catalogSearch={catalogSearch} setCatalogSearch={setCatalogSearch}
-                products={products} productsLoading={productsLoading}
-                handleSelectProduct={handleSelectProduct}
-                mainCurrency={mainCurrency} rates={rates} ratesReady={ratesReady}
-                onSubmit={handleSubmit} triggerHaptic={triggerHaptic}
-            />
+            {/* POS Layout: Product Grid + Cart */}
+            <div className="flex gap-4 min-h-[50vh]">
+                {/* Left: Product Grid */}
+                <div className="flex-[3] min-w-0">
+                    <ProductGrid
+                        products={products}
+                        isLoading={productsLoading}
+                        mainCurrency={mainCurrency}
+                        rates={rates}
+                        ratesReady={ratesReady}
+                        onAddToCart={handleAddToCart}
+                        triggerHaptic={triggerHaptic}
+                    />
+                </div>
+
+                {/* Right: Cart (Desktop only) */}
+                <div className="hidden lg:flex flex-[2] bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+                    <ResellerCart
+                        cart={cart}
+                        mainCurrency={mainCurrency}
+                        rates={rates}
+                        ratesReady={ratesReady}
+                        onUpdateQty={handleUpdateQty}
+                        onRemoveItem={handleRemoveItem}
+                        onClearCart={handleClearCart}
+                        onCheckout={handleCheckout}
+                        triggerHaptic={triggerHaptic}
+                    />
+                </div>
+            </div>
+
+            {/* Mobile Cart Bottom Sheet */}
+            {showMobileCart && (
+                <div
+                    className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-end justify-center animate-in fade-in duration-200 lg:hidden"
+                    onClick={() => setShowMobileCart(false)}
+                >
+                    <div
+                        className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-t-3xl border-t border-slate-200 dark:border-slate-800 animate-in slide-in-from-bottom duration-300 max-h-[85vh] flex flex-col"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <ResellerCart
+                            cart={cart}
+                            mainCurrency={mainCurrency}
+                            rates={rates}
+                            ratesReady={ratesReady}
+                            onUpdateQty={handleUpdateQty}
+                            onRemoveItem={handleRemoveItem}
+                            onClearCart={handleClearCart}
+                            onCheckout={handleCheckout}
+                            triggerHaptic={triggerHaptic}
+                        />
+                    </div>
+                </div>
+            )}
 
             {/* Sales History */}
             <SalesHistoryList
@@ -202,14 +263,14 @@ export default function SalesView({ theme, triggerHaptic, rates }) {
                 triggerHaptic={triggerHaptic}
             />
 
-            {/* Limpiar historial */}
+            {/* Clear History */}
             {sales.length > 0 && (
                 <button onClick={handleClearAll} className="w-full py-2.5 text-xs font-bold text-slate-400 hover:text-rose-500 transition-colors">
                     Limpiar historial completo ({sales.length} registros)
                 </button>
             )}
 
-            {/* Modal Confirmar Eliminación */}
+            {/* Delete Confirmation Modal */}
             {deleteConfirmId && (
                 <div
                     className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200"

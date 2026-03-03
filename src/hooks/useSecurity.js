@@ -301,31 +301,41 @@ export function useSecurity() {
             }
         }
 
-        // Migración silenciosa de licencias pre-Supabase
-        if (confirmedPremium) {
+        // Migración silenciosa de licencias pre-Supabase (solo una vez)
+        if (confirmedPremium && !localStorage.getItem('license_migrated')) {
             const migrateToSupabase = async () => {
                 try {
                     // Verificar si ya existe en Supabase
-                    const { data: existing } = await supabase
+                    const { data: existing, error: selectErr } = await supabase
                         .from('licenses')
                         .select('id')
                         .eq('device_id', currentDeviceId)
                         .eq('product_id', PRODUCT_ID)
                         .maybeSingle()
 
-                    // Si NO existe, registrarla ahora
+                    if (selectErr) {
+                        // Sin red o error de RLS — no reintentar
+                        localStorage.setItem('license_migrated', 'skip');
+                        return;
+                    }
+
                     if (!existing) {
-                        await supabase.from('licenses').insert({
+                        const { error: insertErr } = await supabase.from('licenses').insert({
                             device_id: currentDeviceId,
                             product_id: PRODUCT_ID,
                             type: confirmedDemo ? 'demo7' : 'permanent',
-                            status: 'active', // Default status for migrated licenses
+                            active: true,
+                            status: 'active',
                             expires_at: confirmedExpires
                                 ? new Date(confirmedExpires).toISOString()
                                 : null,
                             code: 'MIGRADA-PRESUPABASE',
                             last_seen_at: new Date().toISOString(),
                         })
+
+                        if (insertErr) {
+                            console.warn('[Migración] Insert falló, no se reintentará:', insertErr.message);
+                        }
                     } else {
                         // Si ya existe, solo actualizar last_seen
                         await supabase.from('licenses')
@@ -333,8 +343,12 @@ export function useSecurity() {
                             .eq('device_id', currentDeviceId)
                             .eq('product_id', PRODUCT_ID)
                     }
+
+                    // Marcar como migrado para no reintentar NUNCA MÁS
+                    localStorage.setItem('license_migrated', 'done');
                 } catch (e) {
-                    // Silencioso — nunca afecta la app
+                    // Error de red — marcar para no spammear
+                    localStorage.setItem('license_migrated', 'skip');
                 }
             }
 
