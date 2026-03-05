@@ -190,6 +190,11 @@ export function useRates() {
 
             let newRates = { ...(ratesRef.current || DEFAULT_RATES) };
 
+            // Ensure sub-objects exist (first load with no cache)
+            if (!newRates.usdt) newRates.usdt = { ...DEFAULT_RATES.usdt };
+            if (!newRates.bcv) newRates.bcv = { ...DEFAULT_RATES.bcv };
+            if (!newRates.euro) newRates.euro = { ...DEFAULT_RATES.euro };
+
             // Procesar USDT
             if (usdtResult) {
                 const meta = getMeta(usdtResult.price, newRates.usdt.price, newRates.usdt.change);
@@ -251,19 +256,16 @@ export function useRates() {
             }
 
             // Notificaciones
-            // Access ratesRef.current to compare with LATEST known confirmed rates, 
-            // but for notifications usually we compare 'rates' state vs 'newRates'. 
-            // Since we are inside updateData, ratesRef.current holds the state from before this update cycle.
             if (notificationsEnabled) {
                 const oldBcv = ratesRef.current?.bcv?.price || 0;
-                const currentBcv = newRates.bcv.price;
+                const currentBcv = newRates.bcv?.price || 0;
                 if (currentBcv > 0 && oldBcv > 0 && currentBcv !== oldBcv) {
                     const emoji = currentBcv > oldBcv ? "📈" : "📉";
                     sendRateNotification(`${emoji} Cambio Tasa BCV`, `La tasa oficial cambió a ${currentBcv.toFixed(2)} Bs.`);
                 }
 
                 const oldEuro = ratesRef.current?.euro?.price || 0;
-                const currentEuro = newRates.euro.price;
+                const currentEuro = newRates.euro?.price || 0;
                 if (currentEuro > 0 && oldEuro > 0 && currentEuro !== oldEuro) {
                     const emoji = currentEuro > oldEuro ? "📈" : "📉";
                     sendRateNotification(`${emoji} Cambio Tasa EURO`, `La tasa oficial del Euro cambió a ${currentEuro.toFixed(2)} Bs.`);

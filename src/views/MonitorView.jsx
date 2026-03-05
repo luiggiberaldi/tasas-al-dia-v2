@@ -40,6 +40,31 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
         return new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
     };
 
+    // --- SKELETON LOADING (Carga inicial) — moved BEFORE calculations ---
+    if (loading && (!rates || !rates.usdt || !rates.bcv || rates.usdt.price === 0)) {
+        return (
+            <div className="space-y-8 pt-6 px-1 animate-pulse">
+                <div className="flex justify-between items-center mb-8 px-2">
+                    <div className="h-10 w-32 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
+                    <div className="flex gap-2">
+                        <div className="h-10 w-10 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
+                        <div className="h-10 w-10 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
+                    </div>
+                </div>
+                <div className="h-64 bg-slate-200 dark:bg-slate-800 rounded-[2rem]"></div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="h-32 bg-slate-200 dark:bg-slate-800 rounded-[1.5rem]"></div>
+                    <div className="h-32 bg-slate-200 dark:bg-slate-800 rounded-[1.5rem]"></div>
+                </div>
+            </div>
+        );
+    }
+
+    // Safe fallback if rates are partially loaded
+    if (!rates?.bcv?.price || !rates?.usdt?.price) {
+        return null;
+    }
+
     // Cálculos matemáticos
     const spread = rates.bcv.price > 0 ? ((rates.usdt.price - rates.bcv.price) / rates.bcv.price) * 100 : 0;
     const diffBs = rates.usdt.price - rates.bcv.price;
@@ -168,26 +193,6 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
         );
     }
 
-    // --- SKELETON LOADING (Carga inicial) ---
-    if (loading && (!rates || !rates.usdt || rates.usdt.price === 0)) {
-        return (
-            <div className="space-y-8 pt-6 px-1 animate-pulse">
-                <div className="flex justify-between items-center mb-8 px-2">
-                    <div className="h-10 w-32 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
-                    <div className="flex gap-2">
-                        <div className="h-10 w-10 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
-                        <div className="h-10 w-10 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
-                    </div>
-                </div>
-                <div className="h-64 bg-slate-200 dark:bg-slate-800 rounded-[2rem]"></div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="h-32 bg-slate-200 dark:bg-slate-800 rounded-[1.5rem]"></div>
-                    <div className="h-32 bg-slate-200 dark:bg-slate-800 rounded-[1.5rem]"></div>
-                </div>
-            </div>
-        );
-    }
-
     // --- VISTA NORMAL (GRID PRINCIPAL) ---
     // Añadimos las constantes de íconos aquí
     const ICON_USDT = (
@@ -212,7 +217,7 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
     );
 
     return (
-        <div className="flex flex-col h-[calc(100dvh-150px)] overflow-hidden justify-between py-2 animate-in fade-in slide-in-from-bottom-2 duration-500 relative">
+        <div className="flex flex-col h-[calc(100dvh-150px)] overflow-hidden justify-between py-2 relative">
 
             {/* HEADER */}
             <header className="flex items-center justify-between pt-[env(safe-area-inset-top)] pb-2 px-3 sm:px-4 shrink-0" style={{ paddingTop: 'max(env(safe-area-inset-top), 8px)' }}>

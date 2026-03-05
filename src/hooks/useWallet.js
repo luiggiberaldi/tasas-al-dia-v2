@@ -13,8 +13,15 @@ export function useWallet() {
     const loadData = async () => {
       try {
         const saved = await storageService.getItem(STORAGE_KEY, []);
+        // Normalize: WalletView creates accounts with `id_gen`, useWallet expects `id`.
+        // Ensure both fields exist for cross-component compatibility.
+        const normalized = (saved || []).map(acc => ({
+          ...acc,
+          id: acc.id || String(acc.id_gen || crypto.randomUUID()),
+          id_gen: acc.id_gen || acc.id || Date.now(),
+        }));
         if (isMounted) {
-          setAccounts(saved);
+          setAccounts(normalized);
         }
       } catch (error) {
         console.error("Error cargando billetera:", error);
