@@ -241,7 +241,9 @@ export default function App() {
         )}
 
         {activeTab === 'sales' && (
-          <SalesView theme={theme} triggerHaptic={triggerHaptic} rates={rates} />
+          <PremiumGuard featureName="Zona de Ventas">
+            <SalesView theme={theme} triggerHaptic={triggerHaptic} rates={rates} />
+          </PremiumGuard>
         )}
       </main>
 
@@ -253,9 +255,7 @@ export default function App() {
             <TabButton icon={<Calculator size={20} strokeWidth={activeTab === 'calc' ? 3 : 2} />} label="Calc" isActive={activeTab === 'calc'} onClick={() => { triggerHaptic(); setActiveTab('calc'); }} />
             <TabButton icon={<Wallet size={20} strokeWidth={activeTab === 'wallet' ? 3 : 2} />} label="Cuentas" isActive={activeTab === 'wallet'} onClick={() => { triggerHaptic(); setActiveTab('wallet'); }} />
 
-            {isPremium && (
-              <TabButton icon={<TrendingUp size={20} strokeWidth={activeTab === 'sales' ? 3 : 2} />} label="Ventas" isActive={activeTab === 'sales'} onClick={() => { triggerHaptic(); setActiveTab('sales'); }} />
-            )}
+            <TabButton icon={<TrendingUp size={20} strokeWidth={activeTab === 'sales' ? 3 : 2} />} label="Ventas" isActive={activeTab === 'sales'} onClick={() => { triggerHaptic(); setActiveTab('sales'); }} />
 
             {installPrompt && activeTab === 'monitor' && (
               <button onClick={() => { triggerHaptic(); handleInstall(); }} className="flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all duration-300 bg-emerald-500 text-white shadow-md animate-pulse">
