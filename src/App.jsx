@@ -44,12 +44,13 @@ export default function App() {
     if (outcome === 'accepted') setInstallPrompt(null);
   };
 
-  // LOGICA THEME
+  // LOGICA THEME — factory default siempre es CLARO
   const [theme, setTheme] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('theme');
       if (saved) return saved;
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      // Factory default: SIEMPRE claro (ignoramos prefers-color-scheme del sistema)
+      return 'light';
     }
     return 'light';
   });
