@@ -61,18 +61,18 @@ export default function TermsOverlay() {
                     className="flex-1 overflow-y-auto px-6 py-6 prose prose-sm max-w-none"
                     style={{ scrollbarWidth: 'thin' }}
                 >
-                    <h1 className="text-2xl font-black text-slate-900 mb-4">Términos y Condiciones de Uso - TasasAlDía</h1>
+                    <h1 className="text-2xl font-black text-slate-900 mb-4">Términos y Condiciones de Uso - PreciosAlDía</h1>
                     <p className="text-xs text-slate-500 font-bold mb-6">Última actualización: Febrero 2026</p>
 
                     <hr className="my-6" />
 
                     <h2 className="text-lg font-bold text-slate-900 mt-6 mb-3">1. Aceptación de los Términos</h2>
                     <p className="text-sm text-slate-700 leading-relaxed mb-4">
-                        Al acceder y utilizar la aplicación <strong>TasasAlDía</strong> (en adelante, "la Aplicación"), usted acepta estar sujeto a estos Términos y Condiciones. Si no está de acuerdo con alguna parte de estos términos, no debe utilizar la Aplicación.
+                        Al acceder y utilizar la aplicación <strong>PreciosAlDía</strong> (en adelante, "la Aplicación"), usted acepta estar sujeto a estos Términos y Condiciones. Si no está de acuerdo con alguna parte de estos términos, no debe utilizar la Aplicación.
                     </p>
 
                     <h2 className="text-lg font-bold text-slate-900 mt-6 mb-3">2. Descripción del Servicio</h2>
-                    <p className="text-sm text-slate-700 leading-relaxed mb-2">TasasAlDía es una aplicación web progresiva (PWA) que proporciona:</p>
+                    <p className="text-sm text-slate-700 leading-relaxed mb-2">PreciosAlDía es una aplicación web progresiva (PWA) que proporciona:</p>
                     <ul className="text-sm text-slate-700 space-y-1 mb-4">
                         <li><strong>Monitoreo de tasas de cambio</strong> en Venezuela (USDT, Dólar BCV, Euro BCV)</li>
                         <li><strong>Calculadora financiera</strong> para conversiones entre monedas</li>
@@ -85,7 +85,7 @@ export default function TermsOverlay() {
 
                     <h3 className="text-base font-bold text-slate-800 mt-4 mb-2">3.1 Información No Vinculante</h3>
                     <p className="text-sm text-slate-700 leading-relaxed mb-4">
-                        <strong className="text-red-600">TODA LA INFORMACIÓN PROPORCIONADA EN LA APLICACIÓN ES ESTRICTAMENTE INFORMATIVA Y DE REFERENCIA.</strong> TasasAlDía no garantiza la exactitud, integridad, vigencia o fiabilidad de las tasas de cambio, datos financieros o cualquier otra información mostrada.
+                        <strong className="text-red-600">TODA LA INFORMACIÓN PROPORCIONADA EN LA APLICACIÓN ES ESTRICTAMENTE INFORMATIVA Y DE REFERENCIA.</strong> PreciosAlDía no garantiza la exactitud, integridad, vigencia o fiabilidad de las tasas de cambio, datos financieros o cualquier otra información mostrada.
                     </p>
 
                     <h3 className="text-base font-bold text-slate-800 mt-4 mb-2">3.2 No Constituye Asesoría Financiera</h3>
@@ -94,7 +94,7 @@ export default function TermsOverlay() {
                     </p>
 
                     <h3 className="text-base font-bold text-slate-800 mt-4 mb-2">3.3 Limitación de Responsabilidad</h3>
-                    <p className="text-sm text-slate-700 leading-relaxed mb-2"><strong>TasasAlDía y sus desarrolladores NO se hacen responsables por:</strong></p>
+                    <p className="text-sm text-slate-700 leading-relaxed mb-2"><strong>PreciosAlDía y sus desarrolladores NO se hacen responsables por:</strong></p>
                     <ul className="text-sm text-slate-700 space-y-1 mb-4">
                         <li>Pérdidas económicas directas o indirectas derivadas del uso de la información</li>
                         <li>Errores, retrasos o interrupciones en la actualización de datos</li>
@@ -105,11 +105,11 @@ export default function TermsOverlay() {
 
                     <h3 className="text-base font-bold text-slate-800 mt-4 mb-2">3.4 Uso Bajo Propio Riesgo</h3>
                     <p className="text-sm text-slate-700 leading-relaxed mb-4">
-                        Al usar TasasAlDía, usted acepta que lo hace <strong>bajo su propio riesgo y responsabilidad</strong>. Usted es el único responsable de verificar la información con fuentes oficiales antes de ejecutar cualquier operación financiera.
+                        Al usar PreciosAlDía, usted acepta que lo hace <strong>bajo su propio riesgo y responsabilidad</strong>. Usted es el único responsable de verificar la información con fuentes oficiales antes de ejecutar cualquier operación financiera.
                     </p>
 
                     <h2 className="text-lg font-bold text-slate-900 mt-6 mb-3">4. Funcionalidades Premium</h2>
-                    <p className="text-sm text-slate-700 leading-relaxed mb-2">TasasAlDía ofrece funciones gratuitas y funciones exclusivas para usuarios con <strong>Licencia Premium (TasasAlDía Business)</strong>:</p>
+                    <p className="text-sm text-slate-700 leading-relaxed mb-2">PreciosAlDía ofrece funciones gratuitas y funciones exclusivas para usuarios con <strong>Licencia Premium (PreciosAlDía Business)</strong>:</p>
                     <ul className="text-sm text-slate-700 space-y-1 mb-2">
                         <li><strong>Gratuito:</strong> Monitoreo de tasas, calculadora de conversiones, hasta 2 cuentas de pago, modo kiosco con captura de imagen.</li>
                         <li><strong>Premium:</strong> Envío de cotizaciones por WhatsApp, cuentas de pago ilimitadas, catálogo de productos con precios, compartir catálogo mediante código temporal.</li>
@@ -120,7 +120,7 @@ export default function TermsOverlay() {
 
                     <h2 className="text-lg font-bold text-slate-900 mt-6 mb-3">5. Privacidad y Datos Personales</h2>
                     <p className="text-sm text-slate-700 leading-relaxed mb-4">
-                        TasasAlDía opera con principios de <strong>privacidad por diseño</strong>. La Aplicación NO recopila datos personales sensibles. Los datos se almacenan localmente en su dispositivo y <strong>NO se venden ni comparten con terceros</strong>.
+                        PreciosAlDía opera con principios de <strong>privacidad por diseño</strong>. La Aplicación NO recopila datos personales sensibles. Los datos se almacenan localmente en su dispositivo y <strong>NO se venden ni comparten con terceros</strong>.
                     </p>
 
                     <h2 className="text-lg font-bold text-slate-900 mt-6 mb-3">6. Legislación Aplicable</h2>
@@ -130,11 +130,11 @@ export default function TermsOverlay() {
 
                     <h2 className="text-lg font-bold text-slate-900 mt-6 mb-3">7. Modificaciones</h2>
                     <p className="text-sm text-slate-700 leading-relaxed mb-4">
-                        TasasAlDía se reserva el derecho de modificar estos términos en cualquier momento. El uso continuo de la Aplicación después de dichas modificaciones constituye su aceptación.
+                        PreciosAlDía se reserva el derecho de modificar estos términos en cualquier momento. El uso continuo de la Aplicación después de dichas modificaciones constituye su aceptación.
                     </p>
 
                     <h2 className="text-lg font-bold text-slate-900 mt-6 mb-3">8. Código de Conducta</h2>
-                    <p className="text-sm text-slate-700 leading-relaxed mb-2">Al utilizar TasasAlDía, usted se compromete a:</p>
+                    <p className="text-sm text-slate-700 leading-relaxed mb-2">Al utilizar PreciosAlDía, usted se compromete a:</p>
                     <ul className="text-sm text-slate-700 space-y-1 mb-4">
                         <li><strong>NO</strong> utilizar la Aplicación para actividades ilícitas</li>
                         <li><strong>NO</strong> intentar vulnerar la seguridad del sistema</li>
@@ -152,7 +152,7 @@ export default function TermsOverlay() {
                     </div>
 
                     <p className="text-center text-sm font-bold text-slate-900 mt-8 mb-4">
-                        TasasAlDía - Monitor Financiero de Venezuela 🇻🇪
+                        PreciosAlDía - Monitor Financiero de Venezuela 🇻🇪
                     </p>
                     <p className="text-center text-xs text-slate-500 mb-8">
                         Información en tiempo real para decisiones inteligentes

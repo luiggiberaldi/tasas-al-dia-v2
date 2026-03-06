@@ -180,7 +180,7 @@ export default function App() {
             </p>
             <button
               onClick={() => {
-                const msg = `Hola! Quiero adquirir la licencia Premium de TasasAlDía. Acabo de terminar mi prueba gratuita.`;
+                const msg = `Hola! Quiero adquirir la licencia Premium de PreciosAlDía. Acabo de terminar mi prueba gratuita.`;
                 window.open(`https://wa.me/584124051793?text=${encodeURIComponent(msg)}`, '_blank');
               }}
               className="w-full py-3 bg-[#10B981] text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-transform text-sm mb-2"

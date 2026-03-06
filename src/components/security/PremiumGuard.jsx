@@ -60,7 +60,7 @@ export default function PremiumGuard({ children, featureName = "Esta función", 
     };
 
     const openWhatsApp = () => {
-        const message = `Hola! Quiero adquirir una licencia Premium para TasasAlDía. Mi ID de instalación es: ${deviceId}`;
+        const message = `Hola! Quiero adquirir una licencia Premium para PreciosAlDía. Mi ID de instalación es: ${deviceId}`;
         const url = `https://wa.me/584124051793?text=${encodeURIComponent(message)}`;
         window.open(url, '_blank');
     };
@@ -69,7 +69,7 @@ export default function PremiumGuard({ children, featureName = "Esta función", 
     let title, message, Icon, iconColor, benefits;
 
     if (isShop) {
-        title = <span>TasasAlDía <span className="text-amber-500">Business</span> 👑</span>;
+        title = <span>PreciosAlDía <span className="text-amber-500">Business</span> 👑</span>;
         message = "Desbloquea el potencial completo para tu negocio.";
         Icon = Store;
         iconColor = "text-indigo-600 dark:text-indigo-400 animate-pulse";
@@ -94,7 +94,7 @@ export default function PremiumGuard({ children, featureName = "Esta función", 
             </>
         );
     } else {
-        title = <span>TasasAlDía <span className="text-amber-500">Premium</span> 👑</span>;
+        title = <span>PreciosAlDía <span className="text-amber-500">Premium</span> 👑</span>;
         message = <span>Acceso exclusivo a <strong>{featureName}</strong> para miembros.</span>;
         Icon = Lock;
         iconColor = "text-amber-500";

@@ -15,9 +15,9 @@ export default defineConfig({
         clientsClaim: true,
       },
       manifest: {
-        name: 'TasasAlDía - Monitor Financiero',
-        short_name: 'TasasAlDía',
-        description: 'Monitor de tasas de cambio y calculadora financiera en Venezuela',
+        name: 'Precios Al Día — Revendedores',
+        short_name: 'PreciosAlDía',
+        description: 'App de precios, calculadora y monitor de tasas para revendedores en Venezuela',
         theme_color: '#0f172a', // Color de la barra de estado en Android
         background_color: '#0f172a', // Color de fondo al abrir la app (Splash screen)
         display: 'standalone', // Modo app nativa (sin barra de navegador)

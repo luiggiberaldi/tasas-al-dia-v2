@@ -40,7 +40,7 @@ const STEPS = [
         title: 'Tienda',
         headline: 'Tu catálogo de productos',
         descriptionPremium: 'Agrega tus productos con foto y precio en dólares. La app calcula automáticamente el precio en Bolívares, efectivo y todas las tasas.',
-        descriptionFree: 'Con TasasAlDía Business puedes gestionar tu inventario, calcular precios en todas las monedas y compartir tu catálogo por código.',
+        descriptionFree: 'Con PreciosAlDía Business puedes gestionar tu inventario, calcular precios en todas las monedas y compartir tu catálogo por código.',
         tipPremium: '💡 Comparte tu catálogo con otros usando un código de 6 dígitos.',
         tipFree: '👑 Activa tu licencia para desbloquear esta función.',
     },
@@ -112,7 +112,7 @@ export default function OnboardingOverlay({ isPremium = false }) {
                             <div className="relative mx-auto mb-5">
                                 <img
                                     src="/logoprincipal.png"
-                                    alt="TasasAlDía"
+                                    alt="PreciosAlDía"
                                     className="w-44 h-auto mx-auto drop-shadow-lg"
                                 />
                                 {/* Glow effect */}
