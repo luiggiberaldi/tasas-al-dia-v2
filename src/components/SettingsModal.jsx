@@ -190,7 +190,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                             Moneda de trabajo
                         </label>
                         <p className="text-[10px] text-slate-400 leading-relaxed">
-                            Define si piensas tus precios y ganancias en USDT, Dólar o Euro. Los equivalentes en Bolívares se calculan automáticamente.
+                            Define si piensas tus precios y ganancias en USDT, Dólar, Euro o Peso COP. Los equivalentes en Bolívares se calculan automáticamente.
                         </p>
                         <div className="flex gap-2">
                             {[
@@ -221,6 +221,17 @@ export default function SettingsModal({ isOpen, onClose }) {
                                         <svg viewBox="0 0 32 32" className="w-6 h-6" fill="none" xmlns="http://www.w3.org/2000/svg">
                                             <circle cx="16" cy="16" r="15" fill="#4F46E5" />
                                             <text x="16" y="21" textAnchor="middle" fontSize="16" fontWeight="bold" fontFamily="Georgia, serif" fill="white">€</text>
+                                        </svg>
+                                    ),
+                                },
+                                {
+                                    id: 'COP_COL',
+                                    label: 'COP',
+                                    icon: (
+                                        <svg viewBox="0 0 32 32" className="w-6 h-6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <circle cx="16" cy="16" r="15" fill="#FCD116" />
+                                            <path d="M1 16h30" stroke="#003893" strokeWidth="3" />
+                                            <path d="M1 22h30" stroke="#CE1126" strokeWidth="3" />
                                         </svg>
                                     ),
                                 }

@@ -34,6 +34,7 @@ export const RateConfigPanel = ({
             <div className="flex gap-2">
                 {!useAutoUsdt && <span className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 px-2 py-1 rounded-lg text-[10px]">Manual: {formatBs(activeBaseRate)}</span>}
                 {showCashPrice && <span className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-1 rounded-lg text-[10px]">Efectivo: {streetRate} Bs</span>}
+                {mainCurrency === 'COP_COL' && rates?.cop?.price > 0 && <span className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-1 rounded-lg text-[10px]">1 USD = {Math.round(rates.usdt.price / rates.cop.price).toLocaleString()} COP</span>}
             </div>
         </button>
 

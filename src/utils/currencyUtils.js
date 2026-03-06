@@ -10,13 +10,15 @@ export const CURRENCIES = {
     USDT: 'USDT',
     USD_BCV: 'Dólar',
     EUR_BCV: 'Euro',
+    COP_COL: 'Peso COP',
 };
 
-export const VALID_CURRENCIES = ['USDT', 'USD_BCV', 'EUR_BCV'];
+export const VALID_CURRENCIES = ['USDT', 'USD_BCV', 'EUR_BCV', 'COP_COL'];
 
 export const currencySymbol = (id) => {
     if (id === 'USD_BCV') return '$';
     if (id === 'EUR_BCV') return '€';
+    if (id === 'COP_COL') return 'COP';
     return 'USDT';
 };
 
@@ -62,9 +64,15 @@ export const toBaseUsd = (displayPrice, mainCurrency, rates) => {
     }
 
     if (mainCurrency === 'EUR_BCV') {
-        // 1 EUR_BCV = euro Bs
-        // val EUR_BCV * (euro Bs/EUR_BCV) / (usdt Bs/USDT) = val in USDT
         return val * (rates.euro.price / effectiveUsdtRate);
+    }
+
+    if (mainCurrency === 'COP_COL') {
+        // 1 COP = cop.price Bs, 1 USDT = usdt Bs
+        // val COP * (cop Bs/COP) / (usdt Bs/USDT) = val in USDT
+        const copRate = rates.cop?.price || 0;
+        if (copRate <= 0) return val;
+        return val * (copRate / effectiveUsdtRate);
     }
 
     return val;
@@ -95,6 +103,12 @@ export const fromBaseUsd = (amountUsd, mainCurrency, rates) => {
         return bs / rates.euro.price;
     }
 
+    if (mainCurrency === 'COP_COL') {
+        const copRate = rates.cop?.price || 0;
+        if (copRate <= 0) return val;
+        return bs / copRate;
+    }
+
     return val;
 };
 
@@ -104,5 +118,6 @@ export const fromBaseUsd = (amountUsd, mainCurrency, rates) => {
 export const toMessageCurrency = (businessCurrency) => {
     if (businessCurrency === 'USD_BCV') return 'BCV';
     if (businessCurrency === 'EUR_BCV') return 'EUR';
+    if (businessCurrency === 'COP_COL') return 'COP';
     return 'USDT';
 };

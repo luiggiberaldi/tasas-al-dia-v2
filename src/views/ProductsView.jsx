@@ -60,6 +60,7 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
         USDT: computedUsdtRate,
         USD_BCV: rates?.bcv?.price ?? 0,
         EUR_BCV: rates?.euro?.price ?? 0,
+        COP_COL: computedUsdtRate,  // COP uses USDT as base; conversion is via currencyUtils
     }[mainCurrency] ?? rates?.usdt?.price ?? 0);
 
     // TASA EFECTIVO — para cálculo de precio en calle
@@ -73,6 +74,7 @@ export const ProductsView = ({ rates, triggerHaptic }) => {
             USDT: 'Tasa USDT Base',
             USD_BCV: 'Tasa Dólar Base',
             EUR_BCV: 'Tasa Euro Base',
+            COP_COL: 'Tasa Peso COP',
         }[mainCurrency] ?? 'Tasa Base');
 
     const cashSectionLabel = 'Precios en Efectivo';

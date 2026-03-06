@@ -4,11 +4,13 @@ const DEFAULT_RATES = {
     usdt: { price: 37.10, source: 'Promedio P2P', type: 'p2p', change: 0.12 },
     bcv: { price: 36.35, source: 'BCV Oficial', change: 0.05 },
     euro: { price: 39.80, source: 'Euro BCV', change: -0.02 },
+    cop: { price: 0.00878, source: 'Peso COP', change: 0 },
     lastUpdate: new Date().toISOString()
 };
 
 const EXCHANGERATE_KEY = 'F1a3af26247a97a33ee5ad90';
 const DEFAULT_EUR_USD_RATIO = 1.18;
+const DEFAULT_COP_USD_RATE = 4200;
 const UPDATE_INTERVAL = 60000;
 
 // Alinea magnitud de un valor contra un ancla para corregir errores de orden de magnitud
@@ -119,12 +121,17 @@ export function useRates() {
             }
         };
 
-        const getEuroFactorFallback = async () => {
+        const getExchangeRateFactors = async () => {
             try {
                 const data = await fetchGeneric(`https://v6.exchangerate-api.com/v6/${EXCHANGERATE_KEY}/latest/USD`);
-                if (data?.result === "success" && data.conversion_rates?.EUR) return 1 / data.conversion_rates.EUR;
+                if (data?.result === "success" && data.conversion_rates) {
+                    return {
+                        euroFactor: data.conversion_rates.EUR ? 1 / data.conversion_rates.EUR : DEFAULT_EUR_USD_RATIO,
+                        copRate: data.conversion_rates.COP || DEFAULT_COP_USD_RATE,
+                    };
+                }
             } catch (e) { }
-            return DEFAULT_EUR_USD_RATIO;
+            return { euroFactor: DEFAULT_EUR_USD_RATIO, copRate: DEFAULT_COP_USD_RATE };
         };
 
         const calculateP2PAverage = (dataField) => {
@@ -177,14 +184,16 @@ export function useRates() {
             const taskPrivate = fetchGeneric(GOOGLE_SCRIPT_URL);
             const taskUSDT = fetchUSDT();
             const taskDolarApi = fetchGeneric('https://ve.dolarapi.com/v1/dolares');
-            const taskEuroFactor = getEuroFactorFallback();
+            const taskFactors = getExchangeRateFactors();
 
-            const [privateData, usdtResult, bcvFallbackData, euroFactor] = await Promise.all([
+            const [privateData, usdtResult, bcvFallbackData, factors] = await Promise.all([
                 taskPrivate.catch(() => null),
                 taskUSDT.catch(() => null),
                 taskDolarApi.catch(() => null),
-                taskEuroFactor.catch(() => DEFAULT_EUR_USD_RATIO)
+                taskFactors.catch(() => ({ euroFactor: DEFAULT_EUR_USD_RATIO, copRate: DEFAULT_COP_USD_RATE }))
             ]);
+
+            const euroFactor = factors.euroFactor;
 
             if (privateData) log("✅ Datos Privados Recibidos", "success");
 
@@ -194,6 +203,7 @@ export function useRates() {
             if (!newRates.usdt) newRates.usdt = { ...DEFAULT_RATES.usdt };
             if (!newRates.bcv) newRates.bcv = { ...DEFAULT_RATES.bcv };
             if (!newRates.euro) newRates.euro = { ...DEFAULT_RATES.euro };
+            if (!newRates.cop) newRates.cop = { ...DEFAULT_RATES.cop };
 
             // Procesar USDT
             if (usdtResult) {
@@ -253,6 +263,13 @@ export function useRates() {
                         newRates.euro = { ...newRates.euro, ...metaEur, source: 'Euro BCV (Triangulado)' };
                     }
                 }
+            }
+
+            // Calcular COP: 1 COP en Bs = usdt.price / copRate
+            if (newRates.usdt.price > 0 && factors.copRate > 0) {
+                const copBsPrice = newRates.usdt.price / factors.copRate;
+                const meta = getMeta(copBsPrice, newRates.cop.price, newRates.cop.change);
+                newRates.cop = { ...newRates.cop, price: copBsPrice, change: meta.change, source: 'Peso COP (Triangulado)' };
             }
 
             // Notificaciones

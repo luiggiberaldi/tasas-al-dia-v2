@@ -14,6 +14,7 @@ export function useCalculator(rates) {
     { id: 'USDT', label: 'USDT', icon: '💵', rate: rates?.usdt?.price || 0 },
     { id: 'BCV', label: '$ BCV', icon: '🏛️', rate: rates?.bcv?.price || 0 },
     { id: 'EUR', label: 'Euro', icon: '💶', rate: rates?.euro?.price || 0 },
+    { id: 'COP', label: 'Peso COP', icon: '🇨🇴', rate: rates?.cop?.price || 0 },
   ];
 
   // --- LÓGICA DE CONVERSIÓN (Efecto Principal) ---
