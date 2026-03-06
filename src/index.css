@@ -82,11 +82,14 @@ select {
   font-size: 16px !important;
 }
 
-/* Eliminar el bounce del scroll en iOS */
+/* Eliminar el bounce del scroll en iOS — SIN position:fixed que bloquea teclados en Android */
 body {
   overscroll-behavior-y: none;
-  position: fixed;
+  /* NO usar position:fixed — impide que Android abra el teclado virtual */
   width: 100%;
+  height: 100dvh;
+  height: 100vh;
+  /* fallback */
 }
 
 /* Contenedor principal con scroll (altura dinámica) */
