@@ -105,34 +105,48 @@ export default function App() {
   useEffect(() => {
     if (!window.visualViewport) return;
 
-    // Capturar la altura base en el momento del montaje (evita leer window en el módulo)
-    if (!baseHeight.current) {
-      baseHeight.current = window.visualViewport.height;
-    }
+    // Usar window.innerHeight como base — más estable que visualViewport.height en Samsung One UI
+    const captureBase = () => {
+      baseHeight.current = window.innerHeight;
+    };
+
+    // Capturar ahora y de nuevo después de que el browser termine de renderizar
+    captureBase();
+    const initTimer = setTimeout(captureBase, 500);
 
     const handleViewport = () => {
       const vh = window.visualViewport.height;
-      // If the viewport is significantly smaller than the initial window height
-      // and smaller than the current window height, the keyboard is likely up.
-      const isUp = vh < baseHeight.current - 100;
+      // Umbral de 150px para evitar falsos positivos por la gesture bar de Samsung
+      const isUp = vh < baseHeight.current - 150;
       setIsKeyboardOpen(isUp);
     };
 
-    // Backup to handle cases where focus changes but resize doesn't fire immediately
     const handleFocusBack = () => setTimeout(handleViewport, 300);
+
+    // Re-capturar la base en cambios de orientación
+    const handleOrientationChange = () => {
+      setTimeout(() => {
+        captureBase();
+        handleViewport();
+      }, 400);
+    };
 
     window.visualViewport.addEventListener('resize', handleViewport);
     window.visualViewport.addEventListener('scroll', handleViewport);
     window.addEventListener('focusin', handleFocusBack);
     window.addEventListener('focusout', handleFocusBack);
+    window.addEventListener('orientationchange', handleOrientationChange);
 
     return () => {
+      clearTimeout(initTimer);
       window.visualViewport?.removeEventListener('resize', handleViewport);
       window.visualViewport?.removeEventListener('scroll', handleViewport);
       window.removeEventListener('focusin', handleFocusBack);
       window.removeEventListener('focusout', handleFocusBack);
+      window.removeEventListener('orientationchange', handleOrientationChange);
     };
   }, []);
+
 
   const currentViewProps = {
     triggerHaptic,
