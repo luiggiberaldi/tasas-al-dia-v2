@@ -142,12 +142,12 @@ export default function SalesView({ theme, triggerHaptic, rates }) {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                        <TrendingUp size={22} className="text-amber-500" />
+                        <TrendingUp size={22} className="text-brand" />
                         Zona Revendedor
                     </h1>
                     {(!parityMode && mainCurrency !== 'USDT') && (
                         <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full w-fit mt-1">
-                            <Globe size={12} className="text-amber-500" />
+                            <Globe size={12} className="text-brand" />
                             <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
                                 Trabajando en {label} · Bs como referencia
                             </span>
@@ -158,7 +158,7 @@ export default function SalesView({ theme, triggerHaptic, rates }) {
                 {/* Mobile Cart Button (FAB) */}
                 <button
                     onClick={() => setShowMobileCart(true)}
-                    className="lg:hidden relative p-3 bg-amber-500 rounded-2xl text-slate-900 shadow-lg shadow-amber-500/20 active:scale-95 transition-all"
+                    className="lg:hidden relative p-3 bg-brand rounded-2xl text-slate-900 shadow-lg shadow-brand/20 active:scale-95 transition-all"
                 >
                     <ShoppingCart size={20} />
                     {cartItemCount > 0 && (
@@ -175,9 +175,9 @@ export default function SalesView({ theme, triggerHaptic, rates }) {
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Vendido</p>
                     <p className="text-base font-black text-slate-900 dark:text-white mt-0.5 flex flex-wrap items-center justify-center gap-1">
                         {ratesReady ? fmtUsd(fromBaseUsd(todayTotals.totalSoldUsd, mainCurrency, rates)) : '—'}
-                        {ratesReady && mainCurrency !== 'USDT' && <span className="text-[11px] text-amber-500 font-bold">{sym}</span>}
+                        {ratesReady && mainCurrency !== 'USDT' && <span className="text-[11px] text-brand font-bold">{sym}</span>}
                     </p>
-                    {ratesReady && mainCurrency === 'USDT' && <p className="text-[10px] text-amber-500 font-bold mt-0.5">{sym}</p>}
+                    {ratesReady && mainCurrency === 'USDT' && <p className="text-[10px] text-brand font-bold mt-0.5">{sym}</p>}
                     {ratesReady && <p className="text-[9px] text-slate-400 mt-0.5">≈ {formatBs(todayTotals.totalSoldUsd * rates.usdt.price)} Bs</p>}
                 </div>
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 text-center">

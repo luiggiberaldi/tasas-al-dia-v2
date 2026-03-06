@@ -44,7 +44,7 @@ export default function ProductGrid({ products, isLoading, mainCurrency, rates, 
                 </div>
                 <input
                     type="text"
-                    className="block w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-all"
+                    className="block w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-all"
                     placeholder="Buscar producto..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
@@ -77,11 +77,11 @@ export default function ProductGrid({ products, isLoading, mainCurrency, rates, 
                                     <button
                                         key={p.id}
                                         onClick={() => { triggerHaptic?.(); onAddToCart(p); }}
-                                        className="relative bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-3 text-left transition-all active:scale-[0.96] hover:border-amber-500/40 hover:shadow-md group"
+                                        className="relative bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-3 text-left transition-all active:scale-[0.96] hover:border-brand/40 hover:shadow-md group"
                                     >
                                         {/* Add icon */}
-                                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-amber-500/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Plus size={14} className="text-amber-500" />
+                                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Plus size={14} className="text-brand" />
                                         </div>
 
                                         {/* Image or placeholder */}
@@ -94,7 +94,7 @@ export default function ProductGrid({ products, isLoading, mainCurrency, rates, 
                                         )}
 
                                         <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{p.name}</p>
-                                        <p className="text-sm font-black text-amber-500 mt-0.5">{sellDisplay} {sym}</p>
+                                        <p className="text-sm font-black text-brand mt-0.5">{sellDisplay} {sym}</p>
                                         {margin && (
                                             <p className={`text-[9px] font-bold mt-0.5 ${parseFloat(margin) >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                                                 {parseFloat(margin) >= 0 ? '+' : ''}{margin}% margen
