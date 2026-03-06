@@ -46,32 +46,8 @@ input[type=number] {
   -moz-appearance: textfield;
 }
 
-/* --- LANDSCAPE BLOCKER (Solo móviles, no tablets) --- */
-@media (orientation: landscape) and (max-width: 768px) {
-  #root {
-    display: none;
-  }
+/* Landscape: permitido — la app se adapta */
 
-  body::before {
-    content: '🔄 Por favor, usa la aplicación en modo vertical para una mejor experiencia.';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-color: #020617;
-    /* Slate 950 */
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-    font-weight: bold;
-    text-align: center;
-    padding: 2rem;
-    z-index: 99999;
-  }
-}
 
 /* --- MOBILE KEYBOARD FIXES --- */
 
