@@ -108,6 +108,7 @@ export default function WalletView({ rates }) {
         if (account.type === 'transferencia') return `TRANSFERENCIA\nBanco: ${account.bank}\nCuenta: ${account.accountNumber}\nRIF/CI: ${account.id}\nTitular: ${account.holder}`;
         if (account.type === 'zelle') return `ZELLE\nEmail: ${account.email}\nTitular: ${account.holder}`;
         if (account.type === 'binance') return `BINANCE PAY\nID/Email: ${account.email}\nAlias: ${account.holder || account.alias}`;
+        if (account.type === 'nequi') return `NEQUI\nCelular: ${account.phone}\nTitular: ${account.holder}${account.email ? '\nCorreo: ' + account.email : ''}`;
         return "Datos de cuenta";
     };
 
@@ -138,6 +139,15 @@ export default function WalletView({ rates }) {
                 if (rateVal > 0) {
                     const amountUSD = parseFloat(amountBs) / rateVal;
                     message += `💵 Monto a enviar: ${amountUSD.toFixed(2)} USDT\n(Ref: ${fmt(amountBs)} Bs a tasa ${selectedRate.toUpperCase()} ${fmt(rateVal)})`;
+                }
+            }
+        } else if (account.type === 'nequi') {
+            message = `*Datos Nequi*\n\nCelular: ${account.phone}\nTitular: ${account.holder}${account.email ? '\nCorreo: ' + account.email : ''}\n\n`;
+            if (amountBs && rates) {
+                const copRate = rates?.cop?.price || 0;
+                if (copRate > 0) {
+                    const amountCop = parseFloat(amountBs) / copRate;
+                    message += `Monto a enviar: ${Math.round(amountCop).toLocaleString()} COP\n(Ref: ${fmt(amountBs)} Bs)`;
                 }
             }
         }

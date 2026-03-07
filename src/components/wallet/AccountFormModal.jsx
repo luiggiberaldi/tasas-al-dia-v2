@@ -3,10 +3,11 @@ import { X, ChevronDown } from 'lucide-react';
 import { VENEZUELA_BANKS } from '../../data/banks';
 
 const ACCOUNT_TYPES = [
-    { id: 'pago_movil', label: 'Pago Móvil' },
+    { id: 'pago_movil', label: 'Pago Movil' },
     { id: 'transferencia', label: 'Transferencia' },
     { id: 'zelle', label: 'Zelle' },
     { id: 'binance', label: 'Binance' },
+    { id: 'nequi', label: 'Nequi' },
 ];
 
 const labelClass = "block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1 uppercase tracking-wide";
@@ -91,6 +92,17 @@ export const AccountFormModal = ({ isOpen, onClose, editingId, formData, setForm
                         </div>
                     )}
 
+                    {(formData.type === 'nequi') && (
+                        <div>
+                            <label className={labelClass}>Numero de Celular (Colombia)</label>
+                            <input required type="tel" placeholder="Ej: 3001234567" value={formData.phone} onChange={e => {
+                                const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                setFormData({ ...formData, phone: digits });
+                            }} className="input-std" maxLength={10} />
+                            <p className="text-[9px] text-slate-400 mt-1 ml-1">Formato: 3XX XXX XXXX (10 digitos)</p>
+                        </div>
+                    )}
+
                     {(formData.type === 'pago_movil' || formData.type === 'transferencia') && (
                         <div>
                             <label className={labelClass}>Cédula de Identidad / RIF</label>
@@ -100,8 +112,15 @@ export const AccountFormModal = ({ isOpen, onClose, editingId, formData, setForm
 
                     {(formData.type === 'zelle' || formData.type === 'binance') && (
                         <div>
-                            <label className={labelClass}>{formData.type === 'zelle' ? "Correo Electrónico" : "Correo o Binance ID"}</label>
+                            <label className={labelClass}>{formData.type === 'zelle' ? "Correo Electronico" : "Correo o Binance ID"}</label>
                             <input required placeholder="usuario@email.com" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="input-std" />
+                        </div>
+                    )}
+
+                    {(formData.type === 'nequi') && (
+                        <div>
+                            <label className={labelClass}>Correo Electronico (opcional)</label>
+                            <input placeholder="usuario@email.com" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="input-std" />
                         </div>
                     )}
 

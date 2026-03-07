@@ -89,6 +89,10 @@ export const ProductShareModal = ({ isOpen, onClose, product, rates, accounts, s
                 } else if (acc.type === 'binance') {
                     lines.push(`Email: ${d.email}`);
                     if (d.payId) lines.push(`ID: ${d.payId}`);
+                } else if (acc.type === 'nequi') {
+                    lines.push(`Celular: ${d.phone}`);
+                    lines.push(`Titular: ${d.holder}`);
+                    if (d.email) lines.push(`Correo: ${d.email}`);
                 }
             }
         }
@@ -182,7 +186,7 @@ export const ProductShareModal = ({ isOpen, onClose, product, rates, accounts, s
                             <option value="">-- Sin datos bancarios --</option>
                             {accounts.map(acc => (
                                 <option key={acc.id} value={acc.id}>
-                                    {acc.type === 'pago_movil' ? '📱' : acc.type === 'binance' ? '🟡' : '🏦'} {acc.alias}
+                                    {acc.type === 'pago_movil' ? '📱' : acc.type === 'binance' ? '🟡' : acc.type === 'nequi' ? '🇨🇴' : '🏦'} {acc.alias}
                                 </option>
                             ))}
                         </select>

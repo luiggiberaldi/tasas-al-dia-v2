@@ -125,6 +125,8 @@ export const MessageService = {
             details = `*Transferencia Bancaria*\nBanco: ${d.bankName || d.bank || ''}\nCuenta: ${d.accountNumber || ''}\nTipo: ${tipo}\nTitular: ${d.holder || ''}\nCI/RIF: ${d.docId || d.id || ''}`;
         } else if (selectedAccount.type === 'binance') {
             details = `*Binance Pay*\nEmail: ${d.email || ''}\nID: ${d.payId || 'No especificado'}`;
+        } else if (selectedAccount.type === 'nequi') {
+            details = `*Nequi*\nCelular: ${d.phone || ''}\nTitular: ${d.holder || ''}${d.email ? '\nCorreo: ' + d.email : ''}`;
         }
 
         // Handle 'transferencia' type from WalletView (it maps to 'transfer' logic but type string might be different)
