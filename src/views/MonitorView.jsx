@@ -311,7 +311,7 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
                 {/* COP Reference Pill */}
                 {rates.cop?.price > 0 && (
                     <div className="flex items-center justify-center gap-3 px-4 py-2.5 rounded-2xl bg-amber-50/60 dark:bg-amber-900/10 border border-amber-100/50 dark:border-amber-800/20 shrink-0">
-                        <span className="text-sm">🇨🇴</span>
+                        <svg width="20" height="20" viewBox="0 0 32 32" className="shrink-0"><circle cx="16" cy="16" r="16" fill="#F0B90B" /><text x="16" y="22" textAnchor="middle" fontSize="16" fontWeight="bold" fontFamily="Arial, sans-serif" fill="white">$</text></svg>
                         <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400">
                             1 USDT = {Math.round(rates.usdt.price / rates.cop.price).toLocaleString()} COP
                         </span>
