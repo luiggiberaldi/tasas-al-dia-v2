@@ -1,7 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from './Modal';
-import { Copy, Share2, Check, Smartphone, Building2, Wallet } from 'lucide-react';
+import { Share2 } from 'lucide-react';
 import { formatBs, formatUsd, smartCashRounding } from '../utils/calculatorUtils';
+
+// Readable toggle labels
+const TOGGLE_MAP = {
+    showUsdt: { label: 'USDT', icon: '₮' },
+    showEfectivo: { label: 'Efectivo', icon: '$' },
+    showBs: { label: 'Bolivares', icon: 'Bs' },
+    showRefBcv: { label: 'Dolar BCV', icon: '$' },
+    showRefEuro: { label: 'Euro BCV', icon: '€' },
+    showCop: { label: 'Peso COP', icon: 'COP' },
+};
 
 export const ProductShareModal = ({ isOpen, onClose, product, rates, accounts, streetRate, mainCurrency }) => {
     const [selectedAccountId, setSelectedAccountId] = useState('');
@@ -10,10 +20,10 @@ export const ProductShareModal = ({ isOpen, onClose, product, rates, accounts, s
         showEfectivo: true,
         showBs: true,
         showRefBcv: false,
-        showRefEuro: false
+        showRefEuro: false,
+        showCop: false,
     });
 
-    // Auto-seleccionar primera cuenta al abrir
     useEffect(() => {
         if (isOpen && accounts.length > 0 && !selectedAccountId) {
             setSelectedAccountId(accounts[0].id);
@@ -23,47 +33,39 @@ export const ProductShareModal = ({ isOpen, onClose, product, rates, accounts, s
     if (!product) return null;
 
     const valBs = product.priceUsdt * rates.usdt.price;
-
-    // Lógica Street Rate (Calibrada)
-    // Si hay tasa calibrada (>0), el precio efectivo es Bs / TasaCalibrada
-    // Si no, asumimos paridad 1:1 con USDT (Precio Efectivo = Precio USDT)
     const valEfectivo = streetRate > 0
         ? smartCashRounding(valBs / streetRate)
-        : Math.ceil(product.priceUsdt); // Si no calibra, mantenemos techo simple o redondeo
+        : Math.ceil(product.priceUsdt);
 
     // Presets
-    const applyPreset = (type) => {
-        switch (type) {
-            case 'fiscal':
-                setConfig({ showUsdt: false, showEfectivo: false, showBs: true, showRefBcv: true, showRefEuro: false });
-                break;
-            case 'market':
-                setConfig({ showUsdt: true, showEfectivo: true, showBs: true, showRefBcv: false, showRefEuro: false });
-                break;
-            case 'efectivo':
-                setConfig({ showUsdt: false, showEfectivo: true, showBs: false, showRefBcv: false, showRefEuro: false });
-                break;
-        }
-    };
+    const presets = [
+        { id: 'market', label: 'Mercado', color: 'indigo', apply: { showUsdt: true, showEfectivo: true, showBs: true, showRefBcv: false, showRefEuro: false, showCop: false } },
+        { id: 'fiscal', label: 'Fiscal', color: 'slate', apply: { showUsdt: false, showEfectivo: false, showBs: true, showRefBcv: true, showRefEuro: false, showCop: false } },
+        { id: 'efectivo', label: 'Efectivo', color: 'emerald', apply: { showUsdt: false, showEfectivo: true, showBs: false, showRefBcv: false, showRefEuro: false, showCop: false } },
+        { id: 'colombia', label: 'Colombia', color: 'amber', apply: { showUsdt: true, showEfectivo: false, showBs: false, showRefBcv: false, showRefEuro: false, showCop: true } },
+    ];
 
     const generateMessage = () => {
         const lines = [];
-        lines.push(`*${product.name.toUpperCase()}*`); // Uppercase for better visibility
+        lines.push(`*${product.name.toUpperCase()}*`);
         lines.push('');
+        lines.push('PRECIO:');
 
-        lines.push('PRECIO:'); // Plain text header
         if (config.showUsdt) lines.push(`USDT: ${formatUsd(product.priceUsdt)}`);
         if (config.showEfectivo) lines.push(`Efectivo: $${valEfectivo}`);
         if (config.showBs) lines.push(`Bs: ${formatBs(valBs)}`);
 
-        // Referencias explícitas
         if (config.showRefBcv) {
             const refBcv = valBs / rates.bcv.price;
             lines.push(`Ref. BCV: $${formatUsd(refBcv).replace('$', '')}`);
         }
         if (config.showRefEuro) {
             const refEur = valBs / rates.euro.price;
-            lines.push(`Ref. Euro: €${formatUsd(refEur).replace('$', '').replace('€', '')}`);
+            lines.push(`Ref. Euro: ${formatUsd(refEur).replace('$', '')} EUR`);
+        }
+        if (config.showCop && rates?.cop?.price > 0) {
+            const refCop = valBs / rates.cop.price;
+            lines.push(`COP: ${Math.round(refCop).toLocaleString()}`);
         }
 
         lines.push('');
@@ -71,9 +73,7 @@ export const ProductShareModal = ({ isOpen, onClose, product, rates, accounts, s
         if (selectedAccountId) {
             const acc = accounts.find(a => a.id === selectedAccountId);
             if (acc) {
-                // Support both structures just in case
                 const d = acc.data || acc;
-
                 lines.push(`DATOS DE PAGO:`);
                 lines.push(`*${acc.alias || 'Cuenta'}*`);
 
@@ -93,6 +93,9 @@ export const ProductShareModal = ({ isOpen, onClose, product, rates, accounts, s
                     lines.push(`Celular: ${d.phone}`);
                     lines.push(`Titular: ${d.holder}`);
                     if (d.email) lines.push(`Correo: ${d.email}`);
+                } else if (acc.type === 'zelle') {
+                    lines.push(`Email: ${d.email}`);
+                    lines.push(`Titular: ${d.holder}`);
                 }
             }
         }
@@ -103,7 +106,6 @@ export const ProductShareModal = ({ isOpen, onClose, product, rates, accounts, s
     const handleShare = async () => {
         const text = generateMessage();
 
-        // Helper: Convert DataURL to File
         const dataURLtoFile = (dataurl, filename) => {
             let arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
                 bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
@@ -112,101 +114,105 @@ export const ProductShareModal = ({ isOpen, onClose, product, rates, accounts, s
         };
 
         try {
-            // Check if Web Share API is available and supports files
             if (navigator.share && product.image) {
                 const imageFile = dataURLtoFile(product.image, `${product.name.replace(/\s+/g, '_')}.webp`);
-
                 if (navigator.canShare && navigator.canShare({ files: [imageFile] })) {
-                    await navigator.share({
-                        text: text,
-                        files: [imageFile],
-                    });
-                    return; // Succesfully shared
+                    await navigator.share({ text, files: [imageFile] });
+                    return;
                 }
             }
         } catch (error) {
             console.error("Error sharing with image:", error);
-            // Fallback will execute below
         }
 
-        // Standard Fallback (WhatsApp Text Only)
         const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
         window.open(url, '_blank');
     };
 
-    return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Cotización Flash">
-            <div className="space-y-6">
+    const presetColors = {
+        indigo: 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-800',
+        slate: 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700',
+        emerald: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800',
+        amber: 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-800',
+    };
 
-                {/* 1. Presets */}
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title="Cotizacion Flash">
+            <div className="space-y-5">
+
+                {/* Presets */}
                 <div>
-                    <label className="text-xs font-bold text-slate-400 uppercase mb-2 block">Modo de Cotización</label>
-                    <div className="flex gap-2">
-                        <button onClick={() => applyPreset('market')} className="flex-1 py-2 px-3 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl text-xs font-bold border border-indigo-100 dark:border-indigo-800 hover:bg-indigo-100 transition-colors">
-                            🚀 Mercado
-                        </button>
-                        <button onClick={() => applyPreset('fiscal')} className="flex-1 py-2 px-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 hover:bg-slate-100 transition-colors">
-                            🏛️ Fiscal
-                        </button>
-                        <button onClick={() => applyPreset('efectivo')} className="flex-1 py-2 px-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-bold border border-emerald-100 dark:border-emerald-800 hover:bg-emerald-100 transition-colors">
-                            💵 Efectivo
-                        </button>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block tracking-wider">Modo de Cotizacion</label>
+                    <div className="grid grid-cols-4 gap-2">
+                        {presets.map(p => (
+                            <button
+                                key={p.id}
+                                onClick={() => setConfig(p.apply)}
+                                className={`py-2.5 px-2 rounded-xl text-[10px] font-bold border transition-all active:scale-95 ${presetColors[p.color]}`}
+                            >
+                                {p.label}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
-                {/* 2. Toggles Manuales (Oculto por defecto o visible sutilmente) */}
-                <div className="flex flex-wrap gap-2">
-                    {Object.keys(config).map(key => (
-                        <button
-                            key={key}
-                            onClick={() => setConfig(prev => ({ ...prev, [key]: !prev[key] }))}
-                            className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-colors ${config[key]
-                                ? 'bg-brand/10 border-brand text-brand-dark'
-                                : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-400'
-                                }`}
-                        >
-                            {key.replace('show', '').replace('RefBcv', 'DolarBcv').replace('RefEuro', 'EuroBcv')}
-                        </button>
-                    ))}
+                {/* Toggles */}
+                <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block tracking-wider">Incluir en mensaje</label>
+                    <div className="flex flex-wrap gap-1.5">
+                        {Object.entries(TOGGLE_MAP).map(([key, meta]) => (
+                            <button
+                                key={key}
+                                onClick={() => setConfig(prev => ({ ...prev, [key]: !prev[key] }))}
+                                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${config[key]
+                                    ? 'bg-brand/10 border-brand/50 text-brand-dark dark:text-brand'
+                                    : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-400'
+                                    }`}
+                            >
+                                <span className="text-[9px] opacity-60">{meta.icon}</span>
+                                {meta.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
-                {/* 3. Selector de Cuenta */}
+                {/* Cuenta */}
                 <div>
-                    <label className="text-xs font-bold text-slate-400 uppercase mb-2 block">Cuenta Receptora</label>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block tracking-wider">Cuenta Receptora</label>
                     {accounts.length === 0 ? (
                         <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs text-slate-500 text-center">
-                            No tienes cuentas guardadas aún.
+                            No tienes cuentas guardadas aun.
                         </div>
                     ) : (
                         <select
                             value={selectedAccountId}
                             onChange={(e) => setSelectedAccountId(e.target.value)}
-                            className="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-sm font-medium text-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-brand/50 border border-slate-200 dark:border-slate-700"
+                            className="w-full bg-slate-50 dark:bg-slate-800 p-3 rounded-xl text-xs font-bold text-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-brand/50 border border-slate-200 dark:border-slate-700"
                         >
-                            <option value="">-- Sin datos bancarios --</option>
+                            <option value="">-- Sin datos de pago --</option>
                             {accounts.map(acc => (
                                 <option key={acc.id} value={acc.id}>
-                                    {acc.type === 'pago_movil' ? '📱' : acc.type === 'binance' ? '🟡' : acc.type === 'nequi' ? '🇨🇴' : '🏦'} {acc.alias}
+                                    {acc.type === 'pago_movil' ? '📱' : acc.type === 'binance' ? '🟡' : acc.type === 'nequi' ? '💚' : acc.type === 'zelle' ? '💜' : '🏦'} {acc.alias}
                                 </option>
                             ))}
                         </select>
                     )}
                 </div>
 
-                {/* 4. Previsualización Simplificada */}
-                <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
-                    <p className="text-[10px] text-slate-400 mb-1 uppercase font-bold">Vista Previa Mensaje:</p>
-                    <p className="text-xs text-slate-600 dark:text-slate-300 whitespace-pre-wrap font-mono leading-relaxed">
+                {/* Vista Previa */}
+                <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-800/30 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-700/50">
+                    <p className="text-[9px] text-slate-400 mb-2 uppercase font-bold tracking-wider">Vista Previa</p>
+                    <p className="text-[11px] text-slate-700 dark:text-slate-300 whitespace-pre-wrap font-mono leading-relaxed">
                         {generateMessage()}
                     </p>
                 </div>
 
-                {/* 5. Acción */}
+                {/* Accion */}
                 <button
                     onClick={handleShare}
                     className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white py-4 rounded-2xl font-black uppercase tracking-wider shadow-lg shadow-green-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
                 >
-                    <Share2 size={20} /> Enviar WhatsApp
+                    <Share2 size={18} /> Enviar WhatsApp
                 </button>
 
             </div>
