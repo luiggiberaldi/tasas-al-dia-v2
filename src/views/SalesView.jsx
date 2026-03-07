@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { TrendingUp, Trash2, Globe, ShoppingCart } from 'lucide-react';
+import { TrendingUp, Trash2, Globe, ShoppingCart, ArrowRightLeft } from 'lucide-react';
 import { useSales } from '../hooks/useSales';
 import { useProductsLite } from '../hooks/useProductsLite';
 import { useBusinessCurrency } from '../hooks/useBusinessCurrency';
@@ -16,9 +16,32 @@ export default function SalesView({ theme, triggerHaptic, rates }) {
     const { sales, isLoading, addBatchSale, removeSale, clearAll, getTotals } = useSales();
     const { products, isLoading: productsLoading } = useProductsLite();
     const { mainCurrency, parityMode } = useBusinessCurrency();
-    const sym = currencySymbol(mainCurrency);
-    const label = CURRENCIES[mainCurrency];
     const ratesReady = rates?.usdt?.price > 0;
+
+    // View currency (visual only, doesn't affect stored data)
+    const VIEW_OPTIONS = [
+        { id: 'USDT', label: 'USDT', sym: 'USDT' },
+        { id: 'USD_BCV', label: '$BCV', sym: '$' },
+        { id: 'EUR_BCV', label: 'EUR', sym: '€' },
+        { id: 'COP_COL', label: 'COP', sym: 'COP' },
+        { id: 'VES', label: 'Bs', sym: 'Bs' },
+    ];
+    const [viewCurrency, setViewCurrency] = useState(mainCurrency);
+    const vSym = viewCurrency === 'VES' ? 'Bs' : currencySymbol(viewCurrency);
+    const vLabel = viewCurrency === 'VES' ? 'Bolivares' : CURRENCIES[viewCurrency] || viewCurrency;
+
+    // Convert USD base to viewCurrency
+    const toView = useCallback((usdVal) => {
+        if (!ratesReady || !usdVal) return 0;
+        if (viewCurrency === 'VES') return usdVal * rates.usdt.price;
+        return fromBaseUsd(usdVal, viewCurrency, rates);
+    }, [viewCurrency, rates, ratesReady]);
+
+    const fmtView = (val) => {
+        if (viewCurrency === 'VES') return formatBs(val);
+        if (viewCurrency === 'COP_COL') return Math.round(val).toLocaleString();
+        return fmtUsd(val);
+    };
 
     // Cart state
     const [cart, setCart] = useState([]);
@@ -145,14 +168,12 @@ export default function SalesView({ theme, triggerHaptic, rates }) {
                         <TrendingUp size={22} className="text-brand" />
                         Zona Revendedor
                     </h1>
-                    {(!parityMode && mainCurrency !== 'USDT') && (
-                        <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full w-fit mt-1">
-                            <Globe size={12} className="text-brand" />
-                            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                                Trabajando en {label} · Bs como referencia
-                            </span>
-                        </div>
-                    )}
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full w-fit mt-1">
+                        <Globe size={12} className="text-brand" />
+                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                            Vista en {vLabel}
+                        </span>
+                    </div>
                 </div>
 
                 {/* Mobile Cart Button (FAB) */}
@@ -169,25 +190,38 @@ export default function SalesView({ theme, triggerHaptic, rates }) {
                 </button>
             </div>
 
+            {/* Currency Switcher */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+                <ArrowRightLeft size={12} className="text-slate-400 shrink-0" />
+                {VIEW_OPTIONS.map(opt => (
+                    <button
+                        key={opt.id}
+                        onClick={() => { setViewCurrency(opt.id); triggerHaptic?.(); }}
+                        className={`px-3 py-1.5 rounded-full text-[10px] font-bold whitespace-nowrap transition-all active:scale-95 border ${viewCurrency === opt.id
+                            ? 'bg-brand/15 border-brand/40 text-brand-dark dark:text-brand shadow-sm'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:border-brand/30'
+                            }`}
+                    >
+                        {opt.label}
+                    </button>
+                ))}
+            </div>
+
             {/* Daily Summary */}
             <div className="grid grid-cols-3 gap-2">
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 text-center">
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Vendido</p>
-                    <p className="text-base font-black text-slate-900 dark:text-white mt-0.5 flex flex-wrap items-center justify-center gap-1">
-                        {ratesReady ? fmtUsd(fromBaseUsd(todayTotals.totalSoldUsd, mainCurrency, rates)) : '—'}
-                        {ratesReady && mainCurrency !== 'USDT' && <span className="text-[11px] text-brand font-bold">{sym}</span>}
+                    <p className="text-base font-black text-slate-900 dark:text-white mt-0.5">
+                        {ratesReady ? fmtView(toView(todayTotals.totalSoldUsd)) : '—'}
                     </p>
-                    {ratesReady && mainCurrency === 'USDT' && <p className="text-[10px] text-brand font-bold mt-0.5">{sym}</p>}
-                    {ratesReady && <p className="text-[9px] text-slate-400 mt-0.5">≈ {formatBs(todayTotals.totalSoldUsd * rates.usdt.price)} Bs</p>}
+                    <p className="text-[10px] text-brand font-bold">{vSym}</p>
                 </div>
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 text-center">
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Ganancia</p>
-                    <p className={`text-base font-black mt-0.5 flex flex-wrap items-center justify-center gap-1 ${todayTotals.totalProfitUsd >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                        {ratesReady ? fmtUsd(fromBaseUsd(todayTotals.totalProfitUsd, mainCurrency, rates)) : '—'}
-                        {ratesReady && mainCurrency !== 'USDT' && <span className="text-[11px] text-emerald-500 font-bold">{sym}</span>}
+                    <p className={`text-base font-black mt-0.5 ${todayTotals.totalProfitUsd >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                        {ratesReady ? fmtView(toView(todayTotals.totalProfitUsd)) : '—'}
                     </p>
-                    {ratesReady && mainCurrency === 'USDT' && <p className="text-[10px] text-emerald-500 font-bold mt-0.5">{sym}</p>}
-                    {ratesReady && <p className="text-[9px] text-slate-400 mt-0.5">≈ {formatBs(todayTotals.totalProfitUsd * rates.usdt.price)} Bs</p>}
+                    <p className="text-[10px] text-emerald-500 font-bold">{vSym}</p>
                 </div>
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 text-center">
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Ventas</p>
@@ -203,7 +237,7 @@ export default function SalesView({ theme, triggerHaptic, rates }) {
                     <ProductGrid
                         products={products}
                         isLoading={productsLoading}
-                        mainCurrency={mainCurrency}
+                        mainCurrency={viewCurrency}
                         rates={rates}
                         ratesReady={ratesReady}
                         onAddToCart={handleAddToCart}
@@ -255,7 +289,7 @@ export default function SalesView({ theme, triggerHaptic, rates }) {
             {/* Sales History */}
             <SalesHistoryList
                 todaySales={todaySales}
-                mainCurrency={mainCurrency}
+                mainCurrency={viewCurrency}
                 rates={rates}
                 ratesReady={ratesReady}
                 getProductNameById={getProductNameById}

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Package, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { fromBaseUsd, currencySymbol } from '../../utils/currencyUtils';
+import { formatBs } from '../../utils/calculatorUtils';
 
 /**
  * Grid de productos del catálogo para agregar al carrito.
@@ -9,7 +10,7 @@ import { fromBaseUsd, currencySymbol } from '../../utils/currencyUtils';
 export default function ProductGrid({ products, isLoading, mainCurrency, rates, ratesReady, onAddToCart, triggerHaptic }) {
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
-    const sym = currencySymbol(mainCurrency);
+    const sym = mainCurrency === 'VES' ? 'Bs' : currencySymbol(mainCurrency);
     const PAGE_SIZE = 10;
 
     const filtered = useMemo(() => {
@@ -69,9 +70,20 @@ export default function ProductGrid({ products, isLoading, mainCurrency, rates, 
                     <>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                             {paginated.map(p => {
-                                const sellDisplay = ratesReady ? fromBaseUsd(p.priceUsdt, mainCurrency, rates).toFixed(2) : p.priceUsdt;
-                                const costDisplay = p.costUsdt && ratesReady ? fromBaseUsd(p.costUsdt, mainCurrency, rates).toFixed(2) : null;
-                                const margin = costDisplay ? ((sellDisplay - costDisplay) / costDisplay * 100).toFixed(0) : null;
+                                let sellDisplay, costDisplay;
+                                if (mainCurrency === 'VES') {
+                                    sellDisplay = ratesReady ? formatBs(p.priceUsdt * rates.usdt.price) : p.priceUsdt;
+                                    costDisplay = p.costUsdt && ratesReady ? formatBs(p.costUsdt * rates.usdt.price) : null;
+                                } else if (mainCurrency === 'COP_COL') {
+                                    sellDisplay = ratesReady ? Math.round(fromBaseUsd(p.priceUsdt, mainCurrency, rates)).toLocaleString() : p.priceUsdt;
+                                    costDisplay = p.costUsdt && ratesReady ? Math.round(fromBaseUsd(p.costUsdt, mainCurrency, rates)).toLocaleString() : null;
+                                } else {
+                                    sellDisplay = ratesReady ? fromBaseUsd(p.priceUsdt, mainCurrency, rates).toFixed(2) : p.priceUsdt;
+                                    costDisplay = p.costUsdt && ratesReady ? fromBaseUsd(p.costUsdt, mainCurrency, rates).toFixed(2) : null;
+                                }
+                                const sellNum = ratesReady ? fromBaseUsd(p.priceUsdt, mainCurrency === 'VES' ? 'USDT' : mainCurrency, rates) : 0;
+                                const costNum = p.costUsdt && ratesReady ? fromBaseUsd(p.costUsdt, mainCurrency === 'VES' ? 'USDT' : mainCurrency, rates) : 0;
+                                const margin = costNum > 0 ? ((sellNum - costNum) / costNum * 100).toFixed(0) : null;
 
                                 return (
                                     <button
