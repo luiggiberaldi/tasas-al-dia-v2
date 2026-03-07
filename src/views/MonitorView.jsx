@@ -307,32 +307,45 @@ export default function MonitorView({ rates, loading, isOffline, onRefresh, togg
                     <RateCardMini title="Dolar BCV Oficial" price={rates.bcv.price} change={rates.bcv.change} icon={ICON_BCV} formatVES={formatExactRate} renderChange={renderChange} symbol="Bs / $" />
                     <RateCardMini title="Euro BCV Oficial" price={rates.euro.price} change={rates.euro.change} icon={ICON_EURO} formatVES={formatExactRate} renderChange={renderChange} symbol="Bs / €" />
                 </div>
-            </div>
 
-            {/* Footer Clock */}
-            <div className="flex justify-center mt-auto opacity-60 hover:opacity-100 transition-opacity shrink-0">
-                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50">
-                    <Clock size={12} className="text-slate-400" />
-                    <span className="text-[10px] font-mono font-medium text-slate-500 dark:text-slate-400">
-                        Actualizado: {rates.lastUpdate ? new Date(rates.lastUpdate).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit', hour12: true }) : '--:--'}
-                    </span>
+                {/* COP Reference Pill */}
+                {rates.cop?.price > 0 && (
+                    <div className="flex items-center justify-center gap-3 px-4 py-2.5 rounded-2xl bg-amber-50/60 dark:bg-amber-900/10 border border-amber-100/50 dark:border-amber-800/20 shrink-0">
+                        <span className="text-sm">🇨🇴</span>
+                        <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400">
+                            1 USDT = {Math.round(rates.usdt.price / rates.cop.price).toLocaleString()} COP
+                        </span>
+                        <span className="text-[9px] text-amber-500/70 dark:text-amber-500/50">·</span>
+                        <span className="text-[10px] text-amber-600/60 dark:text-amber-400/50 font-mono">
+                            {rates.cop.price.toFixed(4)} Bs/COP
+                        </span>
+                    </div>
+                )}
+
+                {/* Footer Clock */}
+                <div className="flex justify-center mt-auto opacity-60 hover:opacity-100 transition-opacity shrink-0">
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50">
+                        <Clock size={12} className="text-slate-400" />
+                        <span className="text-[10px] font-mono font-medium text-slate-500 dark:text-slate-400">
+                            Actualizado: {rates.lastUpdate ? new Date(rates.lastUpdate).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit', hour12: true }) : '--:--'}
+                        </span>
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+            );
 }
 
-// Componente pequeño para tarjetas secundarias
-function RateCardMini({ title, price, change, icon, formatVES, renderChange, symbol }) {
+            // Componente pequeño para tarjetas secundarias
+            function RateCardMini({title, price, change, icon, formatVES, renderChange, symbol}) {
     return (
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 duration-300">
-            <div className="flex justify-between items-start mb-4">
-                <span className="block mb-1">{icon}</span>
-                {change !== 0 ? renderChange(change) : <div className="h-5"></div>}
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 duration-300">
+                <div className="flex justify-between items-start mb-4">
+                    <span className="block mb-1">{icon}</span>
+                    {change !== 0 ? renderChange(change) : <div className="h-5"></div>}
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">{title}</span>
+                <div className="text-xl font-black text-slate-800 dark:text-white tracking-tight font-mono">{formatVES(price)}</div>
+                <div className="text-[10px] text-slate-400 font-medium">{symbol || 'Bs / $'}</div>
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">{title}</span>
-            <div className="text-xl font-black text-slate-800 dark:text-white tracking-tight font-mono">{formatVES(price)}</div>
-            <div className="text-[10px] text-slate-400 font-medium">{symbol || 'Bs / $'}</div>
-        </div>
-    );
+            );
 }
