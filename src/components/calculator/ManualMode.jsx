@@ -223,6 +223,7 @@ export const ManualMode = ({ rates, accounts, theme, triggerHaptic, isKeyboardOp
                                 <option value="USDT">USDT</option>
                                 <option value="BCV">Dólar ($)</option>
                                 <option value="EUR">Euros (€)</option>
+                                <option value="COP">Pesos (COP)</option>
                             </select>
                         </div>
                         <div className="flex flex-col justify-end pb-1">

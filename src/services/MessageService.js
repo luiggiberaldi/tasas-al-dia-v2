@@ -73,6 +73,10 @@ export const MessageService = {
             } else if (mainCurrency === 'BCV') {
                 symbol = '$';
                 valToShow = formatUsd(totalBsRaw / rates.bcv.price);
+            } else if (mainCurrency === 'COP') {
+                symbol = 'COP';
+                const copRate = rates?.cop?.price || 1;
+                valToShow = Math.round(totalBsRaw / copRate).toLocaleString();
             } else {
                 symbol = 'USDT';
                 valToShow = strUsd;
