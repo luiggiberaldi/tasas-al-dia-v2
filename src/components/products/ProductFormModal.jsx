@@ -8,12 +8,13 @@ import { CURRENCIES, currencySymbol, toBaseUsd } from '../../utils/currencyUtils
  * Editable preview row — tap to edit, auto-recalculates all currencies.
  * Conversion always flows through Bs as the central anchor.
  */
-const EditableRate = ({ label, value, prefix, color, onEdit }) => {
+const EditableRate = ({ label, value, prefix, color, decimals = 2, onEdit }) => {
     const [editing, setEditing] = useState(false);
     const [localVal, setLocalVal] = useState('');
 
     const startEdit = () => {
-        setLocalVal(value || '');
+        const rounded = typeof value === 'number' ? parseFloat(value.toFixed(decimals)) : value;
+        setLocalVal(rounded || '');
         setEditing(true);
     };
 
@@ -167,6 +168,7 @@ export const ProductFormModal = ({
                                 label="Total Bs"
                                 value={totalBs}
                                 prefix=""
+                                decimals={2}
                                 color="text-slate-700 dark:text-white font-black"
                                 onEdit={(bs) => setFromBs(bs)}
                             />
@@ -177,6 +179,7 @@ export const ProductFormModal = ({
                                     label="Peso COP"
                                     value={refCop}
                                     prefix="COP "
+                                    decimals={0}
                                     color="text-amber-600 dark:text-amber-400"
                                     onEdit={(cop) => setFromBs(cop * rates.cop.price)}
                                 />
