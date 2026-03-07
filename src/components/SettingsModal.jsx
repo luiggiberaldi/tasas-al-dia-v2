@@ -251,7 +251,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                         </div>
 
                         {/* Paridad Toggle */}
-                        {mainCurrency !== 'USDT' && (
+                        {mainCurrency !== 'USDT' && mainCurrency !== 'COP_COL' && (
                             <div className="mt-4 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between animate-in slide-in-from-top-2">
                                 <div>
                                     <p className="text-[11px] font-bold text-slate-700 dark:text-slate-200">Paridad con USDT (1:1)</p>
