@@ -96,7 +96,7 @@ export const ProductFormModal = ({
                         {mainCurrency !== 'USDT' && rates?.usdt?.price > 0 && (
                             <div className="flex justify-between items-center text-xs text-slate-400">
                                 <span>{CURRENCIES[mainCurrency]}:</span>
-                                <span className="font-mono text-brand-dark font-bold">{currencySymbol(mainCurrency)}{fromBaseUsd(parseFloat(priceUsdt) || 0, mainCurrency, rates).toFixed(2)}</span>
+                                <span className="font-mono text-brand-dark font-bold">{currencySymbol(mainCurrency)}{parseFloat(parseFloat(priceUsdt).toFixed(2)).toLocaleString()}</span>
                             </div>
                         )}
                         <div className="flex justify-between items-center text-xs text-slate-400">
