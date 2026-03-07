@@ -61,6 +61,7 @@ export const ProductCard = ({
             {mainCurrency === 'COP_COL' && (
                 <>
                     <p className="text-[9px] text-slate-400">Ref BCV: <span className="font-semibold text-slate-500 dark:text-slate-300">${formatUsd(refBcv).replace('$', '')}</span></p>
+                    <p className="text-[9px] text-slate-400">Ref EUR: <span className="font-semibold text-slate-500 dark:text-slate-300">€{formatUsd(refEur).replace('$', '').replace('€', '')}</span></p>
                     <p className="text-[9px] text-slate-400">Ref USDT: <span className="font-semibold text-slate-500 dark:text-slate-300">{formatUsd(p.priceUsdt)} USDT</span></p>
                 </>
             )}

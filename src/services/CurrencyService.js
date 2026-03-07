@@ -24,8 +24,15 @@ export const CurrencyService = {
      * @returns {string}
      */
     applyRoundingRule: (value, currencyId) => {
-        if (currencyId === 'VES') return Math.ceil(value).toString();
-        // Ensure we handle cases where toFixed might be needed even for small numbers
+        if (currencyId === 'VES') {
+            // Values < 1 Bs: show decimals (e.g., 1 COP = 0.0088 Bs)
+            if (value > 0 && value < 1) return value.toFixed(4);
+            return Math.ceil(value).toString();
+        }
+        if (currencyId === 'COP') {
+            // COP amounts are large whole numbers (e.g., 4200)
+            return Math.round(value).toString();
+        }
         return value.toFixed(2);
     },
 
