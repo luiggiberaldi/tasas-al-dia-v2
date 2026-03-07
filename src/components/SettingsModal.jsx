@@ -228,10 +228,9 @@ export default function SettingsModal({ isOpen, onClose }) {
                                     id: 'COP_COL',
                                     label: 'COP',
                                     icon: (
-                                        <svg viewBox="0 0 32 32" className="w-6 h-6" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <circle cx="16" cy="16" r="15" fill="#FCD116" />
-                                            <path d="M1 16h30" stroke="#003893" strokeWidth="3" />
-                                            <path d="M1 22h30" stroke="#CE1126" strokeWidth="3" />
+                                        <svg viewBox="0 0 32 32" className="w-6 h-6" xmlns="http://www.w3.org/2000/svg">
+                                            <circle cx="16" cy="16" r="15" fill="#F0B90B" />
+                                            <text x="16" y="22" textAnchor="middle" fontSize="16" fontWeight="bold" fontFamily="Arial, sans-serif" fill="white">$</text>
                                         </svg>
                                     ),
                                 }
