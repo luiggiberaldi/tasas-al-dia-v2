@@ -1,13 +1,27 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../core/supabaseClient';
 
-const APP_VERSION = '2.0.0';  // actualizar con cada release
+const APP_VERSION = '2.0.1';  // actualizar con cada release
 const PRODUCT_ID = 'tasas';
+const MIGRATION_VERSION = 'v2.0.1'; // Cambiar para forzar re-migración en clientes atascados
 
 // CLAVE MAESTRA SECRETA (En un entorno real estaría ofuscada o validada en servidor, 
 // pero siguiendo la directiva "Offline First" y "Sin Backend", vive aquí).
 const MASTER_SECRET_KEY = "VENEZUELA_PRO_2026_GLOBAL";
 const DEMO_DURATION_MS = 168 * 60 * 60 * 1000; // 168 horas (7 días)
+
+// --- Force-clear stuck migrations on version change ---
+(function() {
+  const lastMigVer = localStorage.getItem('license_migration_ver');
+  if (lastMigVer !== MIGRATION_VERSION) {
+    // Si la versión de migración cambió, limpiar flags para forzar reintento
+    const currentStatus = localStorage.getItem('license_migrated');
+    if (currentStatus === 'skip') {
+      localStorage.removeItem('license_migrated');
+    }
+    localStorage.setItem('license_migration_ver', MIGRATION_VERSION);
+  }
+})();
 
 
 export function useSecurity() {
@@ -173,6 +187,24 @@ export function useSecurity() {
             if (subscription) subscription.unsubscribe();
         }
     }, [isPremium, deviceId])
+
+    // Demo heartbeat: update last_seen_at on demos table
+    useEffect(() => {
+        if (!isDemo || !deviceId || !import.meta.env.VITE_SUPABASE_URL) return;
+
+        const sendDemoHeartbeat = async () => {
+            try {
+                await supabase.from('demos')
+                    .update({ last_seen_at: new Date().toISOString() })
+                    .eq('device_id', deviceId)
+                    .eq('product_id', PRODUCT_ID);
+            } catch (e) { }
+        };
+
+        sendDemoHeartbeat();
+        const interval = setInterval(sendDemoHeartbeat, 15 * 60 * 1000); // cada 15 min
+        return () => clearInterval(interval);
+    }, [isDemo, deviceId]);
 
     // Countdown timer para demo
     useEffect(() => {
