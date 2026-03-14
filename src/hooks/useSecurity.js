@@ -347,8 +347,8 @@ export function useSecurity() {
                     // Marcar como migrado para no reintentar NUNCA MÁS
                     localStorage.setItem('license_migrated', 'done');
                 } catch (e) {
-                    // Error de red — marcar para no spammear
-                    localStorage.setItem('license_migrated', 'skip');
+                    // Error de red — NO marcar, así reintenta en la próxima apertura
+                    console.warn('[Migración] Sin red, se reintentará en la próxima apertura');
                 }
             }
 
