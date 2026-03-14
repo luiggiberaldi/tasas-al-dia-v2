@@ -73,7 +73,7 @@ export function useSecurity() {
                     hash |= 0;
                 }
                 const hex = Math.abs(hash).toString(16).toUpperCase().padStart(8, '0');
-                return `TASAS-${hex}`;
+                return `RVRS-${hex}`;
             }
 
             // Mismo hardware = mismo hash SHA-256
@@ -82,7 +82,7 @@ export function useSecurity() {
             const hashBuffer = await crypto.subtle.digest('SHA-256', data);
             const hashArray = Array.from(new Uint8Array(hashBuffer));
             const hex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase().substring(0, 8);
-            return `TASAS-${hex}`;
+            return `RVRS-${hex}`;
         };
 
         const initDeviceId = async () => {
@@ -92,6 +92,21 @@ export function useSecurity() {
                 localStorage.setItem('device_id', storedId);
             }
             setDeviceId(storedId);
+
+            // Auto-registro: registrar dispositivo si no existe (sin importar licencia)
+            try {
+                if (import.meta.env.VITE_SUPABASE_URL) {
+                    await supabase.from('licenses').upsert({
+                        device_id: storedId,
+                        product_id: PRODUCT_ID,
+                        type: 'registered',
+                        active: false,
+                        code: 'AUTO-REGISTRO',
+                        last_seen_at: new Date().toISOString(),
+                    }, { onConflict: 'device_id,product_id', ignoreDuplicates: true });
+                }
+            } catch (e) { /* silencioso */ }
+
             checkLicense(storedId);
         };
 
@@ -187,6 +202,24 @@ export function useSecurity() {
             if (subscription) subscription.unsubscribe();
         }
     }, [isPremium, deviceId])
+
+    // Heartbeat universal: actualizar last_seen_at sin importar tipo de licencia
+    useEffect(() => {
+        if (!deviceId || !import.meta.env.VITE_SUPABASE_URL) return;
+
+        const universalPing = async () => {
+            try {
+                await supabase.from('licenses')
+                    .update({ last_seen_at: new Date().toISOString() })
+                    .eq('device_id', deviceId)
+                    .eq('product_id', PRODUCT_ID);
+            } catch (e) { }
+        };
+
+        universalPing();
+        const interval = setInterval(universalPing, 15 * 60 * 1000);
+        return () => clearInterval(interval);
+    }, [deviceId]);
 
     // Demo heartbeat: update last_seen_at on demos table
     useEffect(() => {
@@ -436,11 +469,23 @@ export function useSecurity() {
         try {
             const expiresAt = new Date(expires).toISOString()
 
+            // 1. Registrar en tabla demos
             await supabase.from('demos').upsert({
                 device_id: deviceId,
                 product_id: PRODUCT_ID,
                 expires_at: expiresAt,
                 app_version: APP_VERSION,
+            }, { onConflict: 'device_id,product_id' })
+
+            // 2. Actualizar registro en licenses (upgrade de 'registered' a 'demo7')
+            await supabase.from('licenses').upsert({
+                device_id: deviceId,
+                product_id: PRODUCT_ID,
+                type: 'demo7',
+                active: true,
+                code: validCode,
+                expires_at: expiresAt,
+                last_seen_at: new Date().toISOString(),
             }, { onConflict: 'device_id,product_id' })
         } catch (e) {
             // Nunca bloquear si falla la red
