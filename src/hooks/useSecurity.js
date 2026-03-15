@@ -7,7 +7,6 @@ const MIGRATION_VERSION = 'v2.0.1'; // Cambiar para forzar re-migración en clie
 
 // CLAVE MAESTRA SECRETA (En un entorno real estaría ofuscada o validada en servidor, 
 // pero siguiendo la directiva "Offline First" y "Sin Backend", vive aquí).
-const MASTER_SECRET_KEY = "VENEZUELA_PRO_2026_GLOBAL";
 const DEMO_DURATION_MS = 168 * 60 * 60 * 1000; // 168 horas (7 días)
 
 // --- Force-clear stuck migrations on version change ---
@@ -96,14 +95,8 @@ export function useSecurity() {
             // Auto-registro: registrar dispositivo si no existe (sin importar licencia)
             try {
                 if (import.meta.env.VITE_SUPABASE_URL) {
-                    await supabase.from('licenses').upsert({
-                        device_id: storedId,
-                        product_id: PRODUCT_ID,
-                        type: 'registered',
-                        active: false,
-                        code: 'AUTO-REGISTRO',
-                        last_seen_at: new Date().toISOString(),
-                    }, { onConflict: 'device_id,product_id', ignoreDuplicates: true });
+                    const clientName = localStorage.getItem('business_name') || '';
+                    await supabase.rpc('auto_register_device', { p_device_id: storedId, p_product_id: PRODUCT_ID, p_client_name: clientName });
                 }
             } catch (e) { /* silencioso */ }
 
@@ -154,65 +147,8 @@ export function useSecurity() {
             verifyStatus(); // Chequeo constante
             try {
                 // Actualizar last_seen
-                await supabase.from('licenses')
-                    .update({ last_seen_at: new Date().toISOString() })
-                    .eq('device_id', deviceId)
-                    .eq('product_id', PRODUCT_ID)
-
-                // Registrar heartbeat record
-                await supabase
-                    .from('heartbeats')
-                    .insert({
-                        device_id: deviceId,
-                        product_id: PRODUCT_ID,
-                        app_version: APP_VERSION,
-                    });
-            } catch (e) { }
-        }
-
-        // 1. Ejecutar heartbeat completo al montar y cada 4 horas
-        sendHeartbeat();
-        const heartbeatInterval = setInterval(sendHeartbeat, 4 * 60 * 60 * 1000);
-
-        // 2. Poll de estado cada 1 minuto para revocaciones rápidas
-        const statusInterval = setInterval(verifyStatus, 60 * 1000);
-
-        // 3. Revisar apenas el usuario regrese a la app
-        const handleVisibility = () => { if (document.visibilityState === 'visible') verifyStatus(); };
-        document.addEventListener('visibilitychange', handleVisibility);
-
-        // 4. Supabase Realtime (Si está habilitado en la tabla)
-        let subscription = null;
-        try {
-            subscription = supabase.channel(`licenses_sync_${deviceId}`)
-                .on(
-                    'postgres_changes',
-                    { event: 'UPDATE', schema: 'public', table: 'licenses', filter: `device_id=eq.${deviceId}` },
-                    (payload) => {
-                        verifyStatus(); // Si hay un cambio, verificar inmediatamente
-                    }
-                )
-                .subscribe();
-        } catch (e) { }
-
-        return () => {
-            clearInterval(heartbeatInterval);
-            clearInterval(statusInterval);
-            document.removeEventListener('visibilitychange', handleVisibility);
-            if (subscription) subscription.unsubscribe();
-        }
-    }, [isPremium, deviceId])
-
-    // Heartbeat universal: actualizar last_seen_at sin importar tipo de licencia
-    useEffect(() => {
-        if (!deviceId || !import.meta.env.VITE_SUPABASE_URL) return;
-
-        const universalPing = async () => {
-            try {
-                await supabase.from('licenses')
-                    .update({ last_seen_at: new Date().toISOString() })
-                    .eq('device_id', deviceId)
-                    .eq('product_id', PRODUCT_ID);
+                const clientName = localStorage.getItem('business_name') || '';
+                await supabase.rpc('heartbeat_device', { p_device_id: deviceId, p_product_id: PRODUCT_ID, p_client_name: clientName });
             } catch (e) { }
         };
 
@@ -260,26 +196,6 @@ export function useSecurity() {
         return () => clearInterval(interval);
     }, [isDemo, demoExpires, updateTimeLeft]);
 
-    const generateActivationCode = async (devId) => {
-        if (!window.crypto || !window.crypto.subtle) {
-            console.warn("⚠️ Crypto API no disponible. Usando fallback.");
-            let hash = 5381;
-            const str = devId + MASTER_SECRET_KEY;
-            for (let i = 0; i < str.length; i++) {
-                hash = ((hash << 5) + hash) + str.charCodeAt(i);
-            }
-            const hex = (hash >>> 0).toString(16).toUpperCase().padStart(8, '0');
-            return `ACTIV-${hex.substring(0, 4)}-${hex.substring(4, 8)}`;
-        }
-
-        const encoder = new TextEncoder();
-        const data = encoder.encode(devId + MASTER_SECRET_KEY);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
-        return `ACTIV-${hashHex.substring(0, 4)}-${hashHex.substring(4, 8)}`;
-    };
-
     const checkLicense = async (currentDeviceId) => {
         let storedToken = localStorage.getItem('premium_token');
 
@@ -294,13 +210,12 @@ export function useSecurity() {
                     .maybeSingle();
 
                 if (remoteLicense && remoteLicense.active === true) {
-                    const validCode = await generateActivationCode(currentDeviceId);
                     const isTimeLimited = (remoteLicense.type === 'demo7');
                     const expiresAt = remoteLicense.expires_at ? new Date(remoteLicense.expires_at).getTime() : null;
 
                     if (isTimeLimited && expiresAt) {
                         if (Date.now() < expiresAt) {
-                            const token = { code: validCode, expires: expiresAt, isDemo: true };
+                            const token = { deviceId: currentDeviceId, type: 'demo7', expires: expiresAt };
                             localStorage.setItem('premium_token', JSON.stringify(token));
                             setIsPremium(true);
                             setIsDemo(true);
@@ -309,7 +224,8 @@ export function useSecurity() {
                         // Si ya expiró, no restaurar
                     } else {
                         // Permanente — restaurar token plano
-                        localStorage.setItem('premium_token', validCode);
+                        const token = { deviceId: currentDeviceId, type: 'permanent' };
+                        localStorage.setItem('premium_token', JSON.stringify(token));
                         setIsPremium(true);
                         setIsDemo(false);
                     }
@@ -325,15 +241,16 @@ export function useSecurity() {
             return;
         }
 
-        const validTokenStr = await generateActivationCode(currentDeviceId);
         let confirmedPremium = false;
         let confirmedDemo = false;
         let confirmedExpires = null;
 
         try {
             const tokenObj = JSON.parse(storedToken);
-            if (tokenObj && tokenObj.code && tokenObj.expires) {
-                if (tokenObj.code === validTokenStr) {
+            if (tokenObj && tokenObj.deviceId === currentDeviceId) {
+                // Token belongs to this device
+                const isTimeLimited = tokenObj.type === 'demo7' || tokenObj.isDemo; // retrocompatibilidad
+                if (isTimeLimited) {
                     if (Date.now() < tokenObj.expires) {
                         setIsPremium(true);
                         setIsDemo(true);
@@ -349,21 +266,20 @@ export function useSecurity() {
                         setDemoExpiredMsg("Tu licencia temporal ha finalizado. Esperamos que hayas disfrutado la experiencia completa.");
                     }
                 } else {
-                    setIsPremium(false);
+                    // Permanente
+                    setIsPremium(true);
+                    setIsDemo(false);
+                    confirmedPremium = true;
                 }
             } else {
                 setIsPremium(false);
             }
         } catch (e) {
-            // Formato string antiguo (Lifetime License)
-            if (storedToken === validTokenStr) {
-                setIsPremium(true);
-                setIsDemo(false);
-                confirmedPremium = true;
-                confirmedDemo = false;
-            } else {
-                setIsPremium(false);
-            }
+            // Unparseable token or old string format (Lifetime License legacy)
+            // If it's the old flat string token, we must force re-validation via Edge Function
+            // since we don't have the secret to validate it locally anymore.
+            // For now, fail safely (user will need to re-enter code, or Edge Function will be called)
+            setIsPremium(false);
         }
 
         // Migración silenciosa de licencias pre-Supabase (solo una vez)
@@ -450,15 +366,14 @@ export function useSecurity() {
             // Sin red → solo validar local
         }
 
-        const validCode = await generateActivationCode(deviceId);
         const expires = Date.now() + DEMO_DURATION_MS;
         const demoToken = {
-            code: validCode,
+            deviceId: deviceId,
+            type: 'demo7',
             expires: expires,
-            isDemo: true
         };
 
-        localStorage.setItem('premium_token', JSON.stringify(demoToken));
+        localStorage.setItem('premium_token', encodeToken(JSON.stringify(demoToken)));
         localStorage.setItem('demo_used_history', 'true');
 
         setIsPremium(true);
@@ -483,7 +398,7 @@ export function useSecurity() {
                 product_id: PRODUCT_ID,
                 type: 'demo7',
                 active: true,
-                code: validCode,
+                code: 'DEMO-ACTIVATED',
                 expires_at: expiresAt,
                 last_seen_at: new Date().toISOString(),
             }, { onConflict: 'device_id,product_id' })
@@ -499,67 +414,58 @@ export function useSecurity() {
      * Consulta Supabase para determinar si es permanente o temporal (7/30 días).
      */
     const unlockApp = async (inputCode) => {
-        const validCode = await generateActivationCode(deviceId);
-        if (inputCode.trim().toUpperCase() !== validCode) {
-            return { success: false, status: 'INVALID_CODE' };
-        }
-
-        // Consultar Supabase para obtener tipo y expiración
-        let licenseType = 'permanent';
-        let expiresAt = null;
-        let lastSeenAt = null;
         try {
-            const { data, error } = await supabase
-                .from('licenses')
-                .select('type, expires_at, last_seen_at')
-                .eq('device_id', deviceId)
-                .eq('product_id', PRODUCT_ID)
-                .maybeSingle();
+            const { data, error } = await supabase.functions.invoke('validate-license', {
+                body: { device_id: deviceId, code: inputCode, product_id: PRODUCT_ID }
+            });
 
-            if (data?.type) licenseType = data.type;
-            // Manejo estricto de fechas UTC
-            if (data?.expires_at) expiresAt = new Date(data.expires_at).getTime();
-            if (data?.last_seen_at) lastSeenAt = data.last_seen_at;
-        } catch (e) {
-            // Sin red → tratar como permanente (fallback seguro)
-        }
-
-        const isTimeLimited = (licenseType === 'demo7');
-
-        if (isTimeLimited) {
-            let finalExpiresAt = expiresAt;
-            if (!lastSeenAt) {
-                finalExpiresAt = Date.now() + 168 * 60 * 60 * 1000;
-                try {
-                    supabase.from('licenses').update({ expires_at: new Date(finalExpiresAt).toISOString() })
-                        .eq('device_id', deviceId).eq('product_id', PRODUCT_ID).then();
-                } catch (e) { console.warn('PWA: Error updating time limited license exp', e); }
+            if (error || !data?.valid) {
+                return { success: false, status: 'INVALID_CODE' };
             }
-            if (finalExpiresAt) {
-                expiresAt = finalExpiresAt;
-                // Guardar como JSON con expiración (mismo formato que demo)
-                const token = { code: validCode, expires: expiresAt, isDemo: true };
-                localStorage.setItem('premium_token', JSON.stringify(token));
+
+            const { type, active, expires_at } = data;
+            
+            if (!active) {
+                return { success: false, status: 'LICENSE_REVOKED' };
+            }
+
+            const isTimeLimited = (type === 'demo7');
+            let expiresAt = expires_at ? new Date(expires_at).getTime() : null;
+
+            if (isTimeLimited) {
+                if (!expiresAt) {
+                    expiresAt = Date.now() + 168 * 60 * 60 * 1000;
+                    try {
+                        supabase.from('licenses').update({ expires_at: new Date(expiresAt).toISOString() })
+                            .eq('device_id', deviceId).eq('product_id', PRODUCT_ID).then();
+                    } catch (e) { console.warn('PWA: Error updating time limited license exp', e); }
+                }
+
+                const token = { deviceId, code: inputCode, type: 'demo7', expires: expiresAt };
+                localStorage.setItem('premium_token', encodeToken(JSON.stringify(token)));
                 setIsPremium(true);
                 setIsDemo(true);
                 setDemoExpires(expiresAt);
                 return { success: true, status: 'PREMIUM_ACTIVATED' };
             }
-        }
 
-        // Permanente
-        localStorage.setItem('premium_token', validCode);
-        setIsPremium(true);
-        setIsDemo(false);
-        return { success: true, status: 'PREMIUM_ACTIVATED' };
+            // Permanente
+            const token = { deviceId, code: inputCode, type: 'permanent' };
+            localStorage.setItem('premium_token', encodeToken(JSON.stringify(token)));
+            setIsPremium(true);
+            setIsDemo(false);
+            return { success: true, status: 'PREMIUM_ACTIVATED' };
+            
+        } catch (err) {
+            console.error('Error validating license:', err);
+            return { success: false, status: 'SERVER_ERROR' };
+        }
     };
 
     /**
-     * Solo para el panel de admin: Genera el código para un CLIENTE (otro ID)
+     * Ya no se generan códigos en cliente.
      */
-    const generateCodeForClient = async (clientDeviceId) => {
-        return await generateActivationCode(clientDeviceId);
-    };
+    const generateCodeForClient = async () => null;
 
     return {
         deviceId,
