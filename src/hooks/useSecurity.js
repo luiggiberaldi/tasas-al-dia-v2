@@ -140,16 +140,16 @@ export function useSecurity() {
                     }
 
                     // Si el backend cambio el tipo de licencia, actualizar estado local sin recargar
-                    if (license.type === 'permanent' && isDemo) {
-                        // Demo -> Permanente: actualizar token y estado
+                    if (license.type === 'permanent' && (!isPremium || isDemo)) {
+                        // Demo (o Expirado) -> Permanente: actualizar token y estado
                         const token = { deviceId, type: 'permanent' };
                         localStorage.setItem('premium_token', JSON.stringify(token));
                         setIsPremium(true);
                         setIsDemo(false);
                         setDemoExpires(null);
                         setDemoTimeLeft('');
-                    } else if (license.type === 'demo7' && !isDemo && license.expires_at) {
-                        // Permanente -> Demo: actualizar token y estado
+                    } else if (license.type === 'demo7' && (!isPremium || !isDemo) && license.expires_at) {
+                        // Permanente (o Expirado) -> Demo: actualizar token y estado
                         const expiresAt = new Date(license.expires_at).getTime();
                         if (Date.now() < expiresAt) {
                             const token = { deviceId, type: 'demo7', expires: expiresAt };
@@ -425,7 +425,7 @@ export function useSecurity() {
             expires: expires,
         };
 
-        localStorage.setItem('premium_token', encodeToken(JSON.stringify(demoToken)));
+        localStorage.setItem('premium_token', JSON.stringify(demoToken));
         localStorage.setItem('demo_used_history', 'true');
 
         setIsPremium(true);
@@ -483,7 +483,7 @@ export function useSecurity() {
                 }
 
                 const token = { deviceId, code: inputCode, type: 'demo7', expires: expiresAt };
-                localStorage.setItem('premium_token', encodeToken(JSON.stringify(token)));
+                localStorage.setItem('premium_token', JSON.stringify(token));
                 setIsPremium(true);
                 setIsDemo(true);
                 setDemoExpires(expiresAt);
@@ -492,7 +492,7 @@ export function useSecurity() {
 
             // Permanente
             const token = { deviceId, code: inputCode, type: 'permanent' };
-            localStorage.setItem('premium_token', encodeToken(JSON.stringify(token)));
+            localStorage.setItem('premium_token', JSON.stringify(token));
             setIsPremium(true);
             setIsDemo(false);
             return { success: true, status: 'PREMIUM_ACTIVATED' };
