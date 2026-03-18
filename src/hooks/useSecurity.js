@@ -139,17 +139,25 @@ export function useSecurity() {
                         }
                     }
 
-                    // Si el backend difiere del estado local -> recargar
-                    const isDemoLocal = localStorage.getItem('premium_token')?.includes('"isDemo":true');
-                    const isMismatch = (license.type === 'permanent' && isDemoLocal) ||
-                        (license.type === 'demo7' && !isDemoLocal);
-
-                    if (isMismatch) {
-                        localStorage.removeItem('premium_token');
-                        window.location.reload();
-                    } else if (!isPremium) {
-                        // Reactivado remotamente -> Recargar para restaurar
-                        window.location.reload();
+                    // Si el backend cambio el tipo de licencia, actualizar estado local sin recargar
+                    if (license.type === 'permanent' && isDemo) {
+                        // Demo -> Permanente: actualizar token y estado
+                        const token = { deviceId, type: 'permanent' };
+                        localStorage.setItem('premium_token', JSON.stringify(token));
+                        setIsPremium(true);
+                        setIsDemo(false);
+                        setDemoExpires(null);
+                        setDemoTimeLeft('');
+                    } else if (license.type === 'demo7' && !isDemo && license.expires_at) {
+                        // Permanente -> Demo: actualizar token y estado
+                        const expiresAt = new Date(license.expires_at).getTime();
+                        if (Date.now() < expiresAt) {
+                            const token = { deviceId, type: 'demo7', expires: expiresAt };
+                            localStorage.setItem('premium_token', JSON.stringify(token));
+                            setIsPremium(true);
+                            setIsDemo(true);
+                            setDemoExpires(expiresAt);
+                        }
                     }
                 }
             } catch (e) { }
