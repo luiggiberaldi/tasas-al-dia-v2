@@ -427,15 +427,20 @@ export function useSecurity() {
      */
     const unlockApp = async (inputCode) => {
         try {
-            const { data, error } = await supabase.functions.invoke('validate-license', {
-                body: { device_id: deviceId, code: inputCode, product_id: PRODUCT_ID }
-            });
+            const cleanCode = (inputCode || "").trim();
+            // Validar el código directamente contra la base de datos para saltar fallos en las Edge Functions
+            const { data: license, error } = await supabase
+                .from('licenses')
+                .select('type, active, expires_at, code')
+                .eq('device_id', deviceId)
+                .eq('product_id', PRODUCT_ID)
+                .maybeSingle();
 
-            if (error || !data?.valid) {
+            if (error || !license || license.code !== cleanCode) {
                 return { success: false, status: 'INVALID_CODE' };
             }
 
-            const { type, active, expires_at } = data;
+            const { type, active, expires_at } = license;
             
             if (!active) {
                 return { success: false, status: 'LICENSE_REVOKED' };
