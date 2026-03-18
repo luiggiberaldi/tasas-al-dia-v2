@@ -106,9 +106,9 @@ export function useSecurity() {
         initDeviceId();
     }, []);
 
-    // Heartbeat silencioso cada 24h + chequeo de revocación
+    // Heartbeat + chequeo de revocación en tiempo real
     useEffect(() => {
-        if (!isPremium || !deviceId || !import.meta.env.VITE_SUPABASE_URL) return
+        if (!isPremium || !deviceId || !import.meta.env.VITE_SUPABASE_URL) return;
 
         // Función de chequeo rápido de estado
         const verifyStatus = async () => {
@@ -120,7 +120,7 @@ export function useSecurity() {
                     .eq('product_id', PRODUCT_ID)
                     .maybeSingle();
 
-                if (license && license.active === false && isPremium) {
+                if (license && (license.active === false || license.type === 'revoked') && isPremium) {
                     // Revocado desde Estación Maestra
                     localStorage.removeItem('premium_token');
                     setIsPremium(false);
@@ -153,21 +153,53 @@ export function useSecurity() {
                     }
                 }
             } catch (e) { }
-        }
+        };
 
         const sendHeartbeat = async () => {
-            verifyStatus(); // Chequeo constante
+            verifyStatus();
             try {
-                // Actualizar last_seen
                 const clientName = localStorage.getItem('business_name') || '';
                 await supabase.rpc('heartbeat_device', { p_device_id: deviceId, p_product_id: PRODUCT_ID, p_client_name: clientName });
             } catch (e) { }
         };
 
-        universalPing();
-        const interval = setInterval(universalPing, 15 * 60 * 1000);
-        return () => clearInterval(interval);
-    }, [deviceId]);
+        // 1. Ejecutar heartbeat al montar y cada 4 horas
+        sendHeartbeat();
+        const heartbeatInterval = setInterval(sendHeartbeat, 4 * 60 * 60 * 1000);
+
+        // 2. Poll de estado cada 1 minuto para revocaciones rapidas
+        const statusInterval = setInterval(verifyStatus, 60 * 1000);
+
+        // 3. Revisar apenas el usuario regrese a la app
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') verifyStatus();
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+
+        // 4. Supabase Realtime para deteccion instantanea
+        let subscription = null;
+        try {
+            subscription = supabase
+                .channel(`licenses_sync_${deviceId}`)
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'licenses',
+                    filter: `device_id=eq.${deviceId}`,
+                }, () => {
+                    verifyStatus();
+                })
+                .subscribe();
+        } catch (e) { }
+
+        return () => {
+            clearInterval(heartbeatInterval);
+            clearInterval(statusInterval);
+            document.removeEventListener('visibilitychange', handleVisibility);
+            if (subscription) subscription.unsubscribe();
+        };
+    }, [isPremium, deviceId]);
+
 
     // Demo heartbeat: update last_seen_at on demos table
     useEffect(() => {
