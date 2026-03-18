@@ -108,7 +108,7 @@ export function useSecurity() {
 
     // Heartbeat + chequeo de revocación en tiempo real
     useEffect(() => {
-        if (!isPremium || !deviceId || !import.meta.env.VITE_SUPABASE_URL) return;
+        if (!deviceId || !import.meta.env.VITE_SUPABASE_URL) return;
 
         // Función de chequeo rápido de estado
         const verifyStatus = async () => {
@@ -206,7 +206,7 @@ export function useSecurity() {
             document.removeEventListener('visibilitychange', handleVisibility);
             if (subscription) subscription.unsubscribe();
         };
-    }, [isPremium, deviceId]);
+    }, [isPremium, isDemo, deviceId]);
 
 
     // Demo heartbeat: update last_seen_at on demos table
@@ -432,28 +432,12 @@ export function useSecurity() {
         setIsDemo(true);
         setDemoExpires(expires);
 
-        // Reportar demo a Supabase (silencioso)
+        // Reportar demo a Supabase via RPC seguro (bypass RLS)
         try {
-            const expiresAt = new Date(expires).toISOString()
-
-            // 1. Registrar en tabla demos
-            await supabase.from('demos').upsert({
-                device_id: deviceId,
-                product_id: PRODUCT_ID,
-                expires_at: expiresAt,
-                app_version: APP_VERSION,
-            }, { onConflict: 'device_id,product_id' })
-
-            // 2. Actualizar registro en licenses (upgrade de 'registered' a 'demo7')
-            await supabase.from('licenses').upsert({
-                device_id: deviceId,
-                product_id: PRODUCT_ID,
-                type: 'demo7',
-                active: true,
-                code: 'DEMO-ACTIVATED',
-                expires_at: expiresAt,
-                last_seen_at: new Date().toISOString(),
-            }, { onConflict: 'device_id,product_id' })
+            await supabase.rpc('activate_demo_secure', {
+                p_device_id: deviceId,
+                p_product_id: PRODUCT_ID
+            });
         } catch (e) {
             // Nunca bloquear si falla la red
         }
@@ -467,7 +451,7 @@ export function useSecurity() {
      */
     const unlockApp = async (inputCode) => {
         try {
-            const cleanCode = (inputCode || "").trim();
+            const cleanCode = (inputCode || "").trim().toUpperCase().replace(/O/g, '0');
             // Validar el código directamente contra la base de datos para saltar fallos en las Edge Functions
             const { data: license, error } = await supabase
                 .from('licenses')
